@@ -29,8 +29,11 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      # Must go through Nx: flat config does not cascade, so a root `eslint
+      # apps libs` run applies only the root config and silently skips every
+      # Angular and template rule in apps/client/eslint.config.mjs.
       - name: Lint
-        run: npx eslint apps libs --max-warnings=0
+        run: npx nx run-many -t lint --all --max-warnings=0
 
       - name: Check formatting
         run: npx prettier --check "apps/**/*.{ts,html,scss}" "libs/**/*.ts"
