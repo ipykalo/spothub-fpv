@@ -1,0 +1,136 @@
+// SpotHub FPV — see Notion → Architecture & Database Schemas.
+//
+// Every owned row carries ownerId from day one, even while there is one user.
+// Retrofitting ownership into queries later is the expensive part; adding a
+// second row to `users` is free.
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../node_modules/.prisma/client"
+  // musl target is required for the Alpine runtime image, otherwise the query
+  // engine fails at runtime with a cryptic "could not locate engine" error.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- identity
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  email       String   @unique
+  displayName String?  @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  role        Role     @default(USER)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  identities    AuthIdentity[]
+  refreshTokens RefreshToken[]
+  builds        Build[]
+
+  @@map("users")
+}
+
+enum AuthProvider {
+  GOOGLE
+  DISCORD
+}
+
+/// A federated identity. Kept in its own table rather than a `googleId`
+/// column so adding Discord later is additive rather than a migration.
+model AuthIdentity {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  provider  AuthProvider
+  /// The provider's stable subject id — Google's `sub`, never the email.
+  /// Emails change; subjects do not.
+  subject   String
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+/// One issued refresh token. Rotation replaces a token on every use; presenting
+/// an already-rotated token means it leaked, so the whole family is revoked.
+model RefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  /// SHA-256 of the token. The raw value only ever lives in the cookie.
+  tokenHash    String    @unique @map("token_hash")
+  /// Shared by every token descended from one login, so a detected reuse can
+  /// revoke the entire chain rather than a single link.
+  familyId     String    @map("family_id") @db.Uuid
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  replacedById String?   @map("replaced_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ------------------------------------------------------------------ hangar
+
+enum BuildClass {
+  WHOOP
+  THREE_INCH
+  FIVE_INCH
+  SEVEN_INCH
+  CINEWHOOP
+  LONG_RANGE
+  WING
+}
+
+enum BuildStatus {
+  PLANNING
+  ACTIVE
+  /// Grounded, waiting on a part. Every pilot has one.
+  DOWN
+  RETIRED
+}
+
+enum Visibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+model Build {
+  id            String      @id @default(uuid()) @db.Uuid
+  ownerId       String      @map("owner_id") @db.Uuid
+  name          String
+  slug          String
+  buildClass    BuildClass? @map("build_class")
+  status        BuildStatus @default(PLANNING)
+  visibility    Visibility  @default(PRIVATE)
+  weightG       Int?        @map("weight_g")
+  hasGps        Boolean     @default(false) @map("has_gps")
+  descriptionMd String?     @map("description_md")
+  builtOn       DateTime?   @map("built_on") @db.Date
+  retiredOn     DateTime?   @map("retired_on") @db.Date
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, slug])
+  @@index([ownerId, status])
+  @@map("builds")
+}

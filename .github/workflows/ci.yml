@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Nx affected commands need history to compare against the base.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Types and lint both depend on the generated client, so this comes first.
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npx eslint apps libs --max-warnings=0
+
+      - name: Check formatting
+        run: npx prettier --check "apps/**/*.{ts,html,scss}" "libs/**/*.ts"
+
+      - name: Typecheck
+        run: |
+          npx tsc -p apps/api/tsconfig.app.json --noEmit
+          npx tsc -p apps/client/tsconfig.app.json --noEmit
+
+      - name: Build
+        run: npx nx run-many -t build --projects=api,client --configuration=production
