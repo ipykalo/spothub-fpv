@@ -1,0 +1,14 @@
+@if (auth.isAuthenticated()) {
+  <mat-toolbar>
+    <a class="brand" routerLink="/hangar">SpotHub FPV</a>
+    <span class="spacer"></span>
+    <span>{{ auth.displayName() }}</span>
+    <button matIconButton type="button" aria-label="Sign out" (click)="signOut()">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </mat-toolbar>
+}
+
+<main>
+  <router-outlet />
+</main>

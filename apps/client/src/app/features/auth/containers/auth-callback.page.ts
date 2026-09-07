@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 
-import { AuthStore } from '../../core/auth/auth.store';
+import { AuthStore } from '../../../core/auth/auth.store';
 
 /**
  * Lands from the OAuth redirect, reads the token out of the URL fragment and
@@ -12,22 +12,8 @@ import { AuthStore } from '../../core/auth/auth.store';
   selector: 'sh-auth-callback-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatProgressSpinnerModule],
-  styles: `
-    :host {
-      display: grid;
-      place-items: center;
-      min-height: 100dvh;
-      gap: 1rem;
-    }
-  `,
-  template: `
-    @if (failed()) {
-      <p>Sign-in failed. <a href="/login">Try again</a></p>
-    } @else {
-      <mat-spinner diameter="40" />
-      <p>Signing you in…</p>
-    }
-  `,
+  templateUrl: './auth-callback.page.html',
+  styleUrl: './auth-callback.page.scss',
 })
 export class AuthCallbackPage {
   private readonly auth = inject(AuthStore);

@@ -57,9 +57,12 @@ vitest.config.*.timestamp*
 __screenshots__/
 
 # Environment
+# Ignore every .env variant, then re-allow the tracked template. This catches
+# .env.bak / .env.old / .env.prod, which a narrow list silently misses — and a
+# stray backup holds the same secrets as the original.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Prisma generated client
 node_modules/.prisma

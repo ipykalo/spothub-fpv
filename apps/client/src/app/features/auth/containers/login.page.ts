@@ -4,44 +4,14 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute } from '@angular/router';
 
-import { API_BASE_URL } from '../../core/api/api.tokens';
+import { API_BASE_URL } from '../../../core/api/api.tokens';
 
 @Component({
   selector: 'sh-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatButtonModule, MatCardModule, MatIconModule],
-  styles: `
-    :host {
-      display: grid;
-      place-items: center;
-      min-height: 100dvh;
-      padding: 1.5rem;
-    }
-
-    mat-card {
-      max-width: 26rem;
-      width: 100%;
-    }
-
-    .tagline {
-      color: var(--mat-sys-on-surface-variant);
-      margin: 0 0 1.5rem;
-    }
-  `,
-  template: `
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <mat-card-title>SpotHub FPV</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="tagline">Your hangar: what you built, what's in it, what it cost.</p>
-        <button matButton="filled" type="button" (click)="signIn()">
-          <mat-icon>login</mat-icon>
-          Continue with Google
-        </button>
-      </mat-card-content>
-    </mat-card>
-  `,
+  templateUrl: './login.page.html',
+  styleUrl: './login.page.scss',
 })
 export class LoginPage {
   private readonly baseUrl = inject(API_BASE_URL);

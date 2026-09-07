@@ -1,0 +1,12 @@
+<mat-chip-listbox
+  aria-label="Filter by status"
+  (change)="selectedChange.emit($any($event).value ?? null)"
+>
+  <mat-chip-option [selected]="selected() === null" [value]="null">All</mat-chip-option>
+
+  @for (status of statuses(); track status) {
+    <mat-chip-option [selected]="selected() === status" [value]="status">
+      {{ statusLabels[status] }}
+    </mat-chip-option>
+  }
+</mat-chip-listbox>

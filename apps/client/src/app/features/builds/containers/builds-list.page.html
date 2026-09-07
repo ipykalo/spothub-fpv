@@ -1,0 +1,39 @@
+<div class="toolbar">
+  <h1>Hangar</h1>
+
+  <sh-build-status-filter
+    [statuses]="statuses"
+    [selected]="store.status()"
+    (selectedChange)="onFilter($event)"
+  />
+
+  <button matButton="filled" routerLink="/hangar/new">
+    <mat-icon>add</mat-icon>
+    New build
+  </button>
+</div>
+
+@if (store.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (store.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+@if (store.isEmpty()) {
+  <div class="empty">
+    <p>No builds yet.</p>
+    <button matButton routerLink="/hangar/new">Add your first quad</button>
+  </div>
+} @else {
+  <div class="grid">
+    @for (build of store.builds(); track build.id) {
+      <sh-build-card
+        [build]="build"
+        [deleting]="pendingDelete() === build.id"
+        (delete)="remove($event)"
+      />
+    }
+  </div>
+}

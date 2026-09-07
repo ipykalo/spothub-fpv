@@ -1,0 +1,29 @@
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>{{ build().name }}</mat-card-title>
+    <mat-card-subtitle class="status-{{ build().status }}">
+      {{ statusLabels[build().status] }}
+    </mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="meta">
+      @if (build().buildClass; as buildClass) {
+        <span>{{ classLabels[buildClass] }}</span>
+      }
+      @if (build().weightG; as weight) {
+        <span>{{ weight }} g</span>
+      }
+      @if (build().hasGps) {
+        <span>GPS</span>
+      }
+    </div>
+  </mat-card-content>
+
+  <mat-card-actions>
+    <button matButton [routerLink]="['/hangar', build().id]">Edit</button>
+    <button matButton [disabled]="deleting()" (click)="delete.emit(build())">
+      {{ deleting() ? 'Deleting…' : 'Delete' }}
+    </button>
+  </mat-card-actions>
+</mat-card>

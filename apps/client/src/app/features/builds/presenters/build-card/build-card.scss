@@ -1,0 +1,11 @@
+.meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.status-DOWN {
+  color: var(--mat-sys-error);
+}

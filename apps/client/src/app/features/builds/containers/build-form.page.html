@@ -1,0 +1,8 @@
+<sh-build-form
+  [build]="build()"
+  [isEdit]="isEdit()"
+  [saving]="saving()"
+  [errorMessage]="failure()"
+  (saved)="save($event)"
+  (cancelled)="cancel()"
+/>

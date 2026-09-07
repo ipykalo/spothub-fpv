@@ -11,12 +11,15 @@ export const appRoutes: Route[] = [
   {
     path: 'login',
     canActivate: [guestGuard],
-    loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
+    loadComponent: () =>
+      import('./features/auth/containers/login.page').then((m) => m.LoginPage),
   },
   {
     path: 'auth/callback',
     loadComponent: () =>
-      import('./features/auth/auth-callback.page').then((m) => m.AuthCallbackPage),
+      import('./features/auth/containers/auth-callback.page').then(
+        (m) => m.AuthCallbackPage,
+      ),
   },
   {
     path: 'hangar',
@@ -25,17 +28,23 @@ export const appRoutes: Route[] = [
       {
         path: '',
         loadComponent: () =>
-          import('./features/builds/builds-list.page').then((m) => m.BuildsListPage),
+          import('./features/builds/containers/builds-list.page').then(
+            (m) => m.BuildsListPage,
+          ),
       },
       {
         path: 'new',
         loadComponent: () =>
-          import('./features/builds/build-form.page').then((m) => m.BuildFormPage),
+          import('./features/builds/containers/build-form.page').then(
+            (m) => m.BuildFormPage,
+          ),
       },
       {
         path: ':id',
         loadComponent: () =>
-          import('./features/builds/build-form.page').then((m) => m.BuildFormPage),
+          import('./features/builds/containers/build-form.page').then(
+            (m) => m.BuildFormPage,
+          ),
       },
     ],
   },
