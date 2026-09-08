@@ -1,0 +1,44 @@
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>{{ title() }}</mat-card-title>
+    <mat-card-subtitle>
+      <span class="status status-{{ part().status }}">
+        {{ statusLabels[part().status] }}
+      </span>
+      @if (part().quantityOwned !== 1) {
+        <span>· {{ part().quantityOwned }} held</span>
+      }
+    </mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    @if (specEntries().length) {
+      <dl class="spec">
+        @for (entry of specEntries(); track entry.key) {
+          <div>
+            <dt>{{ entry.key }}</dt>
+            <dd>{{ entry.value }}</dd>
+          </div>
+        }
+      </dl>
+    }
+
+    @if (part().purchasePrice !== null) {
+      <p class="price">
+        {{ part().purchasePrice }} {{ part().purchaseCurrency }}
+        @if (part().quantityOwned > 1) {
+          <span class="each">each</span>
+        }
+      </p>
+    } @else {
+      <p class="price muted">No purchase recorded</p>
+    }
+  </mat-card-content>
+
+  <mat-card-actions>
+    <button matButton [routerLink]="['/parts', part().id]">Edit</button>
+    <button matButton [disabled]="deleting()" (click)="delete.emit(part())">
+      {{ deleting() ? 'Deleting…' : 'Delete' }}
+    </button>
+  </mat-card-actions>
+</mat-card>

@@ -1,6 +1,10 @@
 @if (auth.isAuthenticated()) {
   <mat-toolbar>
     <a class="brand" routerLink="/hangar">SpotHub FPV</a>
+    <nav>
+      <a matButton routerLink="/hangar">Hangar</a>
+      <a matButton routerLink="/parts">Parts</a>
+    </nav>
     <span class="spacer"></span>
     <span>{{ auth.displayName() }}</span>
     <button matIconButton type="button" aria-label="Sign out" (click)="signOut()">

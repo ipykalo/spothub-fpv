@@ -1,0 +1,41 @@
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-form-field>
+    <mat-label>Part</mat-label>
+    <mat-select formControlName="partId">
+      @for (part of parts(); track part.id) {
+        <mat-option [value]="part.id"> {{ label(part) }} · {{ categoryLabels[part.category] }} </mat-option>
+      }
+    </mat-select>
+    @if (!parts().length) {
+      <mat-hint>Nothing in the inventory yet — add a part first.</mat-hint>
+    }
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label>Position</mat-label>
+    <input matInput formControlName="position" placeholder="motor FR" />
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label>Fitted on</mat-label>
+    <input matInput type="date" formControlName="installedOn" />
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label>Reason</mat-label>
+    <mat-select formControlName="reason">
+      @for (item of reasons; track item) {
+        <mat-option [value]="item">{{ reasonLabels[item] }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <button matButton="filled" type="submit" [disabled]="saving() || !parts().length">
+    <mat-icon>add</mat-icon>
+    Fit
+  </button>
+</form>
+
+@if (error) {
+  <p role="alert">{{ error }}</p>
+}

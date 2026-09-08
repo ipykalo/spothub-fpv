@@ -1,0 +1,209 @@
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>{{ isEdit() ? 'Edit part' : 'New part' }}</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="row">
+        <mat-form-field>
+          <mat-label>Category</mat-label>
+          <mat-select formControlName="category">
+            @for (item of categories; track item) {
+              <mat-option [value]="item">{{ categoryLabels[item] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status">
+            @for (item of statuses; track item) {
+              <mat-option [value]="item">{{ statusLabels[item] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Quantity owned</mat-label>
+          <input matInput type="number" formControlName="quantityOwned" min="0" />
+        </mat-form-field>
+      </div>
+
+      <div class="row">
+        <mat-form-field>
+          <mat-label>Manufacturer</mat-label>
+          <input matInput formControlName="manufacturer" placeholder="T-Motor" />
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Model</mat-label>
+          <input matInput formControlName="model" placeholder="F60 Pro V 2020" />
+        </mat-form-field>
+      </div>
+
+      <!-- Specification: open key/value pairs, seeded per category -->
+      <section class="block">
+        <h3>Specification</h3>
+        <p class="hint">
+          Whatever describes this category. Suggestions come from the category you picked; rename or remove any of them.
+        </p>
+
+        <div formArrayName="spec" class="spec-rows">
+          @for (row of specRowList(); track row; let i = $index) {
+            <div class="spec-row" [formGroupName]="i">
+              <mat-form-field>
+                <mat-label>Name</mat-label>
+                <input matInput formControlName="key" (blur)="onSpecKeyChange()" />
+              </mat-form-field>
+
+              <mat-form-field>
+                <mat-label>Value</mat-label>
+                <input matInput formControlName="value" />
+              </mat-form-field>
+
+              <button matIconButton type="button" aria-label="Remove this attribute" (click)="removeSpecRow(i)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+
+        <div class="chips">
+          @for (key of suggestions(); track key) {
+            <button matButton type="button" (click)="addSpecRow(key)">
+              <mat-icon>add</mat-icon>
+              {{ key }}
+            </button>
+          }
+          <button matButton type="button" (click)="addSpecRow()">
+            <mat-icon>add</mat-icon>
+            Custom
+          </button>
+        </div>
+      </section>
+
+      <!-- Where it came from -->
+      <section class="block" formGroupName="source">
+        <h3>{{ editingSourceId() ? 'Purchase' : 'Where it came from' }}</h3>
+        <p class="hint">
+          @if (editingSourceId()) {
+            Correcting the purchase recorded below. Clear the link and paste another to look a different listing up.
+          } @else {
+            Paste a product link and the server reads the page's own listing tags. Everything it fills in can be
+            overwritten.
+          }
+        </p>
+
+        <div class="lookup">
+          <mat-form-field>
+            <mat-label>Product link</mat-label>
+            <input matInput formControlName="url" placeholder="https://…" (blur)="onUrlBlur()" />
+          </mat-form-field>
+
+          <button matButton="outlined" type="button" [disabled]="previewLoading()" (click)="lookUpUrl()">
+            @if (previewLoading()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              <mat-icon>travel_explore</mat-icon>
+            }
+            Look up
+          </button>
+        </div>
+
+        @if (preview(); as found) {
+          <div class="preview">
+            @if (found.imageUrl; as image) {
+              <img [src]="image" alt="" width="56" height="56" />
+            }
+
+            <p>
+              @if (appliedFields().length) {
+                Filled {{ appliedFields().join(', ') }}. Change anything that looks wrong.
+              } @else {
+                That page published nothing this form could use.
+              }
+            </p>
+          </div>
+        }
+
+        <div class="row">
+          <mat-form-field>
+            <mat-label>Vendor</mat-label>
+            <input matInput formControlName="vendor" />
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>Price</mat-label>
+            <input matInput type="number" formControlName="price" min="0" step="0.01" />
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>Currency</mat-label>
+            <input matInput formControlName="currency" maxlength="3" />
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>Purchased on</mat-label>
+            <input matInput type="date" formControlName="purchasedOn" />
+          </mat-form-field>
+        </div>
+
+        <mat-checkbox formControlName="isPurchase"> This is where I actually bought it </mat-checkbox>
+      </section>
+
+      <!-- Existing sources, on edit only -->
+      @if (part(); as existing) {
+        @if (existing.sources.length) {
+          <section class="block">
+            <h3>Recorded sources</h3>
+            <ul class="sources">
+              @for (source of existing.sources; track source.id) {
+                <li>
+                  <span class="source-main">
+                    @if (source.isPurchase) {
+                      <mat-icon class="bought" aria-label="Purchased">check_circle</mat-icon>
+                    }
+                    {{ source.vendor ?? 'Unknown vendor' }}
+                    @if (source.price !== null) {
+                      <strong>{{ source.price }} {{ source.currency }}</strong>
+                    }
+                  </span>
+
+                  @if (source.url; as link) {
+                    <a [href]="link" target="_blank" rel="noopener noreferrer">Open</a>
+                  }
+
+                  <button
+                    matIconButton
+                    type="button"
+                    aria-label="Remove this source"
+                    (click)="sourceRemoved.emit(source)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      }
+
+      <mat-form-field>
+        <mat-label>Notes (Markdown)</mat-label>
+        <textarea matInput rows="4" formControlName="notesMd"></textarea>
+      </mat-form-field>
+
+      @if (message(); as text) {
+        <p role="alert">{{ text }}</p>
+      }
+
+      <div class="actions">
+        <button matButton="filled" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+        <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

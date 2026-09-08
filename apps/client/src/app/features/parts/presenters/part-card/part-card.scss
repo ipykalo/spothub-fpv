@@ -1,0 +1,40 @@
+.spec {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+}
+
+.spec div {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.spec dt {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.spec dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.price {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.price.muted {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.each {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.status-BROKEN {
+  color: var(--mat-sys-error);
+}

@@ -33,6 +33,44 @@ export const Visibility = {
 } as const;
 export type Visibility = (typeof Visibility)[keyof typeof Visibility];
 
+export const PartCategory = {
+  Frame: 'FRAME',
+  Motor: 'MOTOR',
+  Esc: 'ESC',
+  /** Flight controller. */
+  Fc: 'FC',
+  /** An FC and ESC sold as one unit. */
+  Stack: 'STACK',
+  Vtx: 'VTX',
+  Camera: 'CAMERA',
+  /** Radio receiver. */
+  Rx: 'RX',
+  Antenna: 'ANTENNA',
+  Prop: 'PROP',
+  Battery: 'BATTERY',
+  Other: 'OTHER',
+} as const;
+export type PartCategory = (typeof PartCategory)[keyof typeof PartCategory];
+
+export const PartStatus = {
+  /** Bought, not yet fitted to anything. */
+  New: 'NEW',
+  InUse: 'IN_USE',
+  Spare: 'SPARE',
+  Broken: 'BROKEN',
+  Retired: 'RETIRED',
+} as const;
+export type PartStatus = (typeof PartStatus)[keyof typeof PartStatus];
+
+export const InstallReason = {
+  /** Fitted when the build was first put together. */
+  Initial: 'INITIAL',
+  /** Swapped in for something broken or worn. */
+  Replacement: 'REPLACEMENT',
+  Upgrade: 'UPGRADE',
+} as const;
+export type InstallReason = (typeof InstallReason)[keyof typeof InstallReason];
+
 export const Role = {
   User: 'USER',
   Admin: 'ADMIN',
@@ -61,4 +99,33 @@ export const VISIBILITY_LABELS: Readonly<Record<Visibility, string>> = {
   [Visibility.Private]: 'Private',
   [Visibility.Unlisted]: 'Unlisted',
   [Visibility.Public]: 'Public',
+};
+
+export const PART_CATEGORY_LABELS: Readonly<Record<PartCategory, string>> = {
+  [PartCategory.Frame]: 'Frame',
+  [PartCategory.Motor]: 'Motor',
+  [PartCategory.Esc]: 'ESC',
+  [PartCategory.Fc]: 'Flight controller',
+  [PartCategory.Stack]: 'Stack',
+  [PartCategory.Vtx]: 'VTX',
+  [PartCategory.Camera]: 'Camera',
+  [PartCategory.Rx]: 'Receiver',
+  [PartCategory.Antenna]: 'Antenna',
+  [PartCategory.Prop]: 'Props',
+  [PartCategory.Battery]: 'Battery',
+  [PartCategory.Other]: 'Other',
+};
+
+export const PART_STATUS_LABELS: Readonly<Record<PartStatus, string>> = {
+  [PartStatus.New]: 'New',
+  [PartStatus.InUse]: 'In use',
+  [PartStatus.Spare]: 'Spare',
+  [PartStatus.Broken]: 'Broken',
+  [PartStatus.Retired]: 'Retired',
+};
+
+export const INSTALL_REASON_LABELS: Readonly<Record<InstallReason, string>> = {
+  [InstallReason.Initial]: 'Initial build',
+  [InstallReason.Replacement]: 'Replacement',
+  [InstallReason.Upgrade]: 'Upgrade',
 };

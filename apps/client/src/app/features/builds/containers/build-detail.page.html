@@ -1,0 +1,67 @@
+@if (build(); as quad) {
+  <header class="head">
+    <div>
+      <a class="back" routerLink="/hangar">
+        <mat-icon>arrow_back</mat-icon>
+        Hangar
+      </a>
+      <h1>{{ quad.name }}</h1>
+      <p class="meta">
+        <span class="status status-{{ quad.status }}">{{ statusLabels[quad.status] }}</span>
+        @if (quad.buildClass; as cls) {
+          <span>{{ classLabels[cls] }}</span>
+        }
+        @if (quad.weightG; as weight) {
+          <span>{{ weight }} g</span>
+        }
+        @if (quad.hasGps) {
+          <span>GPS</span>
+        }
+      </p>
+    </div>
+
+    <a matButton="outlined" [routerLink]="['/hangar', quad.id, 'edit']">
+      <mat-icon>edit</mat-icon>
+      Edit build
+    </a>
+  </header>
+} @else {
+  <h1>Build</h1>
+}
+
+<sh-build-cost-summary [cost]="installs.cost()" />
+
+@if (installs.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (installs.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+<section class="block">
+  <h2>Fit a part</h2>
+  <sh-install-part-form [parts]="parts.parts()" [saving]="saving()" (installed)="install($event)" />
+</section>
+
+<section class="block">
+  <h2>Components</h2>
+  <sh-installed-parts-list
+    [installs]="installs.fitted()"
+    [pendingRemoval]="pendingRemoval()"
+    (removeRequested)="remove($event)"
+  />
+</section>
+
+@if (installs.removed().length) {
+  <section class="block">
+    <button matButton type="button" (click)="toggleHistory()">
+      <mat-icon>{{ showHistory() ? 'expand_less' : 'expand_more' }}</mat-icon>
+      {{ showHistory() ? 'Hide' : 'Show' }} previously fitted ({{ installs.removed().length }})
+    </button>
+
+    @if (showHistory()) {
+      <sh-installed-parts-list [installs]="installs.removed()" [history]="true" />
+    }
+  </section>
+}
