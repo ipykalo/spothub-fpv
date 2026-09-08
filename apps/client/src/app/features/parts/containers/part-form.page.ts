@@ -2,9 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   signal,
+  untracked,
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -42,7 +44,17 @@ export class PartFormPage {
   protected readonly isEdit = computed(() => this.id() !== undefined);
 
   constructor() {
-    void this.hydrate();
+    // Route inputs are bound *after* construction, so reading id() directly in
+    // the constructor always sees undefined and the form silently stays blank.
+    // An effect runs again once the input lands. `untracked` keeps store reads
+    // inside hydrate from re-triggering it.
+    effect(() => {
+      const id = this.id();
+
+      if (id) {
+        untracked(() => void this.hydrate(id));
+      }
+    });
   }
 
   protected async save(submission: PartSubmission): Promise<void> {
@@ -106,13 +118,7 @@ export class PartFormPage {
   }
 
   /** Fills the form when editing, preferring the already-loaded list entry. */
-  private async hydrate(): Promise<void> {
-    const id = this.id();
-
-    if (!id) {
-      return;
-    }
-
+  private async hydrate(id: string): Promise<void> {
     const cached = this.store.find(id);
     const part = cached ?? (await this.fetch(id));
 

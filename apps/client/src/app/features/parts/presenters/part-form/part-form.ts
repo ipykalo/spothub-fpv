@@ -132,6 +132,16 @@ export class PartForm {
   /** Which fields the preview actually filled, echoed back so the lookup is not silent. */
   protected readonly appliedFields = signal<readonly string[]>([]);
 
+  /**
+   * The spec rows as a signal.
+   *
+   * `FormArray.controls` is a plain mutable array: pushing to it notifies
+   * nothing, so a zoneless template can render a stale row list while
+   * `formGroupName` binds by position. Mirroring it in a signal keeps the
+   * rendered rows and the form model in step.
+   */
+  protected readonly specRowList = signal<readonly SpecRowGroup[]>([]);
+
   /** Whatever the container reported wins; local validation fills the gap. */
   protected readonly message = computed(
     () => this.errorMessage() ?? this.validationError(),
@@ -350,20 +360,27 @@ export class PartForm {
     return this.fb.group({ key: [key], value: [value] });
   }
 
+  /** Republishes both views of the FormArray after any structural change. */
   private syncSpecKeys(): void {
+    this.specRowList.set([...this.specRows.controls]);
     this.specKeys.set(this.specRows.controls.map((row) => row.controls.key.value));
   }
 }
 
-/** Blank keys are dropped; a row with no name is a row the user abandoned. */
+/**
+ * A row only counts once it has both halves. A suggestion chip that was added
+ * and never filled in is an abandoned row, not an attribute worth storing as
+ * an empty string.
+ */
 function toSpec(rows: { key: string; value: string }[]): Record<string, string> {
   const spec: Record<string, string> = {};
 
   for (const row of rows) {
     const key = row.key.trim();
+    const value = row.value.trim();
 
-    if (key) {
-      spec[key] = row.value.trim();
+    if (key && value) {
+      spec[key] = value;
     }
   }
 

@@ -50,8 +50,8 @@
         </p>
 
         <div formArrayName="spec" class="spec-rows">
-          @for (row of specRows.controls; track $index) {
-            <div class="spec-row" [formGroupName]="$index">
+          @for (row of specRowList(); track row; let i = $index) {
+            <div class="spec-row" [formGroupName]="i">
               <mat-form-field>
                 <mat-label>Name</mat-label>
                 <input matInput formControlName="key" (blur)="onSpecKeyChange()" />
@@ -62,7 +62,7 @@
                 <input matInput formControlName="value" />
               </mat-form-field>
 
-              <button matIconButton type="button" aria-label="Remove this attribute" (click)="removeSpecRow($index)">
+              <button matIconButton type="button" aria-label="Remove this attribute" (click)="removeSpecRow(i)">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
