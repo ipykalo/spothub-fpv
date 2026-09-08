@@ -74,10 +74,13 @@ export const partSourceFields = z.object({
     .union([z.url('That does not look like a link'), z.literal(''), z.null()])
     .transform((value) => (value === null || value === '' ? null : value))
     .default(null),
+  // Order matters: `z.coerce.number()` accepts null and '' and turns both into
+  // 0, so it must come last or an unfilled price is stored as a real zero.
   price: z
     .union([
-      z.coerce.number().nonnegative('Price cannot be negative').max(1_000_000),
       z.null(),
+      z.literal('').transform(() => null),
+      z.coerce.number().nonnegative('Price cannot be negative').max(1_000_000),
     ])
     .default(null),
   currency: z

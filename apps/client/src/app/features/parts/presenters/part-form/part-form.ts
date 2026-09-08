@@ -126,6 +126,12 @@ export class PartForm {
   private readonly selectedCategory = signal<PartCategory>(PartCategory.Motor);
   private readonly specKeys = signal<readonly string[]>([]);
 
+  /** The URL the last lookup ran against, so leaving the field cannot re-fire it. */
+  private readonly lookedUpUrl = signal('');
+
+  /** Which fields the preview actually filled, echoed back so the lookup is not silent. */
+  protected readonly appliedFields = signal<readonly string[]>([]);
+
   /** Whatever the container reported wins; local validation fills the gap. */
   protected readonly message = computed(
     () => this.errorMessage() ?? this.validationError(),
@@ -204,22 +210,44 @@ export class PartForm {
 
       const current = this.form.getRawValue();
       const source = this.form.controls.source;
+      const applied: string[] = [];
 
-      if (preview.title && !current.model) {
-        this.form.controls.model.setValue(preview.title.slice(0, 120));
+      if (preview.title) {
+        // Listings lead with the brand: "EVILBEE 4218 Brushless Motor 380KV…".
+        // Splitting the first word off is a guess, but a guess in two labelled
+        // fields the user can correct beats one long unusable string.
+        const [brand, ...rest] = preview.title.split(/\s+/);
+
+        if (!current.manufacturer && rest.length > 0) {
+          this.form.controls.manufacturer.setValue(brand.slice(0, 80));
+          applied.push('manufacturer');
+        }
+
+        if (!current.model) {
+          const remainder =
+            !current.manufacturer && rest.length > 0 ? rest.join(' ') : preview.title;
+
+          this.form.controls.model.setValue(remainder.slice(0, 120));
+          applied.push('model');
+        }
       }
 
       if (preview.vendor && !current.source.vendor) {
         source.controls.vendor.setValue(preview.vendor);
+        applied.push('vendor');
       }
 
       if (preview.price !== null && current.source.price === null) {
         source.controls.price.setValue(preview.price);
+        applied.push('price');
       }
 
       if (preview.currency && !current.source.currency) {
         source.controls.currency.setValue(preview.currency);
+        applied.push('currency');
       }
+
+      this.appliedFields.set(applied);
     });
   }
 
@@ -241,7 +269,21 @@ export class PartForm {
     const url = this.form.controls.source.controls.url.value.trim();
 
     if (url) {
+      this.lookedUpUrl.set(url);
       this.enrichRequested.emit(url);
+    }
+  }
+
+  /**
+   * Pasting a link and pressing Save is the flow people actually use, so the
+   * lookup runs on its own when the field loses focus. Guarded on the last URL
+   * looked up, or tabbing back through the form would refetch every time.
+   */
+  protected onUrlBlur(): void {
+    const url = this.form.controls.source.controls.url.value.trim();
+
+    if (url && url !== this.lookedUpUrl()) {
+      this.lookUpUrl();
     }
   }
 

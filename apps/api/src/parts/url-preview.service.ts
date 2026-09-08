@@ -45,8 +45,10 @@ export class UrlPreviewService {
       itemprop(html, 'price'),
     );
 
+    const vendor = meta(html, 'og:site_name') ?? url.hostname.replace(/^www\./, '');
+
     return {
-      title: meta(html, 'og:title') ?? titleTag(html),
+      title: stripVendorSuffix(meta(html, 'og:title') ?? titleTag(html), vendor),
       imageUrl: absolute(meta(html, 'og:image'), url),
       price,
       currency:
@@ -55,7 +57,7 @@ export class UrlPreviewService {
           meta(html, 'product:price:currency') ??
           itemprop(html, 'priceCurrency')
         )?.toUpperCase() ?? null,
-      vendor: meta(html, 'og:site_name') ?? url.hostname.replace(/^www\./, ''),
+      vendor,
     };
   }
 
@@ -199,4 +201,25 @@ function decode(value: string): string {
     /&(?:amp|lt|gt|quot|#39|apos|nbsp);/g,
     (entity) => ENTITIES[entity] ?? entity,
   );
+}
+
+/**
+ * Listings suffix the product name with the shop: "EVILBEE 4218 Motor …
+ * - AliExpress". That is the site talking about itself, not part of the name.
+ */
+function stripVendorSuffix(title: string | null, vendor: string | null): string | null {
+  if (!title || !vendor) {
+    return title;
+  }
+
+  // `og:site_name` is not always tidy — AliExpress publishes "aliexpress."
+  const name = vendor.replace(/[.\s]+$/, '');
+
+  if (!name) {
+    return title;
+  }
+
+  const cleaned = title.replace(new RegExp(`\\s*[-|–—]\\s*${name}\\s*$`, 'i'), '');
+
+  return cleaned.trim() || title;
 }

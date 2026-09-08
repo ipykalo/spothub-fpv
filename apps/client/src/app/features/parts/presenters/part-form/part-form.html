@@ -94,7 +94,7 @@
         <div class="lookup">
           <mat-form-field>
             <mat-label>Product link</mat-label>
-            <input matInput formControlName="url" placeholder="https://…" />
+            <input matInput formControlName="url" placeholder="https://…" (blur)="onUrlBlur()" />
           </mat-form-field>
 
           <button matButton="outlined" type="button" [disabled]="previewLoading()" (click)="lookUpUrl()">
@@ -106,6 +106,22 @@
             Look up
           </button>
         </div>
+
+        @if (preview(); as found) {
+          <div class="preview">
+            @if (found.imageUrl; as image) {
+              <img [src]="image" alt="" width="56" height="56" />
+            }
+
+            <p>
+              @if (appliedFields().length) {
+                Filled {{ appliedFields().join(', ') }}. Change anything that looks wrong.
+              } @else {
+                That page published nothing this form could use.
+              }
+            </p>
+          </div>
+        }
 
         <div class="row">
           <mat-form-field>
