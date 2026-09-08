@@ -10,7 +10,6 @@ import {
   Patch,
   Post,
   Query,
-  UsePipes,
 } from '@nestjs/common';
 import {
   type CreatePartDto,
@@ -50,10 +49,12 @@ export class PartsController {
   ) {}
 
   @Get()
-  @UsePipes(new ZodValidationPipe(listPartsQuerySchema))
   list(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: ListPartsQuery,
+    // Scoped to the query rather than the method: a method-level pipe runs the
+    // schema over every parameter, which silently strips anything it does not
+    // declare and breaks outright on a non-object one.
+    @Query(new ZodValidationPipe(listPartsQuerySchema)) query: ListPartsQuery,
   ): Promise<PartDto[]> {
     return this.parts.list(user.id, query);
   }
