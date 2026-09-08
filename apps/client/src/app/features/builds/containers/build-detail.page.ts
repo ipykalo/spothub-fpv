@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   input,
@@ -22,6 +23,7 @@ import {
 } from '@spothub/shared';
 
 import { PartsStore } from '../../parts/parts.store';
+import { BUILD_STATUS_STYLES } from '../build-status';
 import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
 import { InstallPartForm } from '../presenters/install-part-form/install-part-form';
 import { InstalledPartsList } from '../presenters/installed-parts-list/installed-parts-list';
@@ -65,6 +67,12 @@ export class BuildDetailPage {
 
   protected readonly statusLabels = BUILD_STATUS_LABELS;
   protected readonly classLabels = BUILD_CLASS_LABELS;
+
+  /** Same icon and tone the card uses, so the two pages cannot disagree. */
+  protected readonly statusStyle = computed(() => {
+    const status = this.build()?.status;
+    return status ? BUILD_STATUS_STYLES[status] : BUILD_STATUS_STYLES.PLANNING;
+  });
 
   constructor() {
     // Route inputs land after construction, so this cannot run in the ctor.

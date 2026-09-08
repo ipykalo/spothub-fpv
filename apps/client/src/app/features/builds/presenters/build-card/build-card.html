@@ -1,8 +1,11 @@
-<mat-card appearance="outlined">
+<mat-card appearance="outlined" class="tone-{{ style().tone }}">
   <mat-card-header>
-    <mat-card-title>{{ build().name }}</mat-card-title>
-    <mat-card-subtitle class="status-{{ build().status }}">
-      {{ statusLabels[build().status] }}
+    <mat-card-title [title]="build().name">{{ build().name }}</mat-card-title>
+    <mat-card-subtitle>
+      <span class="status">
+        <mat-icon aria-hidden="true">{{ style().icon }}</mat-icon>
+        {{ statusLabels[build().status] }}
+      </span>
     </mat-card-subtitle>
   </mat-card-header>
 
@@ -16,6 +19,9 @@
       }
       @if (build().hasGps) {
         <span>GPS</span>
+      }
+      @if (!build().buildClass && !build().weightG && !build().hasGps) {
+        <span class="none">No details recorded</span>
       }
     </div>
   </mat-card-content>

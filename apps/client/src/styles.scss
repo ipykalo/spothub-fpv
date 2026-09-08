@@ -26,3 +26,25 @@ body {
   color: var(--mat-sys-on-surface);
   font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
+
+/**
+ * Status colours.
+ *
+ * Semantic, and separate from the Material theme's primary: "this quad is
+ * grounded" is not a brand colour. `light-dark()` resolves against the
+ * `color-scheme` declared above, so each pair is stated once and both themes
+ * stay legible — a green that reads on white is muddy on near-black.
+ */
+:root {
+  --status-go: light-dark(#1b6e4b, #6ecfa4);
+  --status-go-surface: light-dark(#e3f2ea, #14291f);
+
+  --status-stop: light-dark(#b3402f, #f0907c);
+  --status-stop-surface: light-dark(#fae7e3, #331a16);
+
+  --status-work: light-dark(#8a5d12, #e0b155);
+  --status-work-surface: light-dark(#f9efd9, #2c2413);
+
+  --status-idle: light-dark(#5f6b78, #9fadbb);
+  --status-idle-surface: light-dark(#eceff3, #232b33);
+}

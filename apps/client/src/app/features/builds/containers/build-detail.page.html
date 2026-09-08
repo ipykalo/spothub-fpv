@@ -7,7 +7,10 @@
       </a>
       <h1>{{ quad.name }}</h1>
       <p class="meta">
-        <span class="status status-{{ quad.status }}">{{ statusLabels[quad.status] }}</span>
+        <span class="status tone-{{ statusStyle().tone }}">
+          <mat-icon aria-hidden="true">{{ statusStyle().icon }}</mat-icon>
+          {{ statusLabels[quad.status] }}
+        </span>
         @if (quad.buildClass; as cls) {
           <span>{{ classLabels[cls] }}</span>
         }
