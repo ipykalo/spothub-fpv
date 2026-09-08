@@ -18,8 +18,8 @@ interface SpecEntry {
   readonly value: string;
 }
 
-/** Two rows of attributes fit the card; the rest are counted, not listed. */
-const MAX_SPEC_SHOWN = 4;
+/** Two dense rows fit the card body; the rest are counted, not listed. */
+const MAX_SPEC_SHOWN = 3;
 
 /**
  * Presenter: renders one part and announces intent. It owns no state, injects

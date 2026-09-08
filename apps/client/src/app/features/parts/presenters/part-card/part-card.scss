@@ -1,8 +1,10 @@
 /**
- * Every card is the same size regardless of what the part has recorded.
- * Listing titles run to a dozen words and specs vary by category, so the
- * card fixes its own geometry and clamps the content rather than letting
- * one long name stretch the whole row.
+ * Three bands of fixed geometry: head, body, foot.
+ *
+ * Uniform height across a row is what makes a grid scannable, but reserving
+ * the space is not enough on its own — the price has to sit at the same
+ * height on every card, or the eye has nothing to compare along. So the foot
+ * is pinned to the bottom and the body absorbs the slack.
  */
 :host {
   display: block;
@@ -13,89 +15,91 @@ mat-card {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 15.5rem;
-  /* Same severity stripe the build cards use, so a broken part is as easy to
-     spot in the inventory as a grounded quad is in the hangar. */
+  min-height: 13rem;
+  padding: 0.9rem 1rem 0.6rem;
+  gap: 0.55rem;
+  /* Severity stripe, matching the build cards. */
   border-left: 3px solid var(--tone);
 }
 
-mat-card-header {
-  min-height: 4.75rem;
-  align-items: flex-start;
+/* ---------------------------------------------------------------- head */
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-mat-card-title {
-  font-size: 1rem;
-  line-height: 1.35;
-  /* Two lines, then ellipsis. The full name is on the title attribute and
-     on the detail page, so nothing is lost by trimming it here. */
+h3 {
+  margin: 0;
+  font-size: 0.975rem;
+  font-weight: 600;
+  line-height: 1.3;
+  /* Two lines then ellipsis. The whole name is on the detail page. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Reserve both lines so one- and two-line titles align their badges. */
+  min-height: 2.55rem;
 }
 
-mat-card-subtitle {
+.badges {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
-  margin-top: 0.25rem;
-  font-size: 0.8125rem;
 }
 
 .status {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.5rem 0.15rem 0.35rem;
+  gap: 0.25rem;
+  padding: 0.1rem 0.45rem 0.1rem 0.3rem;
   border-radius: 999px;
   background: var(--tone-surface);
   color: var(--tone);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .status mat-icon {
-  font-size: 1rem;
-  width: 1rem;
-  height: 1rem;
+  font-size: 0.9rem;
+  width: 0.9rem;
+  height: 0.9rem;
 }
 
 .stock {
   color: var(--mat-sys-on-surface-variant);
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
 }
 
-mat-card-content {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
+/* ---------------------------------------------------------------- body */
 
-mat-card-actions {
-  padding-top: 0;
+.body {
+  flex: 1 1 auto;
+  min-height: 2.2rem;
+  overflow: hidden;
 }
 
 .spec {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  gap: 0.25rem 0.9rem;
+  gap: 0.15rem 0.8rem;
   margin: 0;
-  /* Room for two rows of attributes; anything beyond becomes "+N more". */
-  min-height: 2.6rem;
-  font-size: 0.8125rem;
-  overflow: hidden;
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 .spec div {
   display: flex;
-  gap: 0.3rem;
-  max-width: 100%;
+  gap: 0.28rem;
+  min-width: 0;
 }
 
 .spec dt {
@@ -105,7 +109,7 @@ mat-card-actions {
 
 .spec dd {
   margin: 0;
-  font-weight: 500;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -115,36 +119,54 @@ mat-card-actions {
   color: var(--mat-sys-on-surface-variant);
 }
 
+/* ---------------------------------------------------------------- foot */
+
+.foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  /* Above the price only, so the card reads as name → detail → cost. */
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  padding-top: 0.5rem;
+}
+
 .price {
   margin: 0;
   display: flex;
   align-items: baseline;
-  gap: 0.35rem;
-  min-height: 1.5rem;
+  gap: 0.3rem;
+  min-height: 1.55rem;
   font-variant-numeric: tabular-nums;
 }
 
 .amount {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 600;
+  line-height: 1.3;
 }
 
-.currency {
-  font-size: 0.875rem;
-  color: var(--mat-sys-on-surface-variant);
-}
-
+.currency,
 .each {
-  font-size: 0.8125rem;
+  font-size: 0.78rem;
   color: var(--mat-sys-on-surface-variant);
+}
+
+.actions {
+  display: flex;
+  gap: 0.15rem;
+  margin-left: -0.5rem;
 }
 
 /* One muted treatment for every "nothing recorded" case, so a sparse card
-   reads as deliberate rather than broken. */
+   reads as deliberate rather than half-loaded. */
 .none {
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.8125rem;
+  font-size: 0.78rem;
   font-style: italic;
+}
+
+p.spec.none {
+  margin: 0;
 }
 
 /* One pair of custom properties per tone, matching the build cards. */

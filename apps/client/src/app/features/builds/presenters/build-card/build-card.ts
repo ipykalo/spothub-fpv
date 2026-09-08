@@ -36,4 +36,30 @@ export class BuildCard {
 
   /** Icon and colour tone for the current status. */
   protected readonly style = computed(() => BUILD_STATUS_STYLES[this.build().status]);
+
+  /**
+   * The facts worth showing under the name, already filtered.
+   *
+   * Built here rather than as three separate @if blocks in the template, so
+   * the "nothing recorded" case is one check instead of a repeated negation
+   * of every field.
+   */
+  protected readonly meta = computed<readonly string[]>(() => {
+    const build = this.build();
+    const items: string[] = [];
+
+    if (build.buildClass) {
+      items.push(BUILD_CLASS_LABELS[build.buildClass]);
+    }
+
+    if (build.weightG) {
+      items.push(`${build.weightG} g`);
+    }
+
+    if (build.hasGps) {
+      items.push('GPS');
+    }
+
+    return items;
+  });
 }

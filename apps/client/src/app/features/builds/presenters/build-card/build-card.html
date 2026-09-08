@@ -1,36 +1,34 @@
 <mat-card appearance="outlined" class="tone-{{ style().tone }}">
-  <mat-card-header>
-    <mat-card-title [title]="build().name">{{ build().name }}</mat-card-title>
-    <mat-card-subtitle>
+  <div class="head">
+    <h3 [title]="build().name">{{ build().name }}</h3>
+
+    <div class="badges">
       <span class="status">
         <mat-icon aria-hidden="true">{{ style().icon }}</mat-icon>
         {{ statusLabels[build().status] }}
       </span>
-    </mat-card-subtitle>
-  </mat-card-header>
-
-  <mat-card-content>
-    <div class="meta">
-      @if (build().buildClass; as buildClass) {
-        <span>{{ classLabels[buildClass] }}</span>
-      }
-      @if (build().weightG; as weight) {
-        <span>{{ weight }} g</span>
-      }
-      @if (build().hasGps) {
-        <span>GPS</span>
-      }
-      @if (!build().buildClass && !build().weightG && !build().hasGps) {
-        <span class="none">No details recorded</span>
-      }
     </div>
-  </mat-card-content>
+  </div>
 
-  <mat-card-actions>
-    <button matButton [routerLink]="['/hangar', build().id]">Open</button>
-    <button matButton [routerLink]="['/hangar', build().id, 'edit']">Edit</button>
-    <button matButton [disabled]="deleting()" (click)="delete.emit(build())">
-      {{ deleting() ? 'Deleting…' : 'Delete' }}
-    </button>
-  </mat-card-actions>
+  <div class="body">
+    @if (meta().length) {
+      <ul class="meta">
+        @for (item of meta(); track item) {
+          <li>{{ item }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="none">No details recorded</p>
+    }
+  </div>
+
+  <div class="foot">
+    <div class="actions">
+      <a matButton [routerLink]="['/hangar', build().id]">Open</a>
+      <a matButton [routerLink]="['/hangar', build().id, 'edit']">Edit</a>
+      <button matButton [disabled]="deleting()" (click)="delete.emit(build())">
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+    </div>
+  </div>
 </mat-card>
