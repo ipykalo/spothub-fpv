@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AuthProvider, type User } from '@prisma/client';
+import type { User } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthProviderKind, UserEntity } from './user.entity';
@@ -25,7 +25,7 @@ export class PrismaUsersRepository extends UsersRepository {
     subject: string,
   ): Promise<UserEntity | null> {
     const identity = await this.prisma.authIdentity.findUnique({
-      where: { provider_subject: { provider: provider as AuthProvider, subject } },
+      where: { provider_subject: { provider, subject } },
       include: { user: true },
     });
 
@@ -39,7 +39,7 @@ export class PrismaUsersRepository extends UsersRepository {
    */
   async upsertFromIdentity(input: LinkIdentityInput): Promise<UserEntity> {
     const email = input.email.toLowerCase();
-    const provider = input.provider as AuthProvider;
+    const provider = input.provider;
 
     const user = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.authIdentity.findUnique({

@@ -1,11 +1,7 @@
 <div class="toolbar">
   <h1>Hangar</h1>
 
-  <sh-build-status-filter
-    [statuses]="statuses"
-    [selected]="store.status()"
-    (selectedChange)="onFilter($event)"
-  />
+  <sh-build-status-filter [statuses]="statuses" [selected]="store.status()" (selectedChange)="onFilter($event)" />
 
   <button matButton="filled" routerLink="/hangar/new">
     <mat-icon>add</mat-icon>
@@ -29,11 +25,7 @@
 } @else {
   <div class="grid">
     @for (build of store.builds(); track build.id) {
-      <sh-build-card
-        [build]="build"
-        [deleting]="pendingDelete() === build.id"
-        (delete)="remove($event)"
-      />
+      <sh-build-card [build]="build" [deleting]="pendingDelete() === build.id" (delete)="remove($event)" />
     }
   </div>
 }

@@ -8,6 +8,13 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
+/**
+ * `getStatus()` returns a plain `number`, so comparing it directly against an
+ * `HttpStatus` member is a cross-type enum comparison. Widening the bound once,
+ * here, keeps the name at both call sites without a bare 500 in the code.
+ */
+const SERVER_ERROR_FLOOR: number = HttpStatus.INTERNAL_SERVER_ERROR;
+
 export interface ErrorResponseBody {
   statusCode: number;
   message: string;
@@ -42,7 +49,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
     };
 
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (status >= SERVER_ERROR_FLOOR) {
       this.logger.error(
         `${request.method} ${request.url} failed`,
         exception instanceof Error ? exception.stack : String(exception),
@@ -56,7 +63,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     exception: unknown,
     status: number,
   ): Pick<ErrorResponseBody, 'message' | 'errors'> {
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (status >= SERVER_ERROR_FLOOR) {
       return { message: 'Internal server error' };
     }
 
