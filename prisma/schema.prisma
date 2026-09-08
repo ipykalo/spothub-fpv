@@ -36,6 +36,7 @@ model User {
   identities    AuthIdentity[]
   refreshTokens RefreshToken[]
   builds        Build[]
+  parts         Part[]
 
   @@map("users")
 }
@@ -133,4 +134,76 @@ model Build {
   @@unique([ownerId, slug])
   @@index([ownerId, status])
   @@map("builds")
+}
+
+// ------------------------------------------------------------------- parts
+
+enum PartCategory {
+  FRAME
+  MOTOR
+  ESC
+  FC
+  STACK
+  VTX
+  CAMERA
+  RX
+  ANTENNA
+  PROP
+  BATTERY
+  OTHER
+}
+
+enum PartStatus {
+  NEW
+  IN_USE
+  SPARE
+  BROKEN
+  RETIRED
+}
+
+/// A physical thing I own, tracked as inventory rather than as fields on a
+/// build. Motors move between quads; flat `frame`/`motors` strings on `builds`
+/// cannot express purchases, spares or replacement history.
+model Part {
+  id            String       @id @default(uuid()) @db.Uuid
+  ownerId       String       @map("owner_id") @db.Uuid
+  category      PartCategory
+  manufacturer  String?
+  model         String?
+  /// Category-specific and deliberately free-form: a motor has kv and stator
+  /// size, a VTX has power levels. Validated per category in libs/shared.
+  spec          Json         @default("{}")
+  quantityOwned Int          @default(1) @map("quantity_owned")
+  status        PartStatus   @default(IN_USE)
+  notesMd       String?      @map("notes_md")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  owner   User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sources PartSource[]
+
+  @@index([ownerId, category])
+  @@map("parts")
+}
+
+/// Where a part came from and what it cost. Several rows per part are expected:
+/// one marks the actual purchase, the others are price captures from listings.
+model PartSource {
+  id          String    @id @default(uuid()) @db.Uuid
+  partId      String    @map("part_id") @db.Uuid
+  vendor      String?
+  url         String?
+  price       Decimal?  @db.Decimal(10, 2)
+  currency    String?
+  /// True on the row this part was actually bought through. Cost rollups sum
+  /// only these, so a browsed listing never inflates what a build cost.
+  isPurchase  Boolean   @default(false) @map("is_purchase")
+  purchasedOn DateTime? @map("purchased_on") @db.Date
+  quantity    Int       @default(1)
+  capturedAt  DateTime  @default(now()) @map("captured_at")
+
+  part Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+  @@map("part_sources")
 }

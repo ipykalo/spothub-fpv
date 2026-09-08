@@ -48,5 +48,32 @@ export const appRoutes: Route[] = [
       },
     ],
   },
+  {
+    path: 'parts',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/parts/containers/parts-list.page').then(
+            (m) => m.PartsListPage,
+          ),
+      },
+      {
+        path: 'new',
+        loadComponent: () =>
+          import('./features/parts/containers/part-form.page').then(
+            (m) => m.PartFormPage,
+          ),
+      },
+      {
+        path: ':id',
+        loadComponent: () =>
+          import('./features/parts/containers/part-form.page').then(
+            (m) => m.PartFormPage,
+          ),
+      },
+    ],
+  },
   { path: '**', redirectTo: 'hangar' },
 ];

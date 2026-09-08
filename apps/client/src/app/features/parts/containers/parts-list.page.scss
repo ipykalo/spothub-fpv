@@ -1,0 +1,47 @@
+.toolbar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.toolbar h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.count {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.group {
+  margin-top: 1.75rem;
+}
+
+.group h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--mat-sys-on-surface-variant);
+}

@@ -1,0 +1,43 @@
+<div class="toolbar">
+  <h1>Parts</h1>
+
+  @if (store.total()) {
+    <span class="count"> {{ store.total() }} entries · {{ store.unitCount() }} units </span>
+  }
+
+  <span class="spacer"></span>
+
+  <button matButton="filled" routerLink="/parts/new">
+    <mat-icon>add</mat-icon>
+    New part
+  </button>
+</div>
+
+<sh-part-category-filter [categories]="categories" [selected]="store.category()" (selectedChange)="onFilter($event)" />
+
+@if (store.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (store.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+@if (store.isEmpty()) {
+  <div class="empty">
+    <p>Nothing in the inventory yet.</p>
+    <button matButton routerLink="/parts/new">Add your first part</button>
+  </div>
+} @else {
+  @for (group of store.groups(); track group.category) {
+    <section class="group">
+      <h2>{{ group.label }}</h2>
+
+      <div class="grid">
+        @for (part of group.parts; track part.id) {
+          <sh-part-card [part]="part" [deleting]="pendingDelete() === part.id" (delete)="remove($event)" />
+        }
+      </div>
+    </section>
+  }
+}

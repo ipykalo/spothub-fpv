@@ -1,0 +1,12 @@
+<sh-part-form
+  [part]="part()"
+  [isEdit]="isEdit()"
+  [saving]="saving()"
+  [errorMessage]="failure()"
+  [previewLoading]="previewLoading()"
+  [preview]="preview()"
+  (saved)="save($event)"
+  (enrichRequested)="enrich($event)"
+  (sourceRemoved)="removeSource($event)"
+  (cancelled)="cancel()"
+/>

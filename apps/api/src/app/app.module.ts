@@ -8,6 +8,7 @@ import { BuildsModule } from '../builds/builds.module';
 import { AllExceptionsFilter } from '../common/filters/all-exceptions.filter';
 import { validateEnv } from '../config/env.schema';
 import { HealthModule } from '../health/health.module';
+import { PartsModule } from '../parts/parts.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     PrismaModule,
     AuthModule,
     BuildsModule,
+    PartsModule,
     HealthModule,
   ],
   providers: [
