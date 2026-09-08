@@ -26,6 +26,8 @@ export interface PartEntity {
   readonly status: PartStatus;
   readonly notesMd: string | null;
   readonly sources: readonly PartSourceEntity[];
+  /** Units currently fitted to a build, counted from `build_parts`. */
+  readonly fittedCount: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }

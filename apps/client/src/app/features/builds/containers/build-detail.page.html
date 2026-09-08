@@ -44,7 +44,7 @@
 
 <section class="block">
   <h2>Fit a part</h2>
-  <sh-install-part-form [parts]="parts.parts()" [saving]="saving()" (installed)="install($event)" />
+  <sh-install-part-form [parts]="parts.fittable()" [saving]="saving()" (installed)="install($event)" />
 </section>
 
 <section class="block">

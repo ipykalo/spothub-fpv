@@ -42,6 +42,7 @@ export function toPartDto(part: PartEntity): PartDto {
     status: part.status,
     notesMd: part.notesMd,
     sources: part.sources.map(toPartSourceDto),
+    fittedCount: part.fittedCount,
     purchasePrice: purchase?.price ?? null,
     purchaseCurrency: purchase?.currency ?? null,
     createdAt: part.createdAt.toISOString(),

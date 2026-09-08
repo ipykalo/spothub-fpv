@@ -7,11 +7,21 @@
       </div>
       <div>
         <dt>Status</dt>
-        <dd class="status-{{ part().status }}">{{ statusLabels[part().status] }}</dd>
+        <dd>
+          <span class="status tone-{{ style().tone }}">
+            <mat-icon aria-hidden="true">{{ style().icon }}</mat-icon>
+            {{ statusLabels[part().status] }}
+          </span>
+        </dd>
       </div>
       <div>
         <dt>Quantity owned</dt>
-        <dd>{{ part().quantityOwned }}</dd>
+        <dd>
+          {{ part().quantityOwned }}
+          @if (part().fittedCount) {
+            <span class="sub">· {{ part().fittedCount }} fitted, {{ free() }} free</span>
+          }
+        </dd>
       </div>
       <div>
         <dt>Manufacturer</dt>

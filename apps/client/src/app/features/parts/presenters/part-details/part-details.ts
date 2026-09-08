@@ -3,6 +3,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { PART_CATEGORY_LABELS, PART_STATUS_LABELS, type PartDto } from '@spothub/shared';
 
+import { PART_STATUS_STYLES, availableUnits } from '../../part-status';
+
 interface SpecEntry {
   readonly key: string;
   readonly value: string;
@@ -26,6 +28,11 @@ export class PartDetails {
 
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
   protected readonly statusLabels = PART_STATUS_LABELS;
+
+  protected readonly style = computed(() => PART_STATUS_STYLES[this.part().status]);
+
+  /** Units not currently on a quad. */
+  protected readonly free = computed(() => availableUnits(this.part()));
 
   protected readonly specEntries = computed<readonly SpecEntry[]>(() =>
     Object.entries(this.part().spec).map(([key, value]) => ({

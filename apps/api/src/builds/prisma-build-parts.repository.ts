@@ -8,8 +8,18 @@ import type { BuildPartEntity, CreateBuildPartData } from './build-part.entity';
 import { BuildPartFilter, BuildPartsRepository } from './build-parts.repository';
 
 type InstallWithPart = BuildPart & {
-  part: Part & { sources: PartSource[] };
+  part: Part & { sources: PartSource[]; _count: { installs: number } };
 };
+
+/** Matches the parts repository: only open installs count as fitted. */
+const WITH_PART = {
+  part: {
+    include: {
+      sources: true,
+      _count: { select: { installs: { where: { removedOn: null } } } },
+    },
+  },
+} as const;
 
 /** The only place in this feature that knows Prisma exists. */
 @Injectable()
@@ -31,7 +41,7 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
         build: { ownerId },
         ...(filter.installed ? { removedOn: null } : {}),
       },
-      include: { part: { include: { sources: true } } },
+      include: WITH_PART,
       orderBy: [{ removedOn: 'asc' }, { installedOn: 'desc' }],
     });
 
@@ -64,7 +74,7 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
 
     const install = await this.prisma.buildPart.create({
       data: { ...data },
-      include: { part: { include: { sources: true } } },
+      include: WITH_PART,
     });
 
     return PrismaBuildPartsRepository.toEntity(install);
@@ -87,7 +97,7 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
 
     const install = await this.prisma.buildPart.findUnique({
       where: { id: installId },
-      include: { part: { include: { sources: true } } },
+      include: WITH_PART,
     });
 
     return install ? PrismaBuildPartsRepository.toEntity(install) : null;
@@ -106,7 +116,9 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
     };
   }
 
-  private static toPartEntity(part: Part & { sources: PartSource[] }): PartEntity {
+  private static toPartEntity(
+    part: Part & { sources: PartSource[]; _count: { installs: number } },
+  ): PartEntity {
     return {
       id: part.id,
       ownerId: part.ownerId,
@@ -120,6 +132,7 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
       sources: part.sources.map((source) =>
         PrismaBuildPartsRepository.toSourceEntity(source),
       ),
+      fittedCount: part._count.installs,
       createdAt: part.createdAt,
       updatedAt: part.updatedAt,
     };

@@ -5,6 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { availableUnits } from '../../../parts/part-status';
 import {
   INSTALL_REASON_LABELS,
   InstallReason,
@@ -50,6 +51,11 @@ export class InstallPartForm {
     installedOn: [new Date().toISOString().slice(0, 10)],
     reason: [InstallReason.Initial as InstallReason],
   });
+
+  /** Units of this row not already on a quad. */
+  protected free(part: PartDto): number {
+    return availableUnits(part);
+  }
 
   protected label(part: PartDto): string {
     const named = [part.manufacturer, part.model].filter(Boolean).join(' ');

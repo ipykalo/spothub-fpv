@@ -1,5 +1,7 @@
 import { BuildStatus } from '@spothub/shared';
 
+import type { StatusStyle } from '../../core/ui/status-style';
+
 /**
  * How a build's status looks.
  *
@@ -8,13 +10,6 @@ import { BuildStatus } from '@spothub/shared';
  * the card, the detail header and the filter all have to agree: a status that
  * is green in one place and amber in another is worse than no colour at all.
  */
-export interface StatusStyle {
-  /** Material Icons ligature. */
-  readonly icon: string;
-  /** Maps to the --status-* custom properties defined in styles.scss. */
-  readonly tone: 'go' | 'stop' | 'work' | 'idle';
-}
-
 export const BUILD_STATUS_STYLES: Readonly<Record<BuildStatus, StatusStyle>> = {
   // Flying. The only status that means "this thing is ready right now".
   [BuildStatus.Active]: { icon: 'check_circle', tone: 'go' },

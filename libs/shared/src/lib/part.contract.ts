@@ -131,6 +131,13 @@ export const partSchema = z.object({
   status: z.enum(PartStatus),
   notesMd: z.string().nullable(),
   sources: z.array(partSourceSchema),
+  /**
+   * How many units of this row are fitted to a build right now, across every
+   * build. Derived from `build_parts`, never stored: whether something is
+   * installed is a fact the database already holds, and a second copy of it
+   * would drift the first time a dropdown was not updated.
+   */
+  fittedCount: z.number().int(),
   /** Unit price of the row flagged `isPurchase`, or null if never bought. */
   purchasePrice: z.number().nullable(),
   purchaseCurrency: z.string().nullable(),

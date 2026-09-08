@@ -1,11 +1,12 @@
-<mat-card appearance="outlined">
+<mat-card appearance="outlined" class="tone-{{ style().tone }}">
   <mat-card-header>
     <mat-card-title [title]="title()">{{ title() }}</mat-card-title>
     <mat-card-subtitle>
-      <span class="status status-{{ part().status }}">
+      <span class="status">
+        <mat-icon aria-hidden="true">{{ style().icon }}</mat-icon>
         {{ statusLabels[part().status] }}
       </span>
-      <span>· {{ part().quantityOwned }} held</span>
+      <span class="stock" [title]="stockDetail()">{{ stock() }}</span>
     </mat-card-subtitle>
   </mat-card-header>
 

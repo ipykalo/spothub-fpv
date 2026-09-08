@@ -12,6 +12,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 import { PartsApi } from './parts.api';
+import { isFittable } from './part-status';
 
 /** A category heading plus the parts under it, ready for the template. */
 export interface PartGroup {
@@ -43,6 +44,15 @@ export class PartsStore {
   readonly status = this.statusFilter.asReadonly();
 
   readonly isEmpty = computed(() => !this.busy() && this.items().length === 0);
+
+  /**
+   * Parts that can still be fitted to a build.
+   *
+   * A broken or retired part must never be offered, and a part is only
+   * available while fewer units are on a quad than are owned — one row can
+   * stand for four motors, and fitting one must not hide the other three.
+   */
+  readonly fittable = computed(() => this.items().filter(isFittable));
   readonly total = computed(() => this.items().length);
 
   /** Total units held, which is what "how many props do I have" really asks. */

@@ -13,7 +13,19 @@ import type {
 } from './part.entity';
 import { PartFilter, PartsRepository } from './parts.repository';
 
-type PartWithSources = Part & { sources: PartSource[] };
+type PartWithSources = Part & {
+  sources: PartSource[];
+  _count: { installs: number };
+};
+
+/**
+ * Only open installs count as fitted. A filtered relation count keeps this
+ * one query rather than a second round trip per part.
+ */
+const WITH_FITTED_COUNT = {
+  sources: true,
+  _count: { select: { installs: { where: { removedOn: null } } } },
+} as const;
 
 /**
  * The only place in the parts feature that knows Prisma exists.
@@ -32,7 +44,7 @@ export class PrismaPartsRepository extends PartsRepository {
         ...(filter.status ? { status: filter.status } : {}),
         ...(filter.search ? { OR: searchClauses(filter.search) } : {}),
       },
-      include: { sources: true },
+      include: WITH_FITTED_COUNT,
       orderBy: [{ category: 'asc' }, { updatedAt: 'desc' }],
     });
 
@@ -42,7 +54,7 @@ export class PrismaPartsRepository extends PartsRepository {
   async findOneForOwner(ownerId: string, id: string): Promise<PartEntity | null> {
     const part = await this.prisma.part.findFirst({
       where: { id, ownerId },
-      include: { sources: true },
+      include: WITH_FITTED_COUNT,
     });
 
     return part ? PrismaPartsRepository.toEntity(part) : null;
@@ -51,7 +63,7 @@ export class PrismaPartsRepository extends PartsRepository {
   async create(data: CreatePartData): Promise<PartEntity> {
     const part = await this.prisma.part.create({
       data: { ...data, spec: data.spec },
-      include: { sources: true },
+      include: WITH_FITTED_COUNT,
     });
 
     return PrismaPartsRepository.toEntity(part);
@@ -154,6 +166,7 @@ export class PrismaPartsRepository extends PartsRepository {
       status: part.status,
       notesMd: part.notesMd,
       sources: part.sources.map((source) => PrismaPartsRepository.toSourceEntity(source)),
+      fittedCount: part._count.installs,
       createdAt: part.createdAt,
       updatedAt: part.updatedAt,
     };

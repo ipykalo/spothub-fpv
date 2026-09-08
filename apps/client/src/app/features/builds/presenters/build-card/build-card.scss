@@ -82,6 +82,11 @@ mat-card-actions {
   --tone-surface: var(--status-work-surface);
 }
 
+.tone-ready {
+  --tone: var(--status-ready);
+  --tone-surface: var(--status-ready-surface);
+}
+
 .tone-idle {
   --tone: var(--status-idle);
   --tone-surface: var(--status-idle-surface);

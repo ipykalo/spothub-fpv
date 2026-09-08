@@ -7,8 +7,11 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { PART_CATEGORY_LABELS, PART_STATUS_LABELS, type PartDto } from '@spothub/shared';
+
+import { PART_STATUS_STYLES, availableUnits } from '../../part-status';
 
 interface SpecEntry {
   readonly key: string;
@@ -25,7 +28,7 @@ const MAX_SPEC_SHOWN = 4;
 @Component({
   selector: 'sh-part-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatCardModule, RouterLink],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, RouterLink],
   templateUrl: './part-card.html',
   styleUrl: './part-card.scss',
 })
@@ -37,6 +40,8 @@ export class PartCard {
 
   protected readonly statusLabels = PART_STATUS_LABELS;
 
+  protected readonly style = computed(() => PART_STATUS_STYLES[this.part().status]);
+
   /**
    * Manufacturer and model are both optional. Falling back to the category
    * keeps every card titled rather than leaving a blank line where a name
@@ -47,6 +52,25 @@ export class PartCard {
     const named = [part.manufacturer, part.model].filter(Boolean).join(' ');
 
     return named || PART_CATEGORY_LABELS[part.category];
+  });
+
+  /**
+   * One row can stand for several physical units, so "4 held" alone does not
+   * say whether any are free. Show how many are on a quad once some are.
+   */
+  protected readonly stock = computed(() => {
+    const part = this.part();
+
+    if (part.fittedCount === 0) {
+      return `${part.quantityOwned} held`;
+    }
+
+    return `${part.fittedCount} of ${part.quantityOwned} fitted`;
+  });
+
+  protected readonly stockDetail = computed(() => {
+    const free = availableUnits(this.part());
+    return free === 0 ? 'None free to fit' : `${free} free to fit`;
   });
 
   private readonly specEntries = computed<readonly SpecEntry[]>(() =>

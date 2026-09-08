@@ -14,6 +14,9 @@ mat-card {
   flex-direction: column;
   height: 100%;
   min-height: 15.5rem;
+  /* Same severity stripe the build cards use, so a broken part is as easy to
+     spot in the inventory as a grounded quad is in the hangar. */
+  border-left: 3px solid var(--tone);
 }
 
 mat-card-header {
@@ -35,9 +38,34 @@ mat-card-title {
 
 mat-card-subtitle {
   display: flex;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
   margin-top: 0.25rem;
   font-size: 0.8125rem;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem 0.15rem 0.35rem;
+  border-radius: 999px;
+  background: var(--tone-surface);
+  color: var(--tone);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.stock {
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
 }
 
 mat-card-content {
@@ -119,6 +147,28 @@ mat-card-actions {
   font-style: italic;
 }
 
-.status-BROKEN {
-  color: var(--mat-sys-error);
+/* One pair of custom properties per tone, matching the build cards. */
+.tone-go {
+  --tone: var(--status-go);
+  --tone-surface: var(--status-go-surface);
+}
+
+.tone-stop {
+  --tone: var(--status-stop);
+  --tone-surface: var(--status-stop-surface);
+}
+
+.tone-work {
+  --tone: var(--status-work);
+  --tone-surface: var(--status-work-surface);
+}
+
+.tone-ready {
+  --tone: var(--status-ready);
+  --tone-surface: var(--status-ready-surface);
+}
+
+.tone-idle {
+  --tone: var(--status-idle);
+  --tone-surface: var(--status-idle-surface);
 }
