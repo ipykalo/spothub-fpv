@@ -37,10 +37,16 @@ import {
   type UrlPreviewDto,
 } from '@spothub/shared';
 
-/** What the form hands back: the part, plus an optional first source row. */
+/**
+ * What the form hands back.
+ *
+ * `sourceId` names the row the source block was loaded from, so the container
+ * corrects that purchase instead of stacking a second one beside it.
+ */
 export interface PartSubmission {
   readonly part: CreatePartDto;
   readonly source: CreatePartSourceDto | null;
+  readonly sourceId: string | null;
 }
 
 /** One open key/value attribute row in the specification editor. */
@@ -129,6 +135,9 @@ export class PartForm {
   /** The URL the last lookup ran against, so leaving the field cannot re-fire it. */
   private readonly lookedUpUrl = signal('');
 
+  /** The existing source the block was filled from, if any. */
+  protected readonly editingSourceId = signal<string | null>(null);
+
   /** Which fields the preview actually filled, echoed back so the lookup is not silent. */
   protected readonly appliedFields = signal<readonly string[]>([]);
 
@@ -207,6 +216,27 @@ export class PartForm {
       }
 
       this.syncSpecKeys();
+
+      // Load the purchase into the source block so it can be corrected. Without
+      // this the block reads as "add another", and the price already recorded
+      // is only visible further down the page.
+      const existing =
+        part.sources.find((source) => source.isPurchase) ?? part.sources.at(0);
+
+      this.editingSourceId.set(existing?.id ?? null);
+
+      if (existing) {
+        this.form.controls.source.patchValue({
+          vendor: existing.vendor ?? '',
+          url: existing.url ?? '',
+          price: existing.price,
+          currency: existing.currency ?? '',
+          isPurchase: existing.isPurchase,
+          purchasedOn: existing.purchasedOn ?? '',
+        });
+
+        this.lookedUpUrl.set(existing.url ?? '');
+      }
     });
 
     // A preview never overwrites something already typed: enrichment is a
@@ -324,7 +354,7 @@ export class PartForm {
       return;
     }
 
-    this.saved.emit({ part: parsedPart.data, source });
+    this.saved.emit({ part: parsedPart.data, source, sourceId: this.editingSourceId() });
   }
 
   /**

@@ -7,6 +7,7 @@ import type {
   PartDto,
   PartSourceDto,
   UpdatePartDto,
+  UpdatePartSourceDto,
   UrlPreviewDto,
 } from '@spothub/shared';
 import type { Observable } from 'rxjs';
@@ -59,6 +60,17 @@ export class PartsApi {
 
   addSource(partId: string, body: CreatePartSourceDto): Observable<PartSourceDto> {
     return this.http.post<PartSourceDto>(`${this.url}/${partId}/sources`, body);
+  }
+
+  updateSource(
+    partId: string,
+    sourceId: string,
+    body: UpdatePartSourceDto,
+  ): Observable<PartSourceDto> {
+    return this.http.patch<PartSourceDto>(
+      `${this.url}/${partId}/sources/${sourceId}`,
+      body,
+    );
   }
 
   removeSource(partId: string, sourceId: string): Observable<null> {

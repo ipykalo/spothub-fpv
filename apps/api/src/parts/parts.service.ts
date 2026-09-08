@@ -6,9 +6,10 @@ import type {
   PartDto,
   PartSourceDto,
   UpdatePartDto,
+  UpdatePartSourceDto,
 } from '@spothub/shared';
 
-import type { UpdatePartData } from './part.entity';
+import type { UpdatePartData, UpdatePartSourceData } from './part.entity';
 import { toPartDto, toPartSourceDto } from './parts.mapper';
 import { PartsRepository } from './parts.repository';
 
@@ -87,6 +88,26 @@ export class PartsService {
     return toPartSourceDto(source);
   }
 
+  async updateSource(
+    ownerId: string,
+    partId: string,
+    sourceId: string,
+    input: UpdatePartSourceDto,
+  ): Promise<PartSourceDto> {
+    const source = await this.parts.updateSourceForOwner(
+      ownerId,
+      partId,
+      sourceId,
+      toSourceUpdateData(input),
+    );
+
+    if (!source) {
+      throw new NotFoundException('Source not found');
+    }
+
+    return toPartSourceDto(source);
+  }
+
   async removeSource(ownerId: string, partId: string, sourceId: string): Promise<void> {
     const deleted = await this.parts.deleteSourceForOwner(ownerId, partId, sourceId);
 
@@ -118,4 +139,20 @@ function toUpdateData(input: UpdatePartDto): UpdatePartData {
 /** `YYYY-MM-DD` is stored at UTC midnight so it round-trips as the same day. */
 function toDate(value: string | null | undefined): Date | null {
   return value ? new Date(`${value}T00:00:00.000Z`) : null;
+}
+
+/** Copies only the keys present, so an absent field is left alone. */
+function toSourceUpdateData(input: UpdatePartSourceDto): UpdatePartSourceData {
+  const data: UpdatePartSourceData = {};
+  const patch = data as Record<string, unknown>;
+
+  if (input.vendor !== undefined) patch['vendor'] = input.vendor;
+  if (input.url !== undefined) patch['url'] = input.url;
+  if (input.price !== undefined) patch['price'] = input.price;
+  if (input.currency !== undefined) patch['currency'] = input.currency;
+  if (input.isPurchase !== undefined) patch['isPurchase'] = input.isPurchase;
+  if (input.purchasedOn !== undefined) patch['purchasedOn'] = toDate(input.purchasedOn);
+  if (input.quantity !== undefined) patch['quantity'] = input.quantity;
+
+  return data;
 }

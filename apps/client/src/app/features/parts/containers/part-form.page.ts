@@ -68,7 +68,13 @@ export class PartFormPage {
         : await this.store.create(submission.part);
 
       if (submission.source) {
-        await this.store.addSource(part.id, submission.source);
+        // Correct the row the form was loaded from, rather than stacking a
+        // second purchase beside the one already recorded.
+        if (submission.sourceId) {
+          await this.store.updateSource(part.id, submission.sourceId, submission.source);
+        } else {
+          await this.store.addSource(part.id, submission.source);
+        }
       }
 
       this.snackBar.open('Saved', undefined, { duration: 2500 });

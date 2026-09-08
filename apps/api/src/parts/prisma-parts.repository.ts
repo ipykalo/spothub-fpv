@@ -9,6 +9,7 @@ import type {
   PartEntity,
   PartSourceEntity,
   UpdatePartData,
+  UpdatePartSourceData,
 } from './part.entity';
 import { PartFilter, PartsRepository } from './parts.repository';
 
@@ -104,6 +105,29 @@ export class PrismaPartsRepository extends PartsRepository {
 
     const source = await this.prisma.partSource.create({ data: { ...data, partId } });
     return PrismaPartsRepository.toSourceEntity(source);
+  }
+
+  /**
+   * Scoped through the parent part's owner in the same `updateMany`, so a
+   * source belonging to someone else cannot be reached by guessing two ids.
+   */
+  async updateSourceForOwner(
+    ownerId: string,
+    partId: string,
+    sourceId: string,
+    data: UpdatePartSourceData,
+  ): Promise<PartSourceEntity | null> {
+    const { count } = await this.prisma.partSource.updateMany({
+      where: { id: sourceId, partId, part: { ownerId } },
+      data: { ...data },
+    });
+
+    if (count === 0) {
+      return null;
+    }
+
+    const source = await this.prisma.partSource.findUnique({ where: { id: sourceId } });
+    return source ? PrismaPartsRepository.toSourceEntity(source) : null;
   }
 
   async deleteSourceForOwner(

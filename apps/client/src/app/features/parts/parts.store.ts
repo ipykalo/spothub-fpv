@@ -7,6 +7,7 @@ import {
   type PartDto,
   type PartStatus,
   type UpdatePartDto,
+  type UpdatePartSourceDto,
 } from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
@@ -130,6 +131,17 @@ export class PartsStore {
   /** Adding a source changes the part's rolled-up price, so re-read the part. */
   async addSource(partId: string, input: CreatePartSourceDto): Promise<void> {
     await firstValueFrom(this.api.addSource(partId, input));
+    const refreshed = await firstValueFrom(this.api.getOne(partId));
+    this.replace(refreshed);
+  }
+
+  /** Correcting a recorded purchase changes the rollup, so re-read the part. */
+  async updateSource(
+    partId: string,
+    sourceId: string,
+    input: UpdatePartSourceDto,
+  ): Promise<void> {
+    await firstValueFrom(this.api.updateSource(partId, sourceId, input));
     const refreshed = await firstValueFrom(this.api.getOne(partId));
     this.replace(refreshed);
   }

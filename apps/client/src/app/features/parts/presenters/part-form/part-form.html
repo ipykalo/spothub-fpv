@@ -85,10 +85,14 @@
 
       <!-- Where it came from -->
       <section class="block" formGroupName="source">
-        <h3>{{ isEdit() ? 'Add a source' : 'Where it came from' }}</h3>
+        <h3>{{ editingSourceId() ? 'Purchase' : 'Where it came from' }}</h3>
         <p class="hint">
-          Paste a product link and the server reads the page's own listing tags. Everything it fills in can be
-          overwritten.
+          @if (editingSourceId()) {
+            Correcting the purchase recorded below. Clear the link and paste another to look a different listing up.
+          } @else {
+            Paste a product link and the server reads the page's own listing tags. Everything it fills in can be
+            overwritten.
+          }
         </p>
 
         <div class="lookup">

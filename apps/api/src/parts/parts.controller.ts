@@ -20,12 +20,14 @@ import {
   type PartDto,
   type PartSourceDto,
   type UpdatePartDto,
+  type UpdatePartSourceDto,
   type UrlPreviewDto,
   createPartSchema,
   createPartSourceSchema,
   enrichUrlSchema,
   listPartsQuerySchema,
   updatePartSchema,
+  updatePartSourceSchema,
 } from '@spothub/shared';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -109,6 +111,16 @@ export class PartsController {
     @Body(new ZodValidationPipe(createPartSourceSchema)) body: CreatePartSourceDto,
   ): Promise<PartSourceDto> {
     return this.parts.addSource(user.id, id, body);
+  }
+
+  @Patch(':id/sources/:sourceId')
+  updateSource(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('sourceId', ParseUUIDPipe) sourceId: string,
+    @Body(new ZodValidationPipe(updatePartSourceSchema)) body: UpdatePartSourceDto,
+  ): Promise<PartSourceDto> {
+    return this.parts.updateSource(user.id, id, sourceId, body);
   }
 
   @Delete(':id/sources/:sourceId')

@@ -6,6 +6,7 @@ import type {
   PartEntity,
   PartSourceEntity,
   UpdatePartData,
+  UpdatePartSourceData,
 } from './part.entity';
 
 export interface PartFilter {
@@ -40,6 +41,13 @@ export abstract class PartsRepository {
     ownerId: string,
     partId: string,
     data: CreatePartSourceData,
+  ): Promise<PartSourceEntity | null>;
+
+  abstract updateSourceForOwner(
+    ownerId: string,
+    partId: string,
+    sourceId: string,
+    data: UpdatePartSourceData,
   ): Promise<PartSourceEntity | null>;
 
   abstract deleteSourceForOwner(

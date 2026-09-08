@@ -97,6 +97,16 @@ export const createPartSourceSchema = partSourceFields.refine(
   { message: 'A purchase needs a price', path: ['price'] },
 );
 
+/**
+ * Every field optional, but a body with no fields at all is rejected. Used to
+ * correct a purchase already recorded rather than stacking a second row.
+ */
+export const updatePartSourceSchema = partSourceFields
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Provide at least one field to update',
+  });
+
 /** The wire shape of a source row. */
 export const partSourceSchema = z.object({
   id: z.uuid(),
@@ -154,6 +164,7 @@ export type UpdatePartDto = z.output<typeof updatePartSchema>;
 export type PartDto = z.output<typeof partSchema>;
 export type PartSourceDto = z.output<typeof partSourceSchema>;
 export type CreatePartSourceDto = z.output<typeof createPartSourceSchema>;
+export type UpdatePartSourceDto = z.output<typeof updatePartSourceSchema>;
 export type ListPartsQuery = z.output<typeof listPartsQuerySchema>;
 export type EnrichUrlDto = z.output<typeof enrichUrlSchema>;
 export type UrlPreviewDto = z.output<typeof urlPreviewSchema>;

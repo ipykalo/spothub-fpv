@@ -55,3 +55,6 @@ export interface CreatePartSourceData {
   readonly purchasedOn: Date | null;
   readonly quantity: number;
 }
+
+/** A sparse patch on a source. Only the keys present are written. */
+export type UpdatePartSourceData = Partial<CreatePartSourceData>;
