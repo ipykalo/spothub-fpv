@@ -2,11 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { RouterLink } from '@angular/router';
-import {
-  BUILD_CLASS_LABELS,
-  BUILD_STATUS_LABELS,
-  type BuildDto,
-} from '@spothub/shared';
+import { BUILD_CLASS_LABELS, BUILD_STATUS_LABELS, type BuildDto } from '@spothub/shared';
 
 /**
  * Presenter: renders one build and announces intent. It owns no state, injects
