@@ -1,0 +1,47 @@
+@if (installs().length) {
+  <ul class="installs">
+    @for (install of installs(); track install.id) {
+      <li [class.past]="history()">
+        <span class="position">
+          @if (install.position) {
+            {{ install.position }}
+          } @else {
+            <span class="muted">no position</span>
+          }
+        </span>
+
+        <span class="part">
+          <a [routerLink]="['/parts', install.partId]">{{ name(install) }}</a>
+          <span class="category">{{ categoryLabels[install.part.category] }}</span>
+        </span>
+
+        <span class="dates">
+          {{ install.installedOn }}
+          @if (install.removedOn; as off) {
+            → {{ off }}
+          }
+          <span class="reason">{{ reasonLabels[install.reason] }}</span>
+        </span>
+
+        @if (!history()) {
+          <button
+            matButton
+            type="button"
+            [disabled]="pendingRemoval() === install.id"
+            (click)="removeRequested.emit(install)"
+          >
+            {{ pendingRemoval() === install.id ? 'Removing…' : 'Remove' }}
+          </button>
+        }
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="empty">
+    @if (history()) {
+      Nothing has been taken off this build yet.
+    } @else {
+      No components fitted yet.
+    }
+  </p>
+}

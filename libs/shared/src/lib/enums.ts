@@ -62,6 +62,15 @@ export const PartStatus = {
 } as const;
 export type PartStatus = (typeof PartStatus)[keyof typeof PartStatus];
 
+export const InstallReason = {
+  /** Fitted when the build was first put together. */
+  Initial: 'INITIAL',
+  /** Swapped in for something broken or worn. */
+  Replacement: 'REPLACEMENT',
+  Upgrade: 'UPGRADE',
+} as const;
+export type InstallReason = (typeof InstallReason)[keyof typeof InstallReason];
+
 export const Role = {
   User: 'USER',
   Admin: 'ADMIN',
@@ -113,4 +122,10 @@ export const PART_STATUS_LABELS: Readonly<Record<PartStatus, string>> = {
   [PartStatus.Spare]: 'Spare',
   [PartStatus.Broken]: 'Broken',
   [PartStatus.Retired]: 'Retired',
+};
+
+export const INSTALL_REASON_LABELS: Readonly<Record<InstallReason, string>> = {
+  [InstallReason.Initial]: 'Initial build',
+  [InstallReason.Replacement]: 'Replacement',
+  [InstallReason.Upgrade]: 'Upgrade',
 };

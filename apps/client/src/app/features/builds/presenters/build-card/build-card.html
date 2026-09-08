@@ -21,7 +21,8 @@
   </mat-card-content>
 
   <mat-card-actions>
-    <button matButton [routerLink]="['/hangar', build().id]">Edit</button>
+    <button matButton [routerLink]="['/hangar', build().id]">Open</button>
+    <button matButton [routerLink]="['/hangar', build().id, 'edit']">Edit</button>
     <button matButton [disabled]="deleting()" (click)="delete.emit(build())">
       {{ deleting() ? 'Deleting…' : 'Delete' }}
     </button>

@@ -40,7 +40,16 @@ export const appRoutes: Route[] = [
           ),
       },
       {
+        // The build page proper: components, cost, history. The form moved to
+        // /edit so this route can be what "open the build" means.
         path: ':id',
+        loadComponent: () =>
+          import('./features/builds/containers/build-detail.page').then(
+            (m) => m.BuildDetailPage,
+          ),
+      },
+      {
+        path: ':id/edit',
         loadComponent: () =>
           import('./features/builds/containers/build-form.page').then(
             (m) => m.BuildFormPage,

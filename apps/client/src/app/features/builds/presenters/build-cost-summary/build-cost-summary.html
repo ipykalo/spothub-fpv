@@ -1,0 +1,33 @@
+<mat-card appearance="outlined">
+  <mat-card-content>
+    <h3>What is on it</h3>
+
+    @if (cost().totals.length) {
+      <ul class="totals">
+        @for (total of cost().totals; track total.currency) {
+          <li>
+            <span class="amount">{{ total.amount }}</span>
+            <span class="currency">{{ total.currency }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="muted">Nothing priced yet.</p>
+    }
+
+    <p class="meta">
+      {{ cost().installedCount }} fitted
+
+      @if (cost().unpricedCount) {
+        <span class="warn">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          {{ cost().unpricedCount }} with no recorded purchase, so this is a floor
+        </span>
+      }
+    </p>
+
+    @if (cost().totals.length > 1) {
+      <p class="muted">Listed per currency — these are not added together, and no rate was applied.</p>
+    }
+  </mat-card-content>
+</mat-card>
