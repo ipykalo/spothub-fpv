@@ -1,42 +1,46 @@
 <mat-card appearance="outlined">
   <mat-card-header>
-    <mat-card-title>{{ title() }}</mat-card-title>
+    <mat-card-title [title]="title()">{{ title() }}</mat-card-title>
     <mat-card-subtitle>
       <span class="status status-{{ part().status }}">
         {{ statusLabels[part().status] }}
       </span>
-      @if (part().quantityOwned !== 1) {
-        <span>· {{ part().quantityOwned }} held</span>
-      }
+      <span>· {{ part().quantityOwned }} held</span>
     </mat-card-subtitle>
   </mat-card-header>
 
   <mat-card-content>
-    @if (specEntries().length) {
-      <dl class="spec">
-        @for (entry of specEntries(); track entry.key) {
-          <div>
-            <dt>{{ entry.key }}</dt>
-            <dd>{{ entry.value }}</dd>
-          </div>
-        }
-      </dl>
-    }
+    <dl class="spec">
+      @for (entry of visibleSpec(); track entry.key) {
+        <div>
+          <dt>{{ entry.key }}</dt>
+          <dd>{{ entry.value }}</dd>
+        </div>
+      } @empty {
+        <div class="none">No specification recorded</div>
+      }
 
-    @if (part().purchasePrice !== null) {
-      <p class="price">
-        {{ part().purchasePrice }} {{ part().purchaseCurrency }}
+      @if (hiddenSpecCount(); as more) {
+        <div class="more">+{{ more }} more</div>
+      }
+    </dl>
+
+    <p class="price">
+      @if (part().purchasePrice !== null) {
+        <span class="amount">{{ part().purchasePrice }}</span>
+        <span class="currency">{{ part().purchaseCurrency }}</span>
         @if (part().quantityOwned > 1) {
           <span class="each">each</span>
         }
-      </p>
-    } @else {
-      <p class="price muted">No purchase recorded</p>
-    }
+      } @else {
+        <span class="none">No purchase recorded</span>
+      }
+    </p>
   </mat-card-content>
 
   <mat-card-actions>
-    <button matButton [routerLink]="['/parts', part().id]">Edit</button>
+    <button matButton [routerLink]="['/parts', part().id]">Open</button>
+    <button matButton [routerLink]="['/parts', part().id, 'edit']">Edit</button>
     <button matButton [disabled]="deleting()" (click)="delete.emit(part())">
       {{ deleting() ? 'Deleting…' : 'Delete' }}
     </button>

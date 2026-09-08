@@ -1,0 +1,105 @@
+<mat-card appearance="outlined">
+  <mat-card-content>
+    <dl class="facts">
+      <div>
+        <dt>Category</dt>
+        <dd>{{ categoryLabels[part().category] }}</dd>
+      </div>
+      <div>
+        <dt>Status</dt>
+        <dd class="status-{{ part().status }}">{{ statusLabels[part().status] }}</dd>
+      </div>
+      <div>
+        <dt>Quantity owned</dt>
+        <dd>{{ part().quantityOwned }}</dd>
+      </div>
+      <div>
+        <dt>Manufacturer</dt>
+        <dd>
+          @if (part().manufacturer; as maker) {
+            {{ maker }}
+          } @else {
+            <span class="none">Not recorded</span>
+          }
+        </dd>
+      </div>
+      <div class="wide">
+        <dt>Model</dt>
+        <dd>
+          @if (part().model; as model) {
+            {{ model }}
+          } @else {
+            <span class="none">Not recorded</span>
+          }
+        </dd>
+      </div>
+    </dl>
+  </mat-card-content>
+</mat-card>
+
+<section class="block">
+  <h2>Specification</h2>
+
+  @if (specEntries().length) {
+    <dl class="spec">
+      @for (entry of specEntries(); track entry.key) {
+        <div>
+          <dt>{{ entry.key }}</dt>
+          <dd>{{ entry.value }}</dd>
+        </div>
+      }
+    </dl>
+  } @else {
+    <p class="none">Nothing recorded for this part.</p>
+  }
+</section>
+
+<section class="block">
+  <h2>Sources</h2>
+
+  @if (sources().length) {
+    <ul class="sources">
+      @for (source of sources(); track source.id) {
+        <li [class.purchase]="source.isPurchase">
+          <span class="vendor">
+            @if (source.isPurchase) {
+              <mat-icon class="bought" aria-label="Bought here">check_circle</mat-icon>
+            }
+            {{ source.vendor ?? 'Unknown vendor' }}
+          </span>
+
+          <span class="cost">
+            @if (source.price !== null) {
+              <strong>{{ source.price }}</strong> {{ source.currency }}
+            } @else {
+              <span class="none">No price</span>
+            }
+          </span>
+
+          <span class="when">
+            @if (source.purchasedOn; as bought) {
+              {{ bought }}
+            } @else {
+              <span class="none">—</span>
+            }
+          </span>
+
+          @if (source.url; as link) {
+            <a [href]="link" target="_blank" rel="noopener noreferrer">Open listing</a>
+          } @else {
+            <span class="none">no link</span>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="none">No purchase or price capture recorded.</p>
+  }
+</section>
+
+@if (part().notesMd; as notes) {
+  <section class="block">
+    <h2>Notes</h2>
+    <pre class="notes">{{ notes }}</pre>
+  </section>
+}
