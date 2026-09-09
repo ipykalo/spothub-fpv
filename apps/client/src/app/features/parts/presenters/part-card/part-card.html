@@ -1,12 +1,17 @@
-<mat-card appearance="outlined" class="tone-{{ style().tone }}">
+<mat-card appearance="outlined" class="tone-{{ tone() }}">
   <div class="head">
     <h3 [title]="title()">{{ title() }}</h3>
 
     <div class="badges">
-      <span class="status">
-        <mat-icon aria-hidden="true">{{ style().icon }}</mat-icon>
-        {{ statusLabels[part().status] }}
-      </span>
+      @for (tally of tallies(); track tally.condition) {
+        <span class="status tone-{{ tally.style.tone }}">
+          <mat-icon aria-hidden="true">{{ tally.style.icon }}</mat-icon>
+          @if (tally.count > 1) {
+            {{ tally.count }}
+          }
+          {{ tally.label }}
+        </span>
+      }
       <span class="stock" [title]="stockDetail()">{{ stock() }}</span>
     </div>
   </div>
@@ -34,7 +39,7 @@
       @if (part().purchasePrice !== null) {
         <span class="amount">{{ part().purchasePrice }}</span>
         <span class="currency">{{ part().purchaseCurrency }}</span>
-        @if (part().quantityOwned > 1) {
+        @if (unitTotal() > 1) {
           <span class="each">each</span>
         }
       } @else {

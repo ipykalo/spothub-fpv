@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { InstallReason } from './enums';
-import { partSchema } from './part.contract';
+import { partSchema, partUnitSchema } from './part.contract';
 
 /**
  * Fitting a part to a build, over time.
@@ -14,7 +14,8 @@ import { partSchema } from './part.contract';
 const isoDate = z.iso.date();
 
 export const installPartSchema = z.object({
-  partId: z.uuid('Pick a part to install'),
+  /** A specific physical unit, not a kind: you fit one motor, not "a motor". */
+  unitId: z.uuid('Pick a part to install'),
   /** Where on the airframe: "motor FR", "arm RL". */
   position: z
     .union([z.string().trim().max(40), z.null()])
@@ -32,11 +33,12 @@ export const removeInstallSchema = z.object({
 export const buildPartSchema = z.object({
   id: z.uuid(),
   buildId: z.uuid(),
-  partId: z.uuid(),
+  unitId: z.uuid(),
   position: z.string().nullable(),
   installedOn: z.string(),
   removedOn: z.string().nullable(),
   reason: z.enum(InstallReason),
+  unit: partUnitSchema,
   part: partSchema,
 });
 

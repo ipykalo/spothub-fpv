@@ -2,7 +2,12 @@
   <h1>Parts</h1>
 
   @if (store.total()) {
-    <span class="count"> {{ store.total() }} entries · {{ store.unitCount() }} units </span>
+    <span class="count">
+      {{ store.total() }} kinds · {{ store.unitTotal() }} units
+      @if (store.fittedTotal()) {
+        · {{ store.fittedTotal() }} fitted
+      }
+    </span>
   }
 
   <span class="spacer"></span>

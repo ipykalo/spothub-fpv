@@ -22,6 +22,7 @@ import {
   type InstallPartDto,
 } from '@spothub/shared';
 
+import { fittableUnits } from '../../parts/part-condition';
 import { PartsStore } from '../../parts/parts.store';
 import { BUILD_STATUS_STYLES } from '../build-status';
 import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
@@ -64,6 +65,13 @@ export class BuildDetailPage {
   protected readonly saving = signal(false);
   protected readonly pendingRemoval = signal<string | null>(null);
   protected readonly showHistory = signal(false);
+
+  /**
+   * Every free, serviceable unit across the inventory. The picker chooses a
+   * specific object, so fitting one of four motors leaves the other three
+   * offered rather than hiding the whole row.
+   */
+  protected readonly fittable = computed(() => fittableUnits(this.parts.parts()));
 
   protected readonly statusLabels = BUILD_STATUS_LABELS;
   protected readonly classLabels = BUILD_CLASS_LABELS;

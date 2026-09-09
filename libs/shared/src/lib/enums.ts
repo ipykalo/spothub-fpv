@@ -53,15 +53,14 @@ export const PartCategory = {
 export type PartCategory = (typeof PartCategory)[keyof typeof PartCategory];
 
 /**
- * The *condition* of a part — the half only the owner knows.
+ * The condition of one physical unit — the half only the owner knows.
  *
- * Deliberately says nothing about where the part is. Whether something is
- * fitted is a fact `build_parts` already holds, so it is derived rather than
- * typed: a second copy would drift the first time a dropdown was not updated.
- * It also cannot be expressed here — one row can stand for four motors, and
- * at "2 of 4 fitted" no single value would be true.
+ * Lives on a unit rather than on the part, because one value cannot describe
+ * four motors: marking the row broken condemned all four. Says nothing about
+ * where the unit is either — whether it is fitted is a fact `build_parts`
+ * already holds, and a typed copy would drift from it.
  */
-export const PartStatus = {
+export const PartCondition = {
   /** Fit to use, whether or not it is currently on a quad. */
   Serviceable: 'SERVICEABLE',
   /** Damaged. Must not be fitted to anything. */
@@ -69,7 +68,7 @@ export const PartStatus = {
   /** Worn out or superseded, kept for the record. */
   Retired: 'RETIRED',
 } as const;
-export type PartStatus = (typeof PartStatus)[keyof typeof PartStatus];
+export type PartCondition = (typeof PartCondition)[keyof typeof PartCondition];
 
 export const InstallReason = {
   /** Fitted when the build was first put together. */
@@ -125,10 +124,10 @@ export const PART_CATEGORY_LABELS: Readonly<Record<PartCategory, string>> = {
   [PartCategory.Other]: 'Other',
 };
 
-export const PART_STATUS_LABELS: Readonly<Record<PartStatus, string>> = {
-  [PartStatus.Serviceable]: 'Serviceable',
-  [PartStatus.Broken]: 'Broken',
-  [PartStatus.Retired]: 'Retired',
+export const PART_CONDITION_LABELS: Readonly<Record<PartCondition, string>> = {
+  [PartCondition.Serviceable]: 'Serviceable',
+  [PartCondition.Broken]: 'Broken',
+  [PartCondition.Retired]: 'Retired',
 };
 
 export const INSTALL_REASON_LABELS: Readonly<Record<InstallReason, string>> = {

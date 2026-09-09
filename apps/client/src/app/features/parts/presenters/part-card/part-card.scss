@@ -169,7 +169,9 @@ p.spec.none {
   margin: 0;
 }
 
-/* One pair of custom properties per tone, matching the build cards. */
+/* One pair of custom properties per tone, matching the build cards. Set on
+   the card for the stripe and on each chip for its own colour, so a part with
+   both serviceable and broken units shows both. */
 .tone-go {
   --tone: var(--status-go);
   --tone-surface: var(--status-go-surface);

@@ -5,15 +5,16 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { availableUnits } from '../../../parts/part-status';
+
 import {
   INSTALL_REASON_LABELS,
   InstallReason,
   PART_CATEGORY_LABELS,
   installPartSchema,
   type InstallPartDto,
-  type PartDto,
 } from '@spothub/shared';
+
+import type { FittableUnit } from '../../../parts/part-condition';
 
 /** Presenter: fit a part to this build. Validates, then hands the value up. */
 @Component({
@@ -31,7 +32,8 @@ import {
   styleUrl: './install-part-form.scss',
 })
 export class InstallPartForm {
-  readonly parts = input.required<readonly PartDto[]>();
+  /** Individual units, not kinds: you fit one motor, not "a motor". */
+  readonly units = input.required<readonly FittableUnit[]>();
   readonly saving = input(false);
 
   readonly installed = output<InstallPartDto>();
@@ -45,29 +47,19 @@ export class InstallPartForm {
   protected error: string | null = null;
 
   protected readonly form = this.fb.group({
-    partId: [''],
+    unitId: [''],
     position: [''],
     // Defaults to today, which is when a part is fitted in almost every case.
     installedOn: [new Date().toISOString().slice(0, 10)],
     reason: [InstallReason.Initial as InstallReason],
   });
 
-  /** Units of this row not already on a quad. */
-  protected free(part: PartDto): number {
-    return availableUnits(part);
-  }
-
-  protected label(part: PartDto): string {
-    const named = [part.manufacturer, part.model].filter(Boolean).join(' ');
-    return named || PART_CATEGORY_LABELS[part.category];
-  }
-
   protected submit(): void {
     this.error = null;
 
     const raw = this.form.getRawValue();
     const parsed = installPartSchema.safeParse({
-      partId: raw.partId,
+      unitId: raw.unitId,
       position: raw.position || null,
       installedOn: raw.installedOn,
       reason: raw.reason,
@@ -83,6 +75,6 @@ export class InstallPartForm {
 
     // Keep the date and reason: fitting several parts in one sitting is the
     // normal case, and retyping the same date each time is friction.
-    this.form.patchValue({ partId: '', position: '' });
+    this.form.patchValue({ unitId: '', position: '' });
   }
 }

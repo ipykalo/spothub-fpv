@@ -154,9 +154,9 @@ enum PartCategory {
   OTHER
 }
 
-/// The condition of a part -- the half only the owner knows. Whether it is
-/// fitted is derived from `build_parts`, never stored here.
-enum PartStatus {
+/// The condition of one physical unit -- the half only the owner knows.
+/// Whether it is fitted is derived from `build_parts`, never stored.
+enum PartCondition {
   SERVICEABLE
   BROKEN
   RETIRED
@@ -165,27 +165,55 @@ enum PartStatus {
 /// A physical thing I own, tracked as inventory rather than as fields on a
 /// build. Motors move between quads; flat `frame`/`motors` strings on `builds`
 /// cannot express purchases, spares or replacement history.
+/// A *kind* of thing owned -- "UAngel X2810 900KV" -- not a count of them.
+///
+/// How many are held and what condition each is in live on `part_units`,
+/// because one condition field cannot describe four motors: mark the row
+/// broken and all four are condemned.
 model Part {
-  id            String       @id @default(uuid()) @db.Uuid
-  ownerId       String       @map("owner_id") @db.Uuid
-  category      PartCategory
-  manufacturer  String?
-  model         String?
+  id           String       @id @default(uuid()) @db.Uuid
+  ownerId      String       @map("owner_id") @db.Uuid
+  category     PartCategory
+  manufacturer String?
+  model        String?
   /// Category-specific and deliberately free-form: a motor has kv and stator
   /// size, a VTX has power levels. Validated per category in libs/shared.
-  spec          Json         @default("{}")
-  quantityOwned Int          @default(1) @map("quantity_owned")
-  status        PartStatus   @default(SERVICEABLE)
-  notesMd       String?      @map("notes_md")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  spec         Json         @default("{}")
+  notesMd      String?      @map("notes_md")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
 
-  owner    User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  sources  PartSource[]
-  installs BuildPart[]
+  owner   User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// Price hangs off the kind: you buy a model at a price, and a per-unit
+  /// price would be over-modelling until something is bought twice at
+  /// different times for different money.
+  sources PartSource[]
+  units   PartUnit[]
 
   @@index([ownerId, category])
   @@map("parts")
+}
+
+/// One physical object.
+///
+/// This is the grain everything else wants: a motor that dies can be marked
+/// broken without condemning its three siblings, and an install points at the
+/// specific item that was fitted.
+model PartUnit {
+  id         String        @id @default(uuid()) @db.Uuid
+  partId     String        @map("part_id") @db.Uuid
+  condition  PartCondition @default(SERVICEABLE)
+  /// Free-text marking on the physical item, if it has one.
+  label      String?
+  acquiredOn DateTime?     @map("acquired_on") @db.Date
+  notes      String?
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  part     Part        @relation(fields: [partId], references: [id], onDelete: Cascade)
+  installs BuildPart[]
+
+  @@index([partId])
+  @@map("part_units")
 }
 
 /// Where a part came from and what it cost. Several rows per part are expected:
@@ -229,7 +257,7 @@ enum InstallReason {
 model BuildPart {
   id          String        @id @default(uuid()) @db.Uuid
   buildId     String        @map("build_id") @db.Uuid
-  partId      String        @map("part_id") @db.Uuid
+  unitId      String        @map("unit_id") @db.Uuid
   /// Where on the airframe: "motor FR", "arm RL".
   position    String?
   installedOn DateTime      @map("installed_on") @db.Date
@@ -237,10 +265,10 @@ model BuildPart {
   reason      InstallReason @default(INITIAL)
   createdAt   DateTime      @default(now()) @map("created_at")
 
-  build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
-  part  Part  @relation(fields: [partId], references: [id], onDelete: Cascade)
+  build Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  unit  PartUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   @@index([buildId])
-  @@index([partId])
+  @@index([unitId])
   @@map("build_parts")
 }

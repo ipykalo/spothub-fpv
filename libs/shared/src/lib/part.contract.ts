@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PartCategory, PartStatus } from './enums';
+import { PartCategory, PartCondition } from './enums';
 
 /**
  * The parts contract, defined once.
@@ -39,20 +39,26 @@ export const partFields = z.object({
     .transform((value) => (value === null || value === '' ? null : value))
     .default(null),
   spec: partSpecSchema,
-  quantityOwned: z.coerce
-    .number()
-    .int('Quantity must be a whole number')
-    .min(0, 'Quantity cannot be negative')
-    .max(9_999)
-    .default(1),
-  status: z.enum(PartStatus).default(PartStatus.Serviceable),
   notesMd: z
     .union([z.string().max(20_000), z.null()])
     .transform((value) => (value === null || value === '' ? null : value))
     .default(null),
 });
 
-export const createPartSchema = partFields;
+/**
+ * Creating a part also creates its units.
+ *
+ * Typing "I bought 4" is the good half of the old quantity field and stays;
+ * what changes is that it now stores four objects rather than the number 4.
+ */
+export const createPartSchema = partFields.extend({
+  quantity: z.coerce
+    .number()
+    .int('Quantity must be a whole number')
+    .min(1, 'A part needs at least one unit')
+    .max(99, 'Add that many in smaller batches')
+    .default(1),
+});
 
 /**
  * Every field optional, but a body with no fields at all is rejected — an empty
@@ -107,6 +113,44 @@ export const updatePartSourceSchema = partSourceFields
     message: 'Provide at least one field to update',
   });
 
+export const partUnitFields = z.object({
+  condition: z.enum(PartCondition).default(PartCondition.Serviceable),
+  /** Free-text marking on the physical item — a Sharpie number, usually. */
+  label: z
+    .union([z.string().trim().max(40), z.null()])
+    .transform((value) => (value === null || value === '' ? null : value))
+    .default(null),
+  acquiredOn: optionalDate.default(null),
+  notes: z
+    .union([z.string().max(2_000), z.null()])
+    .transform((value) => (value === null || value === '' ? null : value))
+    .default(null),
+});
+
+export const createPartUnitSchema = partUnitFields;
+
+export const updatePartUnitSchema = partUnitFields
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Provide at least one field to update',
+  });
+
+export const partUnitSchema = z.object({
+  id: z.uuid(),
+  partId: z.uuid(),
+  condition: z.enum(PartCondition),
+  label: z.string().nullable(),
+  acquiredOn: z.string().nullable(),
+  notes: z.string().nullable(),
+  /**
+   * Whether this unit is on a quad right now. Derived from `build_parts`,
+   * never stored — an object can only be in one place at a time, and the
+   * install rows already say where.
+   */
+  fitted: z.boolean(),
+  createdAt: z.string(),
+});
+
 /** The wire shape of a source row. */
 export const partSourceSchema = z.object({
   id: z.uuid(),
@@ -127,17 +171,9 @@ export const partSchema = z.object({
   manufacturer: z.string().nullable(),
   model: z.string().nullable(),
   spec: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
-  quantityOwned: z.number().int(),
-  status: z.enum(PartStatus),
   notesMd: z.string().nullable(),
+  units: z.array(partUnitSchema),
   sources: z.array(partSourceSchema),
-  /**
-   * How many units of this row are fitted to a build right now, across every
-   * build. Derived from `build_parts`, never stored: whether something is
-   * installed is a fact the database already holds, and a second copy of it
-   * would drift the first time a dropdown was not updated.
-   */
-  fittedCount: z.number().int(),
   /** Unit price of the row flagged `isPurchase`, or null if never bought. */
   purchasePrice: z.number().nullable(),
   purchaseCurrency: z.string().nullable(),
@@ -147,7 +183,8 @@ export const partSchema = z.object({
 
 export const listPartsQuerySchema = z.object({
   category: z.enum(PartCategory).optional(),
-  status: z.enum(PartStatus).optional(),
+  /** Matches parts having at least one unit in this condition. */
+  condition: z.enum(PartCondition).optional(),
   search: z.string().trim().min(1).max(80).optional(),
 });
 
@@ -165,6 +202,9 @@ export const urlPreviewSchema = z.object({
 });
 
 export type PartSpec = z.output<typeof partSpecSchema>;
+export type PartUnitDto = z.output<typeof partUnitSchema>;
+export type CreatePartUnitDto = z.output<typeof createPartUnitSchema>;
+export type UpdatePartUnitDto = z.output<typeof updatePartUnitSchema>;
 export type PartFormValue = z.input<typeof partFields>;
 export type CreatePartDto = z.output<typeof createPartSchema>;
 export type UpdatePartDto = z.output<typeof updatePartSchema>;

@@ -24,5 +24,11 @@
 }
 
 @if (part(); as found) {
-  <sh-part-details [part]="found" />
+  <sh-part-details
+    [part]="found"
+    [removingUnitId]="removingUnitId()"
+    (unitConditionChanged)="setCondition($event)"
+    (unitAdded)="addUnit()"
+    (unitRemoved)="removeUnit($event)"
+  />
 }

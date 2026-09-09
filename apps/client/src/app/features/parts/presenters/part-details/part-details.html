@@ -6,20 +6,11 @@
         <dd>{{ categoryLabels[part().category] }}</dd>
       </div>
       <div>
-        <dt>Status</dt>
-        <dd>
-          <span class="status tone-{{ style().tone }}">
-            <mat-icon aria-hidden="true">{{ style().icon }}</mat-icon>
-            {{ statusLabels[part().status] }}
-          </span>
-        </dd>
-      </div>
-      <div>
         <dt>Units</dt>
         <dd>
-          {{ part().quantityOwned }} owned
-          @if (part().fittedCount) {
-            <span class="sub">· {{ part().fittedCount }} fitted, {{ free() }} free</span>
+          {{ total() }} owned
+          @if (fitted()) {
+            <span class="sub">· {{ fitted() }} fitted, {{ free() }} free</span>
           } @else {
             <span class="sub">· all in stock</span>
           }
@@ -64,6 +55,56 @@
   } @else {
     <p class="none">Nothing recorded for this part.</p>
   }
+</section>
+
+<section class="block">
+  <h2>Units</h2>
+  <p class="hint">
+    Each row is one physical item. Condition is per unit, so a dead motor does not condemn its siblings.
+  </p>
+
+  <ul class="units">
+    @for (unit of part().units; track unit.id) {
+      <li class="tone-{{ conditionStyles[unit.condition].tone }}">
+        <span class="unit-name">{{ name(unit) }}</span>
+
+        <mat-select
+          class="condition"
+          [value]="unit.condition"
+          (valueChange)="unitConditionChanged.emit({ unit, condition: $event })"
+          [attr.aria-label]="'Condition of ' + name(unit)"
+        >
+          @for (item of conditions; track item) {
+            <mat-option [value]="item">{{ conditionLabels[item] }}</mat-option>
+          }
+        </mat-select>
+
+        <span class="where">
+          @if (unit.fitted) {
+            <mat-icon aria-hidden="true">link</mat-icon>
+            Fitted
+          } @else {
+            In stock
+          }
+        </span>
+
+        <button
+          matButton
+          type="button"
+          [disabled]="unit.fitted || removingUnitId() === unit.id"
+          [title]="unit.fitted ? 'Take it off its build first' : 'Delete this unit'"
+          (click)="unitRemoved.emit(unit)"
+        >
+          {{ removingUnitId() === unit.id ? 'Removing…' : 'Delete' }}
+        </button>
+      </li>
+    }
+  </ul>
+
+  <button matButton="outlined" type="button" (click)="unitAdded.emit()">
+    <mat-icon>add</mat-icon>
+    Add a unit
+  </button>
 </section>
 
 <section class="block">

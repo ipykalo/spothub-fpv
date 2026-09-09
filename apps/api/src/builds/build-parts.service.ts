@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   BuildCostDto,
   BuildPartDto,
@@ -40,11 +40,15 @@ export class BuildPartsService {
   ): Promise<BuildPartDto> {
     const install = await this.installs.install(ownerId, {
       buildId,
-      partId: input.partId,
+      unitId: input.unitId,
       position: input.position,
       installedOn: toDate(input.installedOn),
       reason: input.reason,
     });
+
+    if (install === 'occupied') {
+      throw new ConflictException('That unit is already fitted to a build');
+    }
 
     if (!install) {
       throw new NotFoundException('Build or part not found');

@@ -5,14 +5,16 @@ import {
   type CreatePartSourceDto,
   type PartCategory,
   type PartDto,
-  type PartStatus,
+  type CreatePartUnitDto,
+  type PartCondition,
+  type UpdatePartUnitDto,
   type UpdatePartDto,
   type UpdatePartSourceDto,
 } from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
 import { PartsApi } from './parts.api';
-import { isFittable } from './part-status';
+import { fittedCount, isFittable, unitCount } from './part-condition';
 
 /** A category heading plus the parts under it, ready for the template. */
 export interface PartGroup {
@@ -35,29 +37,27 @@ export class PartsStore {
   private readonly busy = signal(false);
   private readonly failure = signal<string | null>(null);
   private readonly categoryFilter = signal<PartCategory | null>(null);
-  private readonly statusFilter = signal<PartStatus | null>(null);
+  private readonly conditionFilter = signal<PartCondition | null>(null);
 
   readonly parts = this.items.asReadonly();
   readonly loading = this.busy.asReadonly();
   readonly error = this.failure.asReadonly();
   readonly category = this.categoryFilter.asReadonly();
-  readonly status = this.statusFilter.asReadonly();
+  readonly condition = this.conditionFilter.asReadonly();
 
   readonly isEmpty = computed(() => !this.busy() && this.items().length === 0);
 
-  /**
-   * Parts that can still be fitted to a build.
-   *
-   * A broken or retired part must never be offered, and a part is only
-   * available while fewer units are on a quad than are owned — one row can
-   * stand for four motors, and fitting one must not hide the other three.
-   */
+  /** Parts with at least one unit free to fit. */
   readonly fittable = computed(() => this.items().filter(isFittable));
   readonly total = computed(() => this.items().length);
 
   /** Total units held, which is what "how many props do I have" really asks. */
-  readonly unitCount = computed(() =>
-    this.items().reduce((sum, part) => sum + part.quantityOwned, 0),
+  readonly unitTotal = computed(() =>
+    this.items().reduce((sum, part) => sum + unitCount(part), 0),
+  );
+
+  readonly fittedTotal = computed(() =>
+    this.items().reduce((sum, part) => sum + fittedCount(part), 0),
   );
 
   /**
@@ -86,10 +86,10 @@ export class PartsStore {
 
   async load(
     category: PartCategory | null = this.categoryFilter(),
-    status: PartStatus | null = this.statusFilter(),
+    condition: PartCondition | null = this.conditionFilter(),
   ): Promise<void> {
     this.categoryFilter.set(category);
-    this.statusFilter.set(status);
+    this.conditionFilter.set(condition);
     this.busy.set(true);
     this.failure.set(null);
 
@@ -97,7 +97,7 @@ export class PartsStore {
       const parts = await firstValueFrom(
         this.api.list({
           ...(category ? { category } : {}),
-          ...(status ? { status } : {}),
+          ...(condition ? { condition } : {}),
         }),
       );
 
@@ -145,6 +145,26 @@ export class PartsStore {
     this.replace(refreshed);
   }
 
+  /** Units change what can be fitted, so re-read the part after any change. */
+  async addUnit(partId: string, input: CreatePartUnitDto): Promise<void> {
+    await firstValueFrom(this.api.addUnit(partId, input));
+    await this.refresh(partId);
+  }
+
+  async updateUnit(
+    partId: string,
+    unitId: string,
+    input: UpdatePartUnitDto,
+  ): Promise<void> {
+    await firstValueFrom(this.api.updateUnit(partId, unitId, input));
+    await this.refresh(partId);
+  }
+
+  async removeUnit(partId: string, unitId: string): Promise<void> {
+    await firstValueFrom(this.api.removeUnit(partId, unitId));
+    await this.refresh(partId);
+  }
+
   /** Correcting a recorded purchase changes the rollup, so re-read the part. */
   async updateSource(
     partId: string,
@@ -164,6 +184,10 @@ export class PartsStore {
 
   find(id: string): PartDto | undefined {
     return this.items().find((part) => part.id === id);
+  }
+
+  private async refresh(partId: string): Promise<void> {
+    this.replace(await firstValueFrom(this.api.getOne(partId)));
   }
 
   private replace(part: PartDto): void {

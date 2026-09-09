@@ -49,6 +49,56 @@
   background: var(--mat-sys-surface-container);
 }
 
+.hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+  max-width: 44rem;
+}
+
+.units {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.units li {
+  display: grid;
+  grid-template-columns: 5rem minmax(9rem, 12rem) 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: 4px;
+  background: var(--mat-sys-surface-container);
+  border-left: 3px solid var(--tone);
+  font-size: 0.9rem;
+}
+
+.unit-name {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.condition {
+  font-size: 0.85rem;
+}
+
+.where {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.85rem;
+}
+
+.where mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
 .sources {
   list-style: none;
   margin: 0;
@@ -164,7 +214,8 @@
 }
 
 @media (max-width: 40rem) {
-  .sources li {
+  .sources li,
+  .units li {
     grid-template-columns: 1fr auto;
   }
 }

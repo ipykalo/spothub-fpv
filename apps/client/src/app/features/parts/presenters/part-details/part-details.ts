@@ -1,9 +1,29 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
-import { PART_CATEGORY_LABELS, PART_STATUS_LABELS, type PartDto } from '@spothub/shared';
+import {
+  PART_CATEGORY_LABELS,
+  PART_CONDITION_LABELS,
+  PartCondition,
+  type PartDto,
+  type PartUnitDto,
+} from '@spothub/shared';
 
-import { PART_STATUS_STYLES, availableUnits } from '../../part-status';
+import {
+  PART_CONDITION_STYLES,
+  availableUnits,
+  fittedCount,
+  unitCount,
+  unitName,
+} from '../../part-condition';
 
 interface SpecEntry {
   readonly key: string;
@@ -19,20 +39,35 @@ interface SpecEntry {
 @Component({
   selector: 'sh-part-details',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatCardModule, MatIconModule],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, MatSelectModule],
   templateUrl: './part-details.html',
   styleUrl: './part-details.scss',
 })
 export class PartDetails {
   readonly part = input.required<PartDto>();
 
-  protected readonly categoryLabels = PART_CATEGORY_LABELS;
-  protected readonly statusLabels = PART_STATUS_LABELS;
+  readonly removingUnitId = input<string | null>(null);
 
-  protected readonly style = computed(() => PART_STATUS_STYLES[this.part().status]);
+  readonly unitConditionChanged = output<{
+    unit: PartUnitDto;
+    condition: PartCondition;
+  }>();
+  readonly unitRemoved = output<PartUnitDto>();
+  readonly unitAdded = output();
+
+  protected readonly categoryLabels = PART_CATEGORY_LABELS;
+  protected readonly conditionLabels = PART_CONDITION_LABELS;
+  protected readonly conditionStyles = PART_CONDITION_STYLES;
+  protected readonly conditions = Object.values(PartCondition);
 
   /** Units not currently on a quad. */
   protected readonly free = computed(() => availableUnits(this.part()));
+  protected readonly total = computed(() => unitCount(this.part()));
+  protected readonly fitted = computed(() => fittedCount(this.part()));
+
+  protected name(unit: PartUnitDto): string {
+    return unitName(this.part(), unit);
+  }
 
   protected readonly specEntries = computed<readonly SpecEntry[]>(() =>
     Object.entries(this.part().spec).map(([key, value]) => ({

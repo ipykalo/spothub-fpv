@@ -9,13 +9,33 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
-import { PART_CATEGORY_LABELS, PART_STATUS_LABELS, type PartDto } from '@spothub/shared';
+import {
+  PART_CATEGORY_LABELS,
+  PART_CONDITION_LABELS,
+  type PartCondition,
+  type PartDto,
+} from '@spothub/shared';
 
-import { PART_STATUS_STYLES, availableUnits } from '../../part-status';
+import type { StatusStyle } from '../../../../core/ui/status-style';
+import {
+  PART_CONDITION_STYLES,
+  availableUnits,
+  conditionCounts,
+  fittedCount,
+  unitCount,
+} from '../../part-condition';
 
 interface SpecEntry {
   readonly key: string;
   readonly value: string;
+}
+
+/** A condition present among a part's units, with how many are in it. */
+interface ConditionTally {
+  readonly condition: PartCondition;
+  readonly count: number;
+  readonly label: string;
+  readonly style: StatusStyle;
 }
 
 /** Two dense rows fit the card body; the rest are counted, not listed. */
@@ -38,9 +58,32 @@ export class PartCard {
 
   readonly delete = output<PartDto>();
 
-  protected readonly statusLabels = PART_STATUS_LABELS;
+  /**
+   * One chip per condition present among the units.
+   *
+   * A part no longer has *a* condition — four motors with one dead reads as
+   * "3 serviceable · 1 broken", which is precisely what a single status field
+   * could not say.
+   */
+  protected readonly tallies = computed<readonly ConditionTally[]>(() =>
+    conditionCounts(this.part()).map(([condition, count]) => ({
+      condition,
+      count,
+      label: PART_CONDITION_LABELS[condition],
+      style: PART_CONDITION_STYLES[condition],
+    })),
+  );
 
-  protected readonly style = computed(() => PART_STATUS_STYLES[this.part().status]);
+  /** The card's stripe follows the most serious condition present. */
+  protected readonly tone = computed(() => {
+    const tallies = this.tallies();
+    const worst =
+      tallies.find((tally) => tally.style.tone === 'stop') ??
+      tallies.find((tally) => tally.style.tone === 'ready') ??
+      tallies.at(0);
+
+    return worst?.style.tone ?? 'idle';
+  });
 
   /**
    * Manufacturer and model are both optional. Falling back to the category
@@ -55,25 +98,26 @@ export class PartCard {
   });
 
   /**
-   * Where the units are — the half of the old status field that the database
-   * knows and the owner should never have been typing.
-   *
-   * One row can stand for several physical items, so a single word could
-   * never be right: at two of four fitted, neither "in use" nor "spare" is
-   * true. A count is.
+   * Where the units are — derived from the install rows rather than typed.
+   * A count is the only honest answer when one part means several objects.
    */
   protected readonly stock = computed(() => {
     const part = this.part();
+    const total = unitCount(part);
+    const fitted = fittedCount(part);
     const free = availableUnits(part);
 
-    if (part.fittedCount === 0) {
-      return `${part.quantityOwned} in stock`;
+    if (fitted === 0) {
+      return `${total} in stock`;
     }
 
-    const fitted = `${part.fittedCount} of ${part.quantityOwned} fitted`;
+    const summary = `${fitted} of ${total} fitted`;
 
-    return free === 0 ? fitted : `${fitted}, ${free} free`;
+    return free === 0 ? summary : `${summary}, ${free} free`;
   });
+
+  /** Units held, used to decide whether the price needs an "each". */
+  protected readonly unitTotal = computed(() => unitCount(this.part()));
 
   protected readonly stockDetail = computed(() => {
     const free = availableUnits(this.part());

@@ -1,6 +1,6 @@
 import type { BuildCostDto, BuildPartDto } from '@spothub/shared';
 
-import { toPartDto } from '../parts/parts.mapper';
+import { toPartDto, toPartUnitDto } from '../parts/parts.mapper';
 import type { BuildCost, BuildPartEntity } from './build-part.entity';
 
 /** Date-only columns must not leak a timezone-shifted timestamp to the client. */
@@ -16,11 +16,12 @@ export function toBuildPartDto(install: BuildPartEntity): BuildPartDto {
   return {
     id: install.id,
     buildId: install.buildId,
-    partId: install.partId,
+    unitId: install.unitId,
     position: install.position,
     installedOn: toDateOnly(install.installedOn),
     removedOn: install.removedOn ? toDateOnly(install.removedOn) : null,
     reason: install.reason,
+    unit: toPartUnitDto(install.unit),
     part: toPartDto(install.part),
   };
 }
