@@ -19,7 +19,9 @@ import {
   BUILD_STATUS_LABELS,
   type BuildDto,
   type BuildPartDto,
+  type CreateRepairDto,
   type InstallPartDto,
+  type RepairDto,
 } from '@spothub/shared';
 
 import { fittableUnits } from '../../parts/part-condition';
@@ -28,6 +30,9 @@ import { BUILD_STATUS_STYLES } from '../build-status';
 import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
 import { InstallPartForm } from '../presenters/install-part-form/install-part-form';
 import { InstalledPartsList } from '../presenters/installed-parts-list/installed-parts-list';
+import { RepairForm } from '../presenters/repair-form/repair-form';
+import { RepairTimeline } from '../presenters/repair-timeline/repair-timeline';
+import { RepairsStore } from '../repairs.store';
 import { BuildPartsStore } from '../build-parts.store';
 import { BuildsApi } from '../builds.api';
 import { BuildsStore } from '../builds.store';
@@ -47,6 +52,8 @@ import { BuildsStore } from '../builds.store';
     BuildCostSummary,
     InstallPartForm,
     InstalledPartsList,
+    RepairForm,
+    RepairTimeline,
   ],
   templateUrl: './build-detail.page.html',
   styleUrl: './build-detail.page.scss',
@@ -56,6 +63,7 @@ export class BuildDetailPage {
   readonly id = input.required<string>();
 
   protected readonly installs = inject(BuildPartsStore);
+  protected readonly repairs = inject(RepairsStore);
   protected readonly parts = inject(PartsStore);
   private readonly builds = inject(BuildsStore);
   private readonly api = inject(BuildsApi);
@@ -65,6 +73,8 @@ export class BuildDetailPage {
   protected readonly saving = signal(false);
   protected readonly pendingRemoval = signal<string | null>(null);
   protected readonly showHistory = signal(false);
+  protected readonly loggingRepair = signal(false);
+  protected readonly removingRepairId = signal<string | null>(null);
 
   /**
    * Every free, serviceable unit across the inventory. The picker chooses a
@@ -90,6 +100,7 @@ export class BuildDetailPage {
       untracked(() => {
         void this.hydrate(id);
         void this.installs.load(id);
+        void this.repairs.load(id);
 
         // The install picker needs the inventory; harmless if already loaded.
         if (this.parts.parts().length === 0) {
@@ -117,6 +128,35 @@ export class BuildDetailPage {
   }
 
   /** Removal records an end date; the row stays so the history survives. */
+  protected async logRepair(input: CreateRepairDto): Promise<void> {
+    this.loggingRepair.set(true);
+
+    try {
+      await this.repairs.create(this.id(), input);
+      // The rollup counts repair spend, so it changes when one is logged.
+      await this.installs.load(this.id());
+      this.snackBar.open('Logged', undefined, { duration: 2500 });
+    } catch {
+      this.snackBar.open('Could not log that repair', undefined, { duration: 4000 });
+    } finally {
+      this.loggingRepair.set(false);
+    }
+  }
+
+  protected async removeRepair(repair: RepairDto): Promise<void> {
+    this.removingRepairId.set(repair.id);
+
+    try {
+      await this.repairs.remove(this.id(), repair.id);
+      await this.installs.load(this.id());
+      this.snackBar.open('Deleted', undefined, { duration: 2500 });
+    } catch {
+      this.snackBar.open('Could not delete that repair', undefined, { duration: 4000 });
+    } finally {
+      this.removingRepairId.set(null);
+    }
+  }
+
   protected async remove(install: BuildPartDto): Promise<void> {
     this.pendingRemoval.set(install.id);
 

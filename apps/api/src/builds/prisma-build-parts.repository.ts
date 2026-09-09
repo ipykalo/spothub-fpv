@@ -137,6 +137,7 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
       installedOn: install.installedOn,
       removedOn: install.removedOn,
       reason: install.reason,
+      repairId: install.repairId,
       unit: PrismaBuildPartsRepository.toUnitEntity(install.unit),
       part: PrismaBuildPartsRepository.toPartEntity(install.unit.part),
     };

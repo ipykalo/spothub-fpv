@@ -1,7 +1,7 @@
 import type { BuildCostDto, BuildPartDto } from '@spothub/shared';
 
 import { toPartDto, toPartUnitDto } from '../parts/parts.mapper';
-import type { BuildCost, BuildPartEntity } from './build-part.entity';
+import type { BuildCost, BuildPartEntity, CurrencyTotal } from './build-part.entity';
 
 /** Date-only columns must not leak a timezone-shifted timestamp to the client. */
 const toDateOnly = (value: Date): string => value.toISOString().slice(0, 10);
@@ -21,6 +21,7 @@ export function toBuildPartDto(install: BuildPartEntity): BuildPartDto {
     installedOn: toDateOnly(install.installedOn),
     removedOn: install.removedOn ? toDateOnly(install.removedOn) : null,
     reason: install.reason,
+    repairId: install.repairId,
     unit: toPartUnitDto(install.unit),
     part: toPartDto(install.part),
   };
@@ -34,6 +35,11 @@ export function toBuildCostDto(cost: BuildCost): BuildCostDto {
     })),
     unpricedCount: cost.unpricedCount,
     installedCount: cost.installedCount,
+    repairTotals: cost.repairTotals.map((total) => ({
+      currency: total.currency,
+      amount: total.amount,
+    })),
+    repairCount: cost.repairCount,
   };
 }
 
@@ -45,7 +51,11 @@ export function toBuildCostDto(cost: BuildCost): BuildCostDto {
  * counted separately, so the total reads as the floor it actually is rather
  * than as a complete figure.
  */
-export function rollUpCost(installs: readonly BuildPartEntity[]): BuildCost {
+export function rollUpCost(
+  installs: readonly BuildPartEntity[],
+  repairTotals: readonly CurrencyTotal[] = [],
+  repairCount = 0,
+): BuildCost {
   const byCurrency = new Map<string, number>();
   let unpricedCount = 0;
 
@@ -71,5 +81,11 @@ export function rollUpCost(installs: readonly BuildPartEntity[]): BuildCost {
     }))
     .sort((a, b) => b.amount - a.amount);
 
-  return { totals, unpricedCount, installedCount: installs.length };
+  return {
+    totals,
+    unpricedCount,
+    installedCount: installs.length,
+    repairTotals,
+    repairCount,
+  };
 }

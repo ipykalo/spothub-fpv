@@ -26,8 +26,29 @@
       }
     </p>
 
-    @if (cost().totals.length > 1) {
+    @if (cost().totals.length > 1 || cost().repairTotals.length > 1) {
       <p class="muted">Listed per currency — these are not added together, and no rate was applied.</p>
     }
+  </mat-card-content>
+</mat-card>
+
+<mat-card appearance="outlined" class="repairs">
+  <mat-card-content>
+    <h3>What it has cost to fix</h3>
+
+    @if (cost().repairTotals.length) {
+      <ul class="totals">
+        @for (total of cost().repairTotals; track total.currency) {
+          <li>
+            <span class="amount">{{ total.amount }}</span>
+            <span class="currency">{{ total.currency }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="muted">Nothing spent on repairs yet.</p>
+    }
+
+    <p class="meta">{{ cost().repairCount }} repair{{ cost().repairCount === 1 ? '' : 's' }} logged</p>
   </mat-card-content>
 </mat-card>

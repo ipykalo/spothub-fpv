@@ -11,6 +11,7 @@ export interface BuildPartEntity {
   readonly installedOn: Date;
   readonly removedOn: Date | null;
   readonly reason: InstallReason;
+  readonly repairId: string | null;
   readonly unit: PartUnitEntity;
   readonly part: PartEntity;
 }
@@ -22,6 +23,7 @@ export interface CreateBuildPartData {
   readonly position: string | null;
   readonly installedOn: Date;
   readonly reason: InstallReason;
+  readonly repairId: string | null;
 }
 
 /**
@@ -40,4 +42,7 @@ export interface BuildCost {
   readonly totals: readonly CurrencyTotal[];
   readonly unpricedCount: number;
   readonly installedCount: number;
+  /** Money spent on repairs, kept apart from what the fitted parts cost. */
+  readonly repairTotals: readonly CurrencyTotal[];
+  readonly repairCount: number;
 }

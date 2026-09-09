@@ -79,6 +79,17 @@ export const InstallReason = {
 } as const;
 export type InstallReason = (typeof InstallReason)[keyof typeof InstallReason];
 
+/** Why a build needed work. */
+export const RepairCause = {
+  /** Hit something. The usual reason an arm is on its third replacement. */
+  Crash: 'CRASH',
+  /** Nothing broke suddenly — it wore out. */
+  Wear: 'WEAR',
+  /** Nothing was wrong; something better went on. */
+  Upgrade: 'UPGRADE',
+} as const;
+export type RepairCause = (typeof RepairCause)[keyof typeof RepairCause];
+
 export const Role = {
   User: 'USER',
   Admin: 'ADMIN',
@@ -134,4 +145,10 @@ export const INSTALL_REASON_LABELS: Readonly<Record<InstallReason, string>> = {
   [InstallReason.Initial]: 'Initial build',
   [InstallReason.Replacement]: 'Replacement',
   [InstallReason.Upgrade]: 'Upgrade',
+};
+
+export const REPAIR_CAUSE_LABELS: Readonly<Record<RepairCause, string>> = {
+  [RepairCause.Crash]: 'Crash',
+  [RepairCause.Wear]: 'Wear',
+  [RepairCause.Upgrade]: 'Upgrade',
 };

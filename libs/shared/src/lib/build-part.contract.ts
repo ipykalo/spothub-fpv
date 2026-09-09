@@ -23,6 +23,8 @@ export const installPartSchema = z.object({
     .default(null),
   installedOn: isoDate,
   reason: z.enum(InstallReason).default(InstallReason.Initial),
+  /** Set when fitting something as part of a repair. */
+  repairId: z.uuid().nullable().default(null),
 });
 
 /** Removing is recording an end date, never deleting the row. */
@@ -38,6 +40,8 @@ export const buildPartSchema = z.object({
   installedOn: z.string(),
   removedOn: z.string().nullable(),
   reason: z.enum(InstallReason),
+  /** The repair this fitting was part of, when it replaced something. */
+  repairId: z.uuid().nullable(),
   unit: partUnitSchema,
   part: partSchema,
 });
@@ -60,6 +64,19 @@ export const buildCostSchema = z.object({
   /** Fitted parts with no purchase price recorded, so the total is a floor. */
   unpricedCount: z.number().int(),
   installedCount: z.number().int(),
+  /**
+   * Money spent on repairs, separate from what the fitted parts cost.
+   *
+   * Two different questions — "what is bolted to this quad" and "what has this
+   * quad cost me in crashes" — and adding them would answer neither.
+   */
+  repairTotals: z.array(
+    z.object({
+      currency: z.string(),
+      amount: z.number(),
+    }),
+  ),
+  repairCount: z.number().int(),
 });
 
 export const listBuildPartsQuerySchema = z.object({

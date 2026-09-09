@@ -8,12 +8,17 @@ import type {
 } from '@spothub/shared';
 
 import { BuildPartsRepository } from './build-parts.repository';
+import { RepairsRepository } from './repairs.repository';
+import { rollUpRepairs } from './repairs.mapper';
 import { rollUpCost, toBuildCostDto, toBuildPartDto } from './build-parts.mapper';
 
 /** Business rules for fitting parts. Knows nothing about HTTP or Prisma. */
 @Injectable()
 export class BuildPartsService {
-  constructor(private readonly installs: BuildPartsRepository) {}
+  constructor(
+    private readonly installs: BuildPartsRepository,
+    private readonly repairs: RepairsRepository,
+  ) {}
 
   async list(
     ownerId: string,
@@ -24,13 +29,18 @@ export class BuildPartsService {
     return installs.map(toBuildPartDto);
   }
 
-  /** The rollup only ever counts what is fitted right now. */
+  /**
+   * The parts rollup counts what is fitted right now; the repair rollup counts
+   * every repair ever logged. Different questions, so they are reported side
+   * by side rather than added.
+   */
   async cost(ownerId: string, buildId: string): Promise<BuildCostDto> {
-    const installs = await this.installs.findManyForOwner(ownerId, buildId, {
-      installed: true,
-    });
+    const [installs, repairs] = await Promise.all([
+      this.installs.findManyForOwner(ownerId, buildId, { installed: true }),
+      this.repairs.findManyForOwner(ownerId, buildId),
+    ]);
 
-    return toBuildCostDto(rollUpCost(installs));
+    return toBuildCostDto(rollUpCost(installs, rollUpRepairs(repairs), repairs.length));
   }
 
   async install(
@@ -44,6 +54,7 @@ export class BuildPartsService {
       position: input.position,
       installedOn: toDate(input.installedOn),
       reason: input.reason,
+      repairId: input.repairId,
     });
 
     if (install === 'occupied') {

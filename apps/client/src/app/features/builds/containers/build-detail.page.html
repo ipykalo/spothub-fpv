@@ -56,6 +56,23 @@
   />
 </section>
 
+<section class="block">
+  <h2>Repairs and crashes</h2>
+  <sh-repair-form [saving]="loggingRepair()" (logged)="logRepair($event)" />
+
+  @if (repairs.error(); as message) {
+    <p role="alert">{{ message }}</p>
+  }
+
+  <div class="timeline-wrap">
+    <sh-repair-timeline
+      [repairs]="repairs.repairs()"
+      [pendingRemoval]="removingRepairId()"
+      (removeRequested)="removeRepair($event)"
+    />
+  </div>
+</section>
+
 @if (installs.removed().length) {
   <section class="block">
     <button matButton type="button" (click)="toggleHistory()">

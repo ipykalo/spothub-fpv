@@ -1,3 +1,10 @@
+/* Two figures side by side: what is bolted on, and what breaking it has cost. */
+:host {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
 h3 {
   margin: 0 0 0.75rem;
   font-size: 0.8125rem;
