@@ -119,6 +119,12 @@ export class BuildDetailPage {
 
     try {
       await this.installs.install(this.id(), input);
+
+      // A linked install changes that repair's "parts replaced" count.
+      if (input.repairId) {
+        await this.repairs.load(this.id());
+      }
+
       this.snackBar.open('Fitted', undefined, { duration: 2500 });
     } catch {
       this.snackBar.open('Could not fit that part', undefined, { duration: 4000 });

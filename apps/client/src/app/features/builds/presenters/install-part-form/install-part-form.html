@@ -30,6 +30,19 @@
     </mat-select>
   </mat-form-field>
 
+  @if (showRepairPicker()) {
+    <mat-form-field>
+      <mat-label>Part of repair</mat-label>
+      <mat-select formControlName="repairId">
+        <mat-option [value]="''">Not linked</mat-option>
+        @for (repair of repairs(); track repair.id) {
+          <mat-option [value]="repair.id"> {{ repair.occurredOn }} · {{ causeLabels[repair.cause] }} </mat-option>
+        }
+      </mat-select>
+      <mat-hint>Which crash this replaced something for</mat-hint>
+    </mat-form-field>
+  }
+
   <button matButton="filled" type="submit" [disabled]="saving() || !units().length">
     <mat-icon>add</mat-icon>
     Fit
