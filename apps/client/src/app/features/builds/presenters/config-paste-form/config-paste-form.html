@@ -1,18 +1,52 @@
 <form [formGroup]="form" (ngSubmit)="submit()">
   <p class="hint">
-    In Betaflight's CLI tab, run <code>diff all</code> and paste the whole output here. <code>diff</code> is what
-    Betaflight recommends keeping — it records only what you changed from default.
+    In Betaflight's CLI tab, run <code>diff all</code> and paste the output here — or drop in a <code>.txt</code> saved
+    with its <strong>Save to File</strong> button. <code>diff</code> is what Betaflight recommends keeping: it records
+    only what you changed from default.
   </p>
 
-  <mat-form-field>
-    <mat-label>CLI output</mat-label>
-    <textarea
-      matInput
-      rows="6"
-      formControlName="raw"
-      placeholder="# diff all&#10;&#10;# version&#10;# Betaflight / STM32F405 (S405) 4.5.0 …"
-    ></textarea>
-  </mat-form-field>
+  <div class="pick">
+    <button matButton="outlined" type="button" (click)="file.click()">
+      <mat-icon>upload_file</mat-icon>
+      Choose file
+    </button>
+
+    <input #file type="file" accept=".txt,text/plain" hidden (change)="onFileChosen($event)" />
+
+    @if (fileName(); as name) {
+      <span class="from">
+        <mat-icon aria-hidden="true">description</mat-icon>
+        {{ name }}
+      </span>
+    } @else {
+      <span class="from muted">or drop a file onto the box below</span>
+    }
+  </div>
+
+  <div
+    class="drop"
+    [class.over]="dragging()"
+    (drop)="onDrop($event)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+  >
+    <mat-form-field>
+      <mat-label>CLI output</mat-label>
+      <textarea
+        matInput
+        rows="6"
+        formControlName="raw"
+        placeholder="# diff all&#10;&#10;# version&#10;# Betaflight / STM32F405 (S405) 4.5.0 …"
+      ></textarea>
+    </mat-form-field>
+
+    @if (dragging()) {
+      <div class="over-hint">
+        <mat-icon aria-hidden="true">file_download</mat-icon>
+        Drop to load
+      </div>
+    }
+  </div>
 
   @if (detected(); as found) {
     <div class="detected" [class.warn]="unrecognised()">

@@ -53,6 +53,13 @@ export class ConfigPasteForm {
 
   private readonly rawText = signal('');
 
+  /** The file the text came from, so the form can say where it got it. */
+  protected readonly fileName = signal<string | null>(null);
+  protected readonly dragging = signal(false);
+
+  /** Matches the schema's ceiling, checked before reading rather than after. */
+  private static readonly MAX_BYTES = 500_000;
+
   protected readonly form = this.fb.group({
     raw: [''],
     note: [''],
@@ -86,7 +93,64 @@ export class ConfigPasteForm {
   constructor() {
     this.form.controls.raw.valueChanges.subscribe((raw) => {
       this.rawText.set(raw);
+
+      if (raw === '') {
+        this.fileName.set(null);
+      }
     });
+  }
+
+  /**
+   * Reads the file in the browser and drops its text into the same field a
+   * paste would fill.
+   *
+   * Not an upload: no bytes reach the API, which posts the text in the JSON
+   * body it already accepts. Everything downstream — the parser preview, the
+   * board-mismatch warning, validation — then behaves identically.
+   */
+  protected async loadFile(file: File | null | undefined): Promise<void> {
+    this.dragging.set(false);
+
+    if (!file) {
+      return;
+    }
+
+    if (file.size > ConfigPasteForm.MAX_BYTES) {
+      this.error = 'That file is larger than any Betaflight config';
+      return;
+    }
+
+    try {
+      const text = await file.text();
+
+      this.error = null;
+      this.fileName.set(file.name);
+      this.form.controls.raw.setValue(text);
+    } catch {
+      this.error = 'Could not read that file';
+    }
+  }
+
+  protected onFileChosen(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    void this.loadFile(input.files?.[0]);
+
+    // Clear it, or choosing the same file twice in a row fires nothing.
+    input.value = '';
+  }
+
+  protected onDrop(event: DragEvent): void {
+    event.preventDefault();
+    void this.loadFile(event.dataTransfer?.files[0]);
+  }
+
+  protected onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging.set(true);
+  }
+
+  protected onDragLeave(): void {
+    this.dragging.set(false);
   }
 
   protected submit(): void {
@@ -107,5 +171,6 @@ export class ConfigPasteForm {
     this.pasted.emit(parsed.data);
     this.form.reset({ raw: '', note: '' });
     this.rawText.set('');
+    this.fileName.set(null);
   }
 }

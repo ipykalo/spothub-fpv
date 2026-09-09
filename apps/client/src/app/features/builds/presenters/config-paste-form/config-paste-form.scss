@@ -18,6 +18,59 @@ code {
   background: var(--mat-sys-surface-container-high);
 }
 
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.from {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+.from.muted {
+  color: var(--mat-sys-on-surface-variant);
+  font-family: inherit;
+}
+
+.from mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* The whole box is the drop target, not just the textarea, so a near miss
+   still lands. */
+.drop {
+  position: relative;
+  border-radius: 4px;
+}
+
+.drop.over {
+  outline: 2px dashed var(--status-ready);
+  outline-offset: 2px;
+}
+
+.over-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 4px;
+  background: var(--status-ready-surface);
+  color: var(--status-ready);
+  font-weight: 600;
+  /* The drag events belong to the box underneath. */
+  pointer-events: none;
+}
+
 textarea {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 0.82rem;
