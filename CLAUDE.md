@@ -124,30 +124,35 @@ carry a comment explaining why.
 ## State
 
 **Done:** workspace, docker-compose (Postgres + MinIO), Google OAuth with
-rotating refresh tokens and reuse detection, Builds CRUD end to end, ESLint +
-Prettier, Dockerfiles, verify CI (lint/format/typecheck/build). The stack runs
-locally end to end: migration `20260907120751_init` applied, API healthy with
-`database: up`, client serving through its proxy.
+rotating refresh tokens and reuse detection, ESLint + Prettier, Dockerfiles,
+verify CI. Every V1 feature except media:
 
-Note that *verify* CI is not the GHCR image build-and-push, which is still a
-To Do ticket — and CI has never actually run, because the repo has no remote.
+- Builds CRUD end to end, status as colour and icon
+- Parts inventory — catalogue (`parts`), physical units (`part_units`), price
+  sources (`part_sources`), paste-a-URL OpenGraph enrichment
+- Install/remove on a build (`build_parts`) with a cost rollup that sums only
+  rows marked as actual purchases
+- Repairs, with installs linkable to the repair that caused them
+- Firmware config snapshots — Betaflight CLI captures parsed by a function
+  shared with the client, downloadable under Configurator's own filename
+  convention, and loadable back from a saved `.txt`
+- Config diff viewer — side by side, virtual-scrolled, caveats stated up front
 
-**Next, in order:** parts inventory (`parts` + `part_sources`), install/remove
-on a build with cost rollup (`build_parts`), repairs, firmware config snapshots
-with header parsing, config diff viewer, media upload pipeline.
+Seven migrations applied. Two are hand-written because Prisma cannot express
+them: `part_status_condition_only` (a `CASE` conversion between enum types) and
+`part_units` (a `generate_series` expansion where only *open* installs get a
+distinct unit). Read those before changing the parts model.
 
-Schemas for all of those are already specified on the Notion architecture page.
+**Next, in order:** media upload pipeline, then deployment — GHCR image
+build-and-push, database backups with a tested restore, VPS + Caddy.
+
 The media pipeline uses presigned PUT straight to object storage — the API must
-never receive file bytes.
+never receive file bytes. The config file-load feature keeps to this: the file
+is read in the browser and its text posted in the JSON body.
 
-## Known broken
+## Verification
 
-`api:lint` fails with 12 errors. Six are `no-extraneous-class` on NestJS
-`*.module.ts` files — a false positive, since `@Module()` classes are
-legitimately empty; scope an override to `*.module.ts` with a comment rather
-than changing the code. The other four are real: two unnecessary type
-assertions in `prisma-users.repository.ts`, two unsafe enum comparisons in
-`all-exceptions.filter.ts`. Both files date from before a Prisma client could
-be generated. Tracked on the board; blocks the zero-warning policy and CI.
-
-The client and shared library lint clean, and both apps typecheck clean.
+Lint and typecheck both pass, but **neither checks Angular templates** —
+`tsc --noEmit` does not compile them. Only `nx build client` catches a template
+reading a property that no longer exists. Run the production build before
+calling a UI change done; two template errors have reached a commit this way.
