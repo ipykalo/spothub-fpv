@@ -12,13 +12,15 @@
     "lint:fix": "nx run-many -t lint --all --fix",
     "format": "prettier --write \"apps/**/*.{ts,html,scss}\" \"libs/**/*.ts\" \"*.{json,md,yml}\"",
     "format:check": "prettier --check \"apps/**/*.{ts,html,scss}\" \"libs/**/*.ts\"",
-    "typecheck": "tsc -p apps/api/tsconfig.app.json --noEmit && tsc -p apps/client/tsconfig.app.json --noEmit",
+    "typecheck": "tsc -p apps/api/tsconfig.app.json --noEmit && tsc -p apps/client/tsconfig.app.json --noEmit && tsc -p prisma/tsconfig.json --noEmit",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "db:seed": "ts-node -P prisma/tsconfig.json prisma/seed.ts",
+    "db:seed:undo": "ts-node -P prisma/tsconfig.json prisma/seed.ts --undo"
   },
   "private": true,
   "dependencies": {

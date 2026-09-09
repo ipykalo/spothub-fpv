@@ -112,10 +112,17 @@ npm run dev            # api :3000 + client :4200
 npm run db:up          # postgres + minio
 npm run db:migrate     # create/apply a migration
 npm run db:studio      # stand-in admin UI
+npm run db:seed        # demo inventory, one real part per category
+npm run db:seed:undo   # remove it again
 npm run lint           # type-aware, zero warnings tolerated
 npm run typecheck
 npm run build
 ```
+
+`prisma/seed.ts` is a **script, not a migration**. Migrations run at container
+startup on every deploy, so demo data in `prisma/migrations` would land in
+production. The seed is additive, idempotent and reversible, and it will not
+delete a part whose units are fitted to a build.
 
 Lint uses `strictTypeChecked` + `stylisticTypeChecked`. If a rule fires, fix
 the code rather than disabling the rule; the few existing inline disables each
