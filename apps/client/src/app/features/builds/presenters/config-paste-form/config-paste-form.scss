@@ -49,6 +49,9 @@ code {
 .drop {
   position: relative;
   border-radius: 4px;
+  /* mat-form-field is inline-flex, so without this the field sits at content
+     width instead of matching the rest of the form. */
+  display: grid;
 }
 
 .drop.over {
@@ -75,7 +78,12 @@ textarea {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 0.82rem;
   line-height: 1.5;
+  /* A CLI capture is column-aligned; wrapping it would misread as content. */
   white-space: pre;
+  /* Roughly a screenful of a diff — enough to see the header and the first
+     few sections without scrolling. */
+  min-height: 14rem;
+  resize: vertical;
 }
 
 /* What the parser saw, shown before saving so nothing is a surprise after. */
