@@ -1,0 +1,59 @@
+<header class="head">
+  <a class="back" [routerLink]="['/hangar', id()]">
+    <mat-icon>arrow_back</mat-icon>
+    Build
+  </a>
+  <h1>Compare firmware</h1>
+</header>
+
+@if (configs.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (configs.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+@if (configs.configs().length < 2) {
+  <p class="empty">Two captures are needed to compare. Save another from the build page after your next change.</p>
+} @else {
+  <div class="picker">
+    <mat-form-field>
+      <mat-label>Older</mat-label>
+      <mat-select [ngModel]="leftId()" (ngModelChange)="leftId.set($event)">
+        @for (config of configs.configs(); track config.id) {
+          <mat-option [value]="config.id"> {{ label(config) }} · {{ kindLabels[config.kind] }} </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-icon class="arrow" aria-hidden="true">arrow_forward</mat-icon>
+
+    <mat-form-field>
+      <mat-label>Newer</mat-label>
+      <mat-select [ngModel]="rightId()" (ngModelChange)="rightId.set($event)">
+        @for (config of configs.configs(); track config.id) {
+          <mat-option [value]="config.id"> {{ label(config) }} · {{ kindLabels[config.kind] }} </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (failure(); as message) {
+    <p role="alert">{{ message }}</p>
+  }
+
+  @if (ready()) {
+    <sh-config-diff-view
+      [rows]="rows()"
+      [caveats]="caveats()"
+      [leftLabel]="left() ? label(left()!) : 'Older'"
+      [rightLabel]="right() ? label(right()!) : 'Newer'"
+      [(changesOnly)]="changesOnly"
+    />
+  }
+}

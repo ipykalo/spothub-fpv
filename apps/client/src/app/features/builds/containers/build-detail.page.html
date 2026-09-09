@@ -87,7 +87,15 @@
 </section>
 
 <section class="block">
-  <h2>Firmware</h2>
+  <h2>
+    Firmware
+    @if (configs.configs().length >= 2) {
+      <a class="compare" [routerLink]="['/hangar', id(), 'compare']">
+        <mat-icon aria-hidden="true">compare_arrows</mat-icon>
+        Compare captures
+      </a>
+    }
+  </h2>
   <sh-config-paste-form
     [saving]="savingConfig()"
     [knownMcuId]="configs.current()?.mcuId ?? null"

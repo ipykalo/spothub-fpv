@@ -55,6 +55,15 @@ export const appRoutes: Route[] = [
             (m) => m.BuildFormPage,
           ),
       },
+      {
+        // Its own route: a side-by-side diff wants the full width, and the
+        // build page is already long.
+        path: ':id/compare',
+        loadComponent: () =>
+          import('./features/builds/containers/config-compare.page').then(
+            (m) => m.ConfigComparePage,
+          ),
+      },
     ],
   },
   {
