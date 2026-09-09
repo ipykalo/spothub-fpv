@@ -94,3 +94,41 @@
 .timeline-wrap {
   margin-top: 0.9rem;
 }
+
+/* Firmware badge in the header, from the most recent capture. */
+.firmware {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.firmware mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Sits inside the section heading, so it reads as belonging to Firmware. */
+.compare {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.9rem;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.compare:hover {
+  text-decoration: underline;
+}
+
+.compare mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}

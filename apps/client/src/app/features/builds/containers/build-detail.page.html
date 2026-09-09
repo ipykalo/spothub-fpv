@@ -20,6 +20,14 @@
         @if (quad.hasGps) {
           <span>GPS</span>
         }
+        @if (configs.current(); as firmware) {
+          @if (firmware.fwVersion; as version) {
+            <span class="firmware" title="From the most recent capture">
+              <mat-icon aria-hidden="true">memory</mat-icon>
+              Betaflight {{ version }}
+            </span>
+          }
+        }
       </p>
     </div>
 
@@ -44,7 +52,12 @@
 
 <section class="block">
   <h2>Fit a part</h2>
-  <sh-install-part-form [units]="fittable()" [saving]="saving()" (installed)="install($event)" />
+  <sh-install-part-form
+    [units]="fittable()"
+    [repairs]="repairs.repairs()"
+    [saving]="saving()"
+    (installed)="install($event)"
+  />
 </section>
 
 <section class="block">
@@ -69,6 +82,39 @@
       [repairs]="repairs.repairs()"
       [pendingRemoval]="removingRepairId()"
       (removeRequested)="removeRepair($event)"
+    />
+  </div>
+</section>
+
+<section class="block">
+  <h2>
+    Firmware
+    @if (configs.configs().length >= 2) {
+      <a class="compare" [routerLink]="['/hangar', id(), 'compare']">
+        <mat-icon aria-hidden="true">compare_arrows</mat-icon>
+        Compare captures
+      </a>
+    }
+  </h2>
+  <sh-config-paste-form
+    [saving]="savingConfig()"
+    [knownMcuId]="configs.current()?.mcuId ?? null"
+    (pasted)="saveConfig($event)"
+  />
+
+  @if (configs.error(); as message) {
+    <p role="alert">{{ message }}</p>
+  }
+
+  <div class="timeline-wrap">
+    <sh-config-list
+      [configs]="configs.configs()"
+      [pendingRemoval]="removingConfigId()"
+      [busyId]="fetchingConfigId()"
+      [copiedId]="copiedConfigId()"
+      (copyRequested)="copyConfig($event)"
+      (downloadRequested)="downloadConfig($event)"
+      (removeRequested)="removeConfig($event)"
     />
   </div>
 </section>
