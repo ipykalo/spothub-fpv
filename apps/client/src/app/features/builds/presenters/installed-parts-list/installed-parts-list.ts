@@ -8,6 +8,7 @@ import {
   type BuildPartDto,
 } from '@spothub/shared';
 
+import { PART_CATEGORY_ICONS } from '../../../parts/part-category';
 import { unitName as partUnitName } from '../../../parts/part-condition';
 
 /**
@@ -30,6 +31,7 @@ export class InstalledPartsList {
   readonly removeRequested = output<BuildPartDto>();
 
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
+  protected readonly categoryIcons = PART_CATEGORY_ICONS;
   protected readonly reasonLabels = INSTALL_REASON_LABELS;
 
   /** Which physical unit this was — "#3", or whatever is written on it. */

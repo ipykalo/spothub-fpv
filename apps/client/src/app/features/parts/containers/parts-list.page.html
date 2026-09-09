@@ -36,7 +36,10 @@
 } @else {
   @for (group of store.groups(); track group.category) {
     <section class="group">
-      <h2>{{ group.label }}</h2>
+      <h2>
+        <mat-icon aria-hidden="true">{{ group.icon }}</mat-icon>
+        {{ group.label }}
+      </h2>
 
       <div class="grid">
         @for (part of group.parts; track part.id) {

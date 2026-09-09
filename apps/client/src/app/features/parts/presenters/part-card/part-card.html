@@ -1,6 +1,9 @@
 <mat-card appearance="outlined" class="tone-{{ tone() }}">
   <div class="head">
-    <h3 [title]="title()">{{ title() }}</h3>
+    <div class="titled">
+      <mat-icon class="kind" [attr.aria-label]="categoryLabel()">{{ categoryIcon() }}</mat-icon>
+      <h3 [title]="title()">{{ title() }}</h3>
+    </div>
 
     <div class="badges">
       @for (tally of tallies(); track tally.condition) {

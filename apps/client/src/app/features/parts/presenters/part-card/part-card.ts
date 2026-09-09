@@ -17,6 +17,7 @@ import {
 } from '@spothub/shared';
 
 import type { StatusStyle } from '../../../../core/ui/status-style';
+import { PART_CATEGORY_ICONS } from '../../part-category';
 import {
   PART_CONDITION_STYLES,
   availableUnits,
@@ -84,6 +85,15 @@ export class PartCard {
 
     return worst?.style.tone ?? 'idle';
   });
+
+  protected readonly categoryIcon = computed(
+    () => PART_CATEGORY_ICONS[this.part().category],
+  );
+
+  /** The icon's accessible name — the glyph alone says nothing to a reader. */
+  protected readonly categoryLabel = computed(
+    () => PART_CATEGORY_LABELS[this.part().category],
+  );
 
   /**
    * Manufacturer and model are both optional. Falling back to the category

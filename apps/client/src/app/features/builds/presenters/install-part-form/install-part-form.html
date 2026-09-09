@@ -3,7 +3,10 @@
     <mat-label>Part</mat-label>
     <mat-select formControlName="unitId">
       @for (unit of units(); track unit.unitId) {
-        <mat-option [value]="unit.unitId"> {{ unit.label }} · {{ categoryLabels[unit.part.category] }} </mat-option>
+        <mat-option [value]="unit.unitId">
+          <mat-icon aria-hidden="true">{{ categoryIcons[unit.part.category] }}</mat-icon>
+          {{ unit.label }} · {{ categoryLabels[unit.part.category] }}
+        </mat-option>
       }
     </mat-select>
     @if (!units().length) {

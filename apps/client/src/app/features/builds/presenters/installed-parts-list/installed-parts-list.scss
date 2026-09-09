@@ -50,6 +50,18 @@
   font-size: 0.75rem;
 }
 
+.category {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.category mat-icon {
+  font-size: 0.95rem;
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
 .dates {
   display: flex;
   flex-direction: column;

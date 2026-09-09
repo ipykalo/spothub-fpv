@@ -26,12 +26,21 @@
 }
 
 .group h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   margin: 0 0 0.75rem;
   font-size: 1rem;
   font-weight: 600;
   color: var(--mat-sys-on-surface-variant);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.group h2 mat-icon {
+  font-size: 1.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .grid {
