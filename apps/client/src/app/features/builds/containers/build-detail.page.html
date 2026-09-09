@@ -20,6 +20,14 @@
         @if (quad.hasGps) {
           <span>GPS</span>
         }
+        @if (configs.current(); as firmware) {
+          @if (firmware.fwVersion; as version) {
+            <span class="firmware" title="From the most recent capture">
+              <mat-icon aria-hidden="true">memory</mat-icon>
+              Betaflight {{ version }}
+            </span>
+          }
+        }
       </p>
     </div>
 
@@ -74,6 +82,27 @@
       [repairs]="repairs.repairs()"
       [pendingRemoval]="removingRepairId()"
       (removeRequested)="removeRepair($event)"
+    />
+  </div>
+</section>
+
+<section class="block">
+  <h2>Firmware</h2>
+  <sh-config-paste-form
+    [saving]="savingConfig()"
+    [knownMcuId]="configs.current()?.mcuId ?? null"
+    (pasted)="saveConfig($event)"
+  />
+
+  @if (configs.error(); as message) {
+    <p role="alert">{{ message }}</p>
+  }
+
+  <div class="timeline-wrap">
+    <sh-config-list
+      [configs]="configs.configs()"
+      [pendingRemoval]="removingConfigId()"
+      (removeRequested)="removeConfig($event)"
     />
   </div>
 </section>

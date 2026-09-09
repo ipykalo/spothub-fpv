@@ -19,6 +19,8 @@ import {
   BUILD_STATUS_LABELS,
   type BuildDto,
   type BuildPartDto,
+  type ConfigDto,
+  type CreateConfigDto,
   type CreateRepairDto,
   type InstallPartDto,
   type RepairDto,
@@ -33,6 +35,9 @@ import { InstalledPartsList } from '../presenters/installed-parts-list/installed
 import { RepairForm } from '../presenters/repair-form/repair-form';
 import { RepairTimeline } from '../presenters/repair-timeline/repair-timeline';
 import { RepairsStore } from '../repairs.store';
+import { ConfigList } from '../presenters/config-list/config-list';
+import { ConfigPasteForm } from '../presenters/config-paste-form/config-paste-form';
+import { ConfigsStore } from '../configs.store';
 import { BuildPartsStore } from '../build-parts.store';
 import { BuildsApi } from '../builds.api';
 import { BuildsStore } from '../builds.store';
@@ -54,6 +59,8 @@ import { BuildsStore } from '../builds.store';
     InstalledPartsList,
     RepairForm,
     RepairTimeline,
+    ConfigList,
+    ConfigPasteForm,
   ],
   templateUrl: './build-detail.page.html',
   styleUrl: './build-detail.page.scss',
@@ -64,6 +71,7 @@ export class BuildDetailPage {
 
   protected readonly installs = inject(BuildPartsStore);
   protected readonly repairs = inject(RepairsStore);
+  protected readonly configs = inject(ConfigsStore);
   protected readonly parts = inject(PartsStore);
   private readonly builds = inject(BuildsStore);
   private readonly api = inject(BuildsApi);
@@ -75,6 +83,8 @@ export class BuildDetailPage {
   protected readonly showHistory = signal(false);
   protected readonly loggingRepair = signal(false);
   protected readonly removingRepairId = signal<string | null>(null);
+  protected readonly savingConfig = signal(false);
+  protected readonly removingConfigId = signal<string | null>(null);
 
   /**
    * Every free, serviceable unit across the inventory. The picker chooses a
@@ -101,6 +111,7 @@ export class BuildDetailPage {
         void this.hydrate(id);
         void this.installs.load(id);
         void this.repairs.load(id);
+        void this.configs.load(id);
 
         // The install picker needs the inventory; harmless if already loaded.
         if (this.parts.parts().length === 0) {
@@ -134,6 +145,32 @@ export class BuildDetailPage {
   }
 
   /** Removal records an end date; the row stays so the history survives. */
+  protected async saveConfig(input: CreateConfigDto): Promise<void> {
+    this.savingConfig.set(true);
+
+    try {
+      await this.configs.create(this.id(), input);
+      this.snackBar.open('Capture saved', undefined, { duration: 2500 });
+    } catch {
+      this.snackBar.open('Could not save that capture', undefined, { duration: 4000 });
+    } finally {
+      this.savingConfig.set(false);
+    }
+  }
+
+  protected async removeConfig(config: ConfigDto): Promise<void> {
+    this.removingConfigId.set(config.id);
+
+    try {
+      await this.configs.remove(this.id(), config.id);
+      this.snackBar.open('Deleted', undefined, { duration: 2500 });
+    } catch {
+      this.snackBar.open('Could not delete that capture', undefined, { duration: 4000 });
+    } finally {
+      this.removingConfigId.set(null);
+    }
+  }
+
   protected async logRepair(input: CreateRepairDto): Promise<void> {
     this.loggingRepair.set(true);
 

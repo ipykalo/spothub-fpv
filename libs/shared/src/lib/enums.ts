@@ -90,6 +90,15 @@ export const RepairCause = {
 } as const;
 export type RepairCause = (typeof RepairCause)[keyof typeof RepairCause];
 
+/** Which Betaflight CLI command produced a capture. */
+export const ConfigKind = {
+  /** `diff all` — only what differs from default. What Betaflight tells you to keep. */
+  Diff: 'DIFF',
+  /** `dump all` — every setting, defaults included. */
+  Dump: 'DUMP',
+} as const;
+export type ConfigKind = (typeof ConfigKind)[keyof typeof ConfigKind];
+
 export const Role = {
   User: 'USER',
   Admin: 'ADMIN',
@@ -151,4 +160,9 @@ export const REPAIR_CAUSE_LABELS: Readonly<Record<RepairCause, string>> = {
   [RepairCause.Crash]: 'Crash',
   [RepairCause.Wear]: 'Wear',
   [RepairCause.Upgrade]: 'Upgrade',
+};
+
+export const CONFIG_KIND_LABELS: Readonly<Record<ConfigKind, string>> = {
+  [ConfigKind.Diff]: 'diff all',
+  [ConfigKind.Dump]: 'dump all',
 };

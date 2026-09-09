@@ -1,0 +1,89 @@
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <p class="hint">
+    In Betaflight's CLI tab, run <code>diff all</code> and paste the whole output here. <code>diff</code> is what
+    Betaflight recommends keeping — it records only what you changed from default.
+  </p>
+
+  <mat-form-field>
+    <mat-label>CLI output</mat-label>
+    <textarea
+      matInput
+      rows="6"
+      formControlName="raw"
+      placeholder="# diff all&#10;&#10;# version&#10;# Betaflight / STM32F405 (S405) 4.5.0 …"
+    ></textarea>
+  </mat-form-field>
+
+  @if (detected(); as found) {
+    <div class="detected" [class.warn]="unrecognised()">
+      @if (unrecognised()) {
+        <mat-icon aria-hidden="true">help</mat-icon>
+        <span>
+          No Betaflight header found. It will still be saved verbatim, but the firmware and board will be blank.
+        </span>
+      } @else {
+        <mat-icon aria-hidden="true">memory</mat-icon>
+        <dl>
+          <div>
+            <dt>Command</dt>
+            <dd>{{ kindLabels[found.kind] }}</dd>
+          </div>
+          @if (found.fwVersion; as version) {
+            <div>
+              <dt>Firmware</dt>
+              <dd>{{ version }}</dd>
+            </div>
+          }
+          @if (found.fwTarget; as target) {
+            <div>
+              <dt>Target</dt>
+              <dd>{{ target }}</dd>
+            </div>
+          }
+          @if (found.boardName; as board) {
+            <div>
+              <dt>Board</dt>
+              <dd>{{ board }}</dd>
+            </div>
+          }
+          @if (found.manufacturerId; as maker) {
+            <div>
+              <dt>Maker</dt>
+              <dd>{{ maker }}</dd>
+            </div>
+          }
+          @if (found.craftName; as craft) {
+            <div>
+              <dt>Craft</dt>
+              <dd>{{ craft }}</dd>
+            </div>
+          }
+        </dl>
+      }
+    </div>
+  }
+
+  @if (otherBoard()) {
+    <p class="mismatch" role="alert">
+      <mat-icon aria-hidden="true">warning</mat-icon>
+      This came off a different flight controller than the last capture on this build — the MCU id does not match. Save
+      it anyway if you have swapped the board.
+    </p>
+  }
+
+  <div class="row">
+    <mat-form-field>
+      <mat-label>Note</mat-label>
+      <input matInput formControlName="note" placeholder="After the March crash, softened D on roll" />
+    </mat-form-field>
+
+    <button matButton="filled" type="submit" [disabled]="saving()">
+      <mat-icon>save</mat-icon>
+      Save capture
+    </button>
+  </div>
+</form>
+
+@if (error) {
+  <p role="alert">{{ error }}</p>
+}

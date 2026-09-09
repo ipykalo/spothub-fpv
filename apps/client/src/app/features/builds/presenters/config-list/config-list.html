@@ -1,0 +1,58 @@
+@if (configs().length) {
+  <ul class="configs">
+    @for (config of configs(); track config.id) {
+      <li>
+        <span class="when">
+          {{ date(config.capturedAt) }}
+          <span class="kind">{{ kindLabels[config.kind] }}</span>
+        </span>
+
+        <span class="firmware">
+          @if (config.fwVersion; as version) {
+            <strong>{{ version }}</strong>
+            @if (flashedAt().has(config.id)) {
+              <span class="flashed" title="Firmware changed since the previous capture">
+                <mat-icon aria-hidden="true">bolt</mat-icon>
+                flashed
+              </span>
+            }
+          } @else {
+            <span class="none">Unknown firmware</span>
+          }
+
+          <span class="board">
+            @if (config.boardName; as board) {
+              {{ board }}
+            } @else if (config.fwTarget; as target) {
+              {{ target }}
+            } @else {
+              <span class="none">unknown board</span>
+            }
+            @if (config.manufacturerId; as maker) {
+              · {{ maker }}
+            }
+          </span>
+        </span>
+
+        <span class="note">
+          @if (config.note; as text) {
+            {{ text }}
+          } @else {
+            <span class="none">No note</span>
+          }
+        </span>
+
+        <button
+          matButton
+          type="button"
+          [disabled]="pendingRemoval() === config.id"
+          (click)="removeRequested.emit(config)"
+        >
+          {{ pendingRemoval() === config.id ? 'Deleting…' : 'Delete' }}
+        </button>
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="empty">No firmware captured yet.</p>
+}

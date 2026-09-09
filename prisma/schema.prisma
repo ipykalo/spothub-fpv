@@ -132,6 +132,7 @@ model Build {
   owner   User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   parts   BuildPart[]
   repairs Repair[]
+  configs Config[]
 
   @@unique([ownerId, slug])
   @@index([ownerId, status])
@@ -313,4 +314,60 @@ model Repair {
 
   @@index([buildId, occurredOn])
   @@map("repairs")
+}
+
+// --------------------------------------------------------- firmware config
+
+enum ConfigKind {
+  /// `diff all` -- only settings changed from default. What Betaflight
+  /// recommends keeping, and what is safe-ish to re-apply.
+  DIFF
+  /// `dump all` -- every setting including defaults.
+  DUMP
+}
+
+/// A Betaflight CLI capture, stored verbatim.
+///
+/// The raw text is the record; the parsed columns exist so the app can say
+/// "this quad is on 4.5.0" without re-parsing on every read. Fields follow
+/// Betaflight's own vocabulary rather than inventing names for them.
+model Config {
+  id         String     @id @default(uuid()) @db.Uuid
+  buildId    String     @map("build_id") @db.Uuid
+  capturedAt DateTime   @default(now()) @map("captured_at")
+  kind       ConfigKind @default(DIFF)
+  /// The CLI output exactly as pasted. Never normalised: it is the artefact.
+  raw        String
+  note       String?
+
+  // --- firmware identity, from the `# Betaflight / ...` version comment
+  /// e.g. STM32F405
+  fwTarget    String?   @map("fw_target")
+  /// e.g. 4.5.0
+  fwVersion   String?   @map("fw_version")
+  fwBuildDate DateTime? @map("fw_build_date") @db.Date
+  /// Short git hash of the firmware build, e.g. c155f5830
+  fwGitRev    String?   @map("fw_git_rev")
+  /// MSP protocol version the firmware speaks, e.g. 1.46
+  mspApi      String?   @map("msp_api")
+  /// `# config rev:` -- the board config the firmware was built against
+  configRev   String?   @map("config_rev")
+
+  // --- board identity, from the unified-target settings in the body
+  /// e.g. BETAFPVF405
+  boardName      String? @map("board_name")
+  /// Four-letter manufacturer code, e.g. BEFH
+  manufacturerId String? @map("manufacturer_id")
+  /// Unique to the physical flight controller, so a capture can be matched
+  /// back to the board it came from -- or flagged as belonging to another.
+  mcuId          String? @map("mcu_id")
+  /// `craft_name` as set in Betaflight.
+  craftName      String? @map("craft_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@index([buildId, capturedAt])
+  @@map("configs")
 }

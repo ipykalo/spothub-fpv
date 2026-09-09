@@ -94,3 +94,17 @@
 .timeline-wrap {
   margin-top: 0.9rem;
 }
+
+/* Firmware badge in the header, from the most recent capture. */
+.firmware {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.firmware mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
