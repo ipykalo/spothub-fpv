@@ -24,6 +24,7 @@ import {
   type RepairDto,
 } from '@spothub/shared';
 
+import { PART_CATEGORY_ICONS } from '../../../parts/part-category';
 import type { FittableUnit } from '../../../parts/part-condition';
 
 /** Presenter: fit a part to this build. Validates, then hands the value up. */
@@ -55,6 +56,7 @@ export class InstallPartForm {
   protected readonly reasons = Object.values(InstallReason);
   protected readonly reasonLabels = INSTALL_REASON_LABELS;
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
+  protected readonly categoryIcons = PART_CATEGORY_ICONS;
   protected readonly causeLabels = REPAIR_CAUSE_LABELS;
 
   protected error: string | null = null;

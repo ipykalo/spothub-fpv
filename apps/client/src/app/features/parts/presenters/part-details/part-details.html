@@ -3,7 +3,10 @@
     <dl class="facts">
       <div>
         <dt>Category</dt>
-        <dd>{{ categoryLabels[part().category] }}</dd>
+        <dd class="kind">
+          <mat-icon aria-hidden="true">{{ categoryIcons[part().category] }}</mat-icon>
+          {{ categoryLabels[part().category] }}
+        </dd>
       </div>
       <div>
         <dt>Units</dt>

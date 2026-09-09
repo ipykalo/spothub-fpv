@@ -12,7 +12,10 @@
 
         <span class="part">
           <a [routerLink]="['/parts', install.part.id]">{{ name(install) }}</a>
-          <span class="category"> {{ categoryLabels[install.part.category] }} · {{ unitName(install) }} </span>
+          <span class="category">
+            <mat-icon aria-hidden="true">{{ categoryIcons[install.part.category] }}</mat-icon>
+            {{ categoryLabels[install.part.category] }} · {{ unitName(install) }}
+          </span>
         </span>
 
         <span class="dates">

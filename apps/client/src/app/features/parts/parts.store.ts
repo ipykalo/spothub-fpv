@@ -14,12 +14,15 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 import { PartsApi } from './parts.api';
+import { PART_CATEGORY_ICONS } from './part-category';
 import { fittedCount, isFittable, unitCount } from './part-condition';
 
 /** A category heading plus the parts under it, ready for the template. */
 export interface PartGroup {
   readonly category: PartCategory;
   readonly label: string;
+  /** Material Icons ligature, so the template never maps a category itself. */
+  readonly icon: string;
   readonly parts: readonly PartDto[];
 }
 
@@ -80,6 +83,7 @@ export class PartsStore {
     return [...byCategory.entries()].map(([category, parts]) => ({
       category,
       label: PART_CATEGORY_LABELS[category],
+      icon: PART_CATEGORY_ICONS[category],
       parts,
     }));
   });

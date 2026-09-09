@@ -17,6 +17,7 @@ import {
   type PartUnitDto,
 } from '@spothub/shared';
 
+import { PART_CATEGORY_ICONS } from '../../part-category';
 import {
   PART_CONDITION_STYLES,
   availableUnits,
@@ -56,6 +57,7 @@ export class PartDetails {
   readonly unitAdded = output();
 
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
+  protected readonly categoryIcons = PART_CATEGORY_ICONS;
   protected readonly conditionLabels = PART_CONDITION_LABELS;
   protected readonly conditionStyles = PART_CONDITION_STYLES;
   protected readonly conditions = Object.values(PartCondition);

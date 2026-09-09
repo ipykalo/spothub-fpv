@@ -1,3 +1,13 @@
 :host {
   display: block;
 }
+
+/* Material sizes chip icons for the 24px default; these read as decoration
+   beside a short label, so they are pulled down to match the text. */
+mat-chip-option mat-icon {
+  font-size: 1.05rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-right: -0.1rem;
+  opacity: 0.85;
+}
