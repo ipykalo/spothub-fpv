@@ -42,14 +42,40 @@
           }
         </span>
 
-        <button
-          matButton
-          type="button"
-          [disabled]="pendingRemoval() === config.id"
-          (click)="removeRequested.emit(config)"
-        >
-          {{ pendingRemoval() === config.id ? 'Deleting…' : 'Delete' }}
-        </button>
+        <span class="actions">
+          <button
+            matButton
+            type="button"
+            [disabled]="busyId() === config.id"
+            title="Copy the CLI text, ready to paste back into Betaflight"
+            (click)="copyRequested.emit(config)"
+          >
+            <mat-icon aria-hidden="true">
+              {{ copiedId() === config.id ? 'check' : 'content_copy' }}
+            </mat-icon>
+            {{ copiedId() === config.id ? 'Copied' : 'Copy' }}
+          </button>
+
+          <button
+            matButton
+            type="button"
+            [disabled]="busyId() === config.id"
+            title="Save as a .txt file"
+            (click)="downloadRequested.emit(config)"
+          >
+            <mat-icon aria-hidden="true">download</mat-icon>
+            Save
+          </button>
+
+          <button
+            matButton
+            type="button"
+            [disabled]="pendingRemoval() === config.id"
+            (click)="removeRequested.emit(config)"
+          >
+            {{ pendingRemoval() === config.id ? 'Deleting…' : 'Delete' }}
+          </button>
+        </span>
       </li>
     }
   </ul>

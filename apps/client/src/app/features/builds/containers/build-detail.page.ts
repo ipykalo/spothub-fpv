@@ -8,6 +8,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -22,6 +23,7 @@ import {
   type ConfigDto,
   type CreateConfigDto,
   type CreateRepairDto,
+  configFileName,
   type InstallPartDto,
   type RepairDto,
 } from '@spothub/shared';
@@ -37,6 +39,7 @@ import { RepairTimeline } from '../presenters/repair-timeline/repair-timeline';
 import { RepairsStore } from '../repairs.store';
 import { ConfigList } from '../presenters/config-list/config-list';
 import { ConfigPasteForm } from '../presenters/config-paste-form/config-paste-form';
+import { ConfigsApi } from '../configs.api';
 import { ConfigsStore } from '../configs.store';
 import { BuildPartsStore } from '../build-parts.store';
 import { BuildsApi } from '../builds.api';
@@ -75,6 +78,8 @@ export class BuildDetailPage {
   protected readonly parts = inject(PartsStore);
   private readonly builds = inject(BuildsStore);
   private readonly api = inject(BuildsApi);
+  private readonly configsApi = inject(ConfigsApi);
+  private readonly document = inject(DOCUMENT);
   private readonly snackBar = inject(MatSnackBar);
 
   protected readonly build = signal<BuildDto | null>(null);
@@ -85,6 +90,8 @@ export class BuildDetailPage {
   protected readonly removingRepairId = signal<string | null>(null);
   protected readonly savingConfig = signal(false);
   protected readonly removingConfigId = signal<string | null>(null);
+  protected readonly fetchingConfigId = signal<string | null>(null);
+  protected readonly copiedConfigId = signal<string | null>(null);
 
   /**
    * Every free, serviceable unit across the inventory. The picker chooses a
@@ -155,6 +162,55 @@ export class BuildDetailPage {
       this.snackBar.open('Could not save that capture', undefined, { duration: 4000 });
     } finally {
       this.savingConfig.set(false);
+    }
+  }
+
+  /**
+   * Copy is the real restore path.
+   *
+   * Betaflight restores by pasting CLI text into its CLI tab, so the clipboard
+   * matters more than the file. The text is not held in the list, so it is
+   * fetched on demand.
+   */
+  protected async copyConfig(config: ConfigDto): Promise<void> {
+    this.fetchingConfigId.set(config.id);
+
+    try {
+      const full = await firstValueFrom(this.configsApi.getOne(this.id(), config.id));
+      await navigator.clipboard.writeText(full.raw);
+
+      this.copiedConfigId.set(config.id);
+      globalThis.setTimeout(() => {
+        this.copiedConfigId.set(null);
+      }, 2000);
+    } catch {
+      this.snackBar.open('Could not copy that capture', undefined, { duration: 4000 });
+    } finally {
+      this.fetchingConfigId.set(null);
+    }
+  }
+
+  /** Saves a `.txt` named the way Betaflight Configurator names its backups. */
+  protected async downloadConfig(config: ConfigDto): Promise<void> {
+    this.fetchingConfigId.set(config.id);
+
+    try {
+      const full = await firstValueFrom(this.configsApi.getOne(this.id(), config.id));
+      const name = configFileName(full, new Date(full.capturedAt));
+      const blob = new Blob([full.raw], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const link = this.document.createElement('a');
+      link.href = url;
+      link.download = name;
+      link.click();
+
+      // The blob stays in memory until this is called.
+      URL.revokeObjectURL(url);
+    } catch {
+      this.snackBar.open('Could not save that capture', undefined, { duration: 4000 });
+    } finally {
+      this.fetchingConfigId.set(null);
     }
   }
 

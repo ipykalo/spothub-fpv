@@ -102,6 +102,10 @@
     <sh-config-list
       [configs]="configs.configs()"
       [pendingRemoval]="removingConfigId()"
+      [busyId]="fetchingConfigId()"
+      [copiedId]="copiedConfigId()"
+      (copyRequested)="copyConfig($event)"
+      (downloadRequested)="downloadConfig($event)"
       (removeRequested)="removeConfig($event)"
     />
   </div>

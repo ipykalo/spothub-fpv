@@ -27,6 +27,13 @@ export class ConfigList {
   readonly pendingRemoval = input<string | null>(null);
 
   readonly removeRequested = output<ConfigDto>();
+  readonly copyRequested = output<ConfigDto>();
+  readonly downloadRequested = output<ConfigDto>();
+
+  /** The capture whose text is being fetched, so the row can say so. */
+  readonly busyId = input<string | null>(null);
+  /** Briefly set after a successful copy, as the only feedback that fits a row. */
+  readonly copiedId = input<string | null>(null);
 
   protected readonly kindLabels = CONFIG_KIND_LABELS;
 

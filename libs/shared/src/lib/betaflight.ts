@@ -173,3 +173,30 @@ export function crossesFirmwareVersions(a: string | null, b: string | null): boo
 
   return majorMinor(a) !== majorMinor(b);
 }
+
+/**
+ * A filename matching what Betaflight Configurator saves.
+ *
+ * Its CLI tab writes `BTFL_cli_<craft>_<datetime>.txt`, so exports from here
+ * sort alongside backups taken the usual way rather than looking like a
+ * different tool's files.
+ */
+export function configFileName(
+  identity: Pick<BetaflightIdentity, 'craftName' | 'boardName' | 'fwTarget'>,
+  capturedAt: Date,
+): string {
+  // Craft name first, since that is what Configurator uses; the board is a
+  // reasonable fallback when the quad was never named in Betaflight.
+  const subject =
+    identity.craftName ?? identity.boardName ?? identity.fwTarget ?? 'config';
+
+  const pad = (value: number): string => String(value).padStart(2, '0');
+  const stamp =
+    `${capturedAt.getFullYear()}${pad(capturedAt.getMonth() + 1)}${pad(capturedAt.getDate())}` +
+    `_${pad(capturedAt.getHours())}${pad(capturedAt.getMinutes())}${pad(capturedAt.getSeconds())}`;
+
+  // Anything a filesystem would object to becomes an underscore.
+  const safe = subject.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '');
+
+  return `BTFL_cli_${safe || 'config'}_${stamp}.txt`;
+}
