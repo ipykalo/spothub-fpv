@@ -10,24 +10,28 @@ import {
   Patch,
   Post,
   Query,
-  UsePipes,
 } from '@nestjs/common';
 import {
   type CreatePartDto,
   type CreatePartSourceDto,
+  type CreatePartUnitDto,
   type EnrichUrlDto,
   type ListPartsQuery,
   type PartDto,
   type PartSourceDto,
+  type PartUnitDto,
   type UpdatePartDto,
   type UpdatePartSourceDto,
+  type UpdatePartUnitDto,
   type UrlPreviewDto,
   createPartSchema,
   createPartSourceSchema,
+  createPartUnitSchema,
   enrichUrlSchema,
   listPartsQuerySchema,
   updatePartSchema,
   updatePartSourceSchema,
+  updatePartUnitSchema,
 } from '@spothub/shared';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -50,10 +54,12 @@ export class PartsController {
   ) {}
 
   @Get()
-  @UsePipes(new ZodValidationPipe(listPartsQuerySchema))
   list(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: ListPartsQuery,
+    // Scoped to the query rather than the method: a method-level pipe runs the
+    // schema over every parameter, which silently strips anything it does not
+    // declare and breaks outright on a non-object one.
+    @Query(new ZodValidationPipe(listPartsQuerySchema)) query: ListPartsQuery,
   ): Promise<PartDto[]> {
     return this.parts.list(user.id, query);
   }
@@ -102,6 +108,35 @@ export class PartsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     return this.parts.remove(user.id, id);
+  }
+
+  @Post(':id/units')
+  addUnit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(createPartUnitSchema)) body: CreatePartUnitDto,
+  ): Promise<PartUnitDto> {
+    return this.parts.addUnit(user.id, id, body);
+  }
+
+  @Patch(':id/units/:unitId')
+  updateUnit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('unitId', ParseUUIDPipe) unitId: string,
+    @Body(new ZodValidationPipe(updatePartUnitSchema)) body: UpdatePartUnitDto,
+  ): Promise<PartUnitDto> {
+    return this.parts.updateUnit(user.id, id, unitId, body);
+  }
+
+  @Delete(':id/units/:unitId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeUnit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('unitId', ParseUUIDPipe) unitId: string,
+  ): Promise<void> {
+    return this.parts.removeUnit(user.id, id, unitId);
   }
 
   @Post(':id/sources')

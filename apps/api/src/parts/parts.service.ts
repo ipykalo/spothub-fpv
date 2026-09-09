@@ -1,16 +1,23 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   CreatePartDto,
   CreatePartSourceDto,
+  CreatePartUnitDto,
   ListPartsQuery,
   PartDto,
   PartSourceDto,
+  PartUnitDto,
   UpdatePartDto,
   UpdatePartSourceDto,
+  UpdatePartUnitDto,
 } from '@spothub/shared';
 
-import type { UpdatePartData, UpdatePartSourceData } from './part.entity';
-import { toPartDto, toPartSourceDto } from './parts.mapper';
+import type {
+  UpdatePartData,
+  UpdatePartSourceData,
+  UpdatePartUnitData,
+} from './part.entity';
+import { toPartDto, toPartSourceDto, toPartUnitDto } from './parts.mapper';
 import { PartsRepository } from './parts.repository';
 
 /** Business rules for parts. Knows nothing about HTTP or Prisma. */
@@ -40,9 +47,8 @@ export class PartsService {
       manufacturer: input.manufacturer,
       model: input.model,
       spec: input.spec,
-      quantityOwned: input.quantityOwned,
-      status: input.status,
       notesMd: input.notesMd,
+      quantity: input.quantity,
     });
 
     return toPartDto(part);
@@ -108,6 +114,61 @@ export class PartsService {
     return toPartSourceDto(source);
   }
 
+  async addUnit(
+    ownerId: string,
+    partId: string,
+    input: CreatePartUnitDto,
+  ): Promise<PartUnitDto> {
+    const unit = await this.parts.addUnitForOwner(ownerId, partId, {
+      condition: input.condition,
+      label: input.label,
+      acquiredOn: toDate(input.acquiredOn),
+      notes: input.notes,
+    });
+
+    if (!unit) {
+      throw new NotFoundException('Part not found');
+    }
+
+    return toPartUnitDto(unit);
+  }
+
+  async updateUnit(
+    ownerId: string,
+    partId: string,
+    unitId: string,
+    input: UpdatePartUnitDto,
+  ): Promise<PartUnitDto> {
+    const unit = await this.parts.updateUnitForOwner(
+      ownerId,
+      partId,
+      unitId,
+      toUnitUpdateData(input),
+    );
+
+    if (!unit) {
+      throw new NotFoundException('Unit not found');
+    }
+
+    return toPartUnitDto(unit);
+  }
+
+  /**
+   * A fitted unit cannot be deleted: the cascade would take the build's
+   * install history with it. Take it off the quad first.
+   */
+  async removeUnit(ownerId: string, partId: string, unitId: string): Promise<void> {
+    const outcome = await this.parts.deleteUnitForOwner(ownerId, partId, unitId);
+
+    if (outcome === 'missing') {
+      throw new NotFoundException('Unit not found');
+    }
+
+    if (outcome === 'fitted') {
+      throw new ConflictException('Remove this unit from its build before deleting it');
+    }
+  }
+
   async removeSource(ownerId: string, partId: string, sourceId: string): Promise<void> {
     const deleted = await this.parts.deleteSourceForOwner(ownerId, partId, sourceId);
 
@@ -129,8 +190,6 @@ function toUpdateData(input: UpdatePartDto): UpdatePartData {
   if (input.manufacturer !== undefined) patch['manufacturer'] = input.manufacturer;
   if (input.model !== undefined) patch['model'] = input.model;
   if (input.spec !== undefined) patch['spec'] = input.spec;
-  if (input.quantityOwned !== undefined) patch['quantityOwned'] = input.quantityOwned;
-  if (input.status !== undefined) patch['status'] = input.status;
   if (input.notesMd !== undefined) patch['notesMd'] = input.notesMd;
 
   return data;
@@ -153,6 +212,19 @@ function toSourceUpdateData(input: UpdatePartSourceDto): UpdatePartSourceData {
   if (input.isPurchase !== undefined) patch['isPurchase'] = input.isPurchase;
   if (input.purchasedOn !== undefined) patch['purchasedOn'] = toDate(input.purchasedOn);
   if (input.quantity !== undefined) patch['quantity'] = input.quantity;
+
+  return data;
+}
+
+/** Copies only the keys present, so an absent field is left alone. */
+function toUnitUpdateData(input: UpdatePartUnitDto): UpdatePartUnitData {
+  const data: UpdatePartUnitData = {};
+  const patch = data as Record<string, unknown>;
+
+  if (input.condition !== undefined) patch['condition'] = input.condition;
+  if (input.label !== undefined) patch['label'] = input.label;
+  if (input.acquiredOn !== undefined) patch['acquiredOn'] = toDate(input.acquiredOn);
+  if (input.notes !== undefined) patch['notes'] = input.notes;
 
   return data;
 }

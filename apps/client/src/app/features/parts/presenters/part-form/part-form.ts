@@ -25,9 +25,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import {
   PART_CATEGORY_LABELS,
-  PART_STATUS_LABELS,
   PartCategory,
-  PartStatus,
   createPartSchema,
   createPartSourceSchema,
   type CreatePartDto,
@@ -124,9 +122,7 @@ export class PartForm {
   private readonly fb = inject(FormBuilder).nonNullable;
 
   protected readonly categories = Object.values(PartCategory);
-  protected readonly statuses = Object.values(PartStatus);
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
-  protected readonly statusLabels = PART_STATUS_LABELS;
 
   private readonly validationError = signal<string | null>(null);
   private readonly selectedCategory = signal<PartCategory>(PartCategory.Motor);
@@ -166,8 +162,10 @@ export class PartForm {
     category: [PartCategory.Motor as PartCategory],
     manufacturer: [''],
     model: [''],
-    quantityOwned: [1],
-    status: [PartStatus.InUse as PartStatus],
+    // Only used when creating: it decides how many units are made. On an
+    // existing part, units are managed one at a time on the part page, where
+    // each has its own condition and history.
+    quantity: [1],
     notesMd: [''],
     spec: this.fb.array([this.specRow('', '')]),
     source: this.fb.group({
@@ -203,8 +201,6 @@ export class PartForm {
         category: part.category,
         manufacturer: part.manufacturer ?? '',
         model: part.model ?? '',
-        quantityOwned: part.quantityOwned,
-        status: part.status,
         notesMd: part.notesMd ?? '',
       });
 
@@ -337,8 +333,7 @@ export class PartForm {
       manufacturer: raw.manufacturer || null,
       model: raw.model || null,
       spec: toSpec(raw.spec),
-      quantityOwned: raw.quantityOwned,
-      status: raw.status,
+      quantity: raw.quantity,
       notesMd: raw.notesMd || null,
     });
 

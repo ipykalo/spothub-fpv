@@ -10,7 +10,6 @@ import {
   Patch,
   Post,
   Query,
-  UsePipes,
 } from '@nestjs/common';
 import {
   type BuildDto,
@@ -38,10 +37,12 @@ export class BuildsController {
   constructor(private readonly builds: BuildsService) {}
 
   @Get()
-  @UsePipes(new ZodValidationPipe(listBuildsQuerySchema))
   list(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: ListBuildsQuery,
+    // Scoped to the query rather than the method: a method-level pipe runs the
+    // schema over every parameter, which silently strips anything it does not
+    // declare and breaks outright on a non-object one.
+    @Query(new ZodValidationPipe(listBuildsQuerySchema)) query: ListBuildsQuery,
   ): Promise<BuildDto[]> {
     return this.builds.list(user.id, query);
   }

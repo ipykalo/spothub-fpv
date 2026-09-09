@@ -1,13 +1,13 @@
 <form [formGroup]="form" (ngSubmit)="submit()">
   <mat-form-field>
     <mat-label>Part</mat-label>
-    <mat-select formControlName="partId">
-      @for (part of parts(); track part.id) {
-        <mat-option [value]="part.id"> {{ label(part) }} · {{ categoryLabels[part.category] }} </mat-option>
+    <mat-select formControlName="unitId">
+      @for (unit of units(); track unit.unitId) {
+        <mat-option [value]="unit.unitId"> {{ unit.label }} · {{ categoryLabels[unit.part.category] }} </mat-option>
       }
     </mat-select>
-    @if (!parts().length) {
-      <mat-hint>Nothing in the inventory yet — add a part first.</mat-hint>
+    @if (!units().length) {
+      <mat-hint> Nothing available. Units already fitted, broken or retired are not offered. </mat-hint>
     }
   </mat-form-field>
 
@@ -30,7 +30,7 @@
     </mat-select>
   </mat-form-field>
 
-  <button matButton="filled" type="submit" [disabled]="saving() || !parts().length">
+  <button matButton="filled" type="submit" [disabled]="saving() || !units().length">
     <mat-icon>add</mat-icon>
     Fit
   </button>

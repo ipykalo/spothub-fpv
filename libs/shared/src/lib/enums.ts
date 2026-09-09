@@ -52,15 +52,23 @@ export const PartCategory = {
 } as const;
 export type PartCategory = (typeof PartCategory)[keyof typeof PartCategory];
 
-export const PartStatus = {
-  /** Bought, not yet fitted to anything. */
-  New: 'NEW',
-  InUse: 'IN_USE',
-  Spare: 'SPARE',
+/**
+ * The condition of one physical unit — the half only the owner knows.
+ *
+ * Lives on a unit rather than on the part, because one value cannot describe
+ * four motors: marking the row broken condemned all four. Says nothing about
+ * where the unit is either — whether it is fitted is a fact `build_parts`
+ * already holds, and a typed copy would drift from it.
+ */
+export const PartCondition = {
+  /** Fit to use, whether or not it is currently on a quad. */
+  Serviceable: 'SERVICEABLE',
+  /** Damaged. Must not be fitted to anything. */
   Broken: 'BROKEN',
+  /** Worn out or superseded, kept for the record. */
   Retired: 'RETIRED',
 } as const;
-export type PartStatus = (typeof PartStatus)[keyof typeof PartStatus];
+export type PartCondition = (typeof PartCondition)[keyof typeof PartCondition];
 
 export const InstallReason = {
   /** Fitted when the build was first put together. */
@@ -70,6 +78,17 @@ export const InstallReason = {
   Upgrade: 'UPGRADE',
 } as const;
 export type InstallReason = (typeof InstallReason)[keyof typeof InstallReason];
+
+/** Why a build needed work. */
+export const RepairCause = {
+  /** Hit something. The usual reason an arm is on its third replacement. */
+  Crash: 'CRASH',
+  /** Nothing broke suddenly — it wore out. */
+  Wear: 'WEAR',
+  /** Nothing was wrong; something better went on. */
+  Upgrade: 'UPGRADE',
+} as const;
+export type RepairCause = (typeof RepairCause)[keyof typeof RepairCause];
 
 export const Role = {
   User: 'USER',
@@ -116,16 +135,20 @@ export const PART_CATEGORY_LABELS: Readonly<Record<PartCategory, string>> = {
   [PartCategory.Other]: 'Other',
 };
 
-export const PART_STATUS_LABELS: Readonly<Record<PartStatus, string>> = {
-  [PartStatus.New]: 'New',
-  [PartStatus.InUse]: 'In use',
-  [PartStatus.Spare]: 'Spare',
-  [PartStatus.Broken]: 'Broken',
-  [PartStatus.Retired]: 'Retired',
+export const PART_CONDITION_LABELS: Readonly<Record<PartCondition, string>> = {
+  [PartCondition.Serviceable]: 'Serviceable',
+  [PartCondition.Broken]: 'Broken',
+  [PartCondition.Retired]: 'Retired',
 };
 
 export const INSTALL_REASON_LABELS: Readonly<Record<InstallReason, string>> = {
   [InstallReason.Initial]: 'Initial build',
   [InstallReason.Replacement]: 'Replacement',
   [InstallReason.Upgrade]: 'Upgrade',
+};
+
+export const REPAIR_CAUSE_LABELS: Readonly<Record<RepairCause, string>> = {
+  [RepairCause.Crash]: 'Crash',
+  [RepairCause.Wear]: 'Wear',
+  [RepairCause.Upgrade]: 'Upgrade',
 };

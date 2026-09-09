@@ -1,26 +1,29 @@
 import type { InstallReason } from '@spothub/shared';
 
-import type { PartEntity } from '../parts/part.entity';
+import type { PartEntity, PartUnitEntity } from '../parts/part.entity';
 
 /** One installation period, as the domain understands it. */
 export interface BuildPartEntity {
   readonly id: string;
   readonly buildId: string;
-  readonly partId: string;
+  readonly unitId: string;
   readonly position: string | null;
   readonly installedOn: Date;
   readonly removedOn: Date | null;
   readonly reason: InstallReason;
+  readonly repairId: string | null;
+  readonly unit: PartUnitEntity;
   readonly part: PartEntity;
 }
 
 /** Fields the persistence layer accepts when fitting a part. */
 export interface CreateBuildPartData {
   readonly buildId: string;
-  readonly partId: string;
+  readonly unitId: string;
   readonly position: string | null;
   readonly installedOn: Date;
   readonly reason: InstallReason;
+  readonly repairId: string | null;
 }
 
 /**
@@ -39,4 +42,7 @@ export interface BuildCost {
   readonly totals: readonly CurrencyTotal[];
   readonly unpricedCount: number;
   readonly installedCount: number;
+  /** Money spent on repairs, kept apart from what the fitted parts cost. */
+  readonly repairTotals: readonly CurrencyTotal[];
+  readonly repairCount: number;
 }

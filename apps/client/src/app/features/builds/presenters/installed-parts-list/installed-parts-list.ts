@@ -8,6 +8,8 @@ import {
   type BuildPartDto,
 } from '@spothub/shared';
 
+import { unitName as partUnitName } from '../../../parts/part-condition';
+
 /**
  * Presenter: the components on a build. Renders a list and announces intent —
  * it owns no state and never talks to a store.
@@ -29,6 +31,11 @@ export class InstalledPartsList {
 
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
   protected readonly reasonLabels = INSTALL_REASON_LABELS;
+
+  /** Which physical unit this was — "#3", or whatever is written on it. */
+  protected unitName(install: BuildPartDto): string {
+    return partUnitName(install.part, install.unit);
+  }
 
   /** Manufacturer and model are both optional; fall back to the category. */
   protected name(install: BuildPartDto): string {

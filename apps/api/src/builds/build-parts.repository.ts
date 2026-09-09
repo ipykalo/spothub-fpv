@@ -19,11 +19,15 @@ export abstract class BuildPartsRepository {
     filter: BuildPartFilter,
   ): Promise<BuildPartEntity[]>;
 
-  /** Null when either the build or the part is not the owner's. */
+  /**
+   * Null when either the build or the unit is not the owner's, and
+   * `'occupied'` when the unit is already on a quad — one physical object
+   * cannot be in two places, and no database constraint can express that.
+   */
   abstract install(
     ownerId: string,
     data: CreateBuildPartData,
-  ): Promise<BuildPartEntity | null>;
+  ): Promise<BuildPartEntity | null | 'occupied'>;
 
   /** Records an end date. The row survives — that is the point of the table. */
   abstract remove(

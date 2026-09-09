@@ -40,8 +40,42 @@
   font-size: 0.875rem;
 }
 
-.status-DOWN {
-  color: var(--mat-sys-error);
+/* Matches the card chip exactly — same tokens, same shape. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: var(--tone-surface);
+  color: var(--tone);
+  font-weight: 600;
+}
+
+.status mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.tone-go {
+  --tone: var(--status-go);
+  --tone-surface: var(--status-go-surface);
+}
+
+.tone-stop {
+  --tone: var(--status-stop);
+  --tone-surface: var(--status-stop-surface);
+}
+
+.tone-work {
+  --tone: var(--status-work);
+  --tone-surface: var(--status-work-surface);
+}
+
+.tone-idle {
+  --tone: var(--status-idle);
+  --tone-surface: var(--status-idle-surface);
 }
 
 .block {
@@ -55,4 +89,8 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline-wrap {
+  margin-top: 0.9rem;
 }

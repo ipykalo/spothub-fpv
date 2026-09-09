@@ -15,19 +15,13 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field>
-          <mat-label>Status</mat-label>
-          <mat-select formControlName="status">
-            @for (item of statuses; track item) {
-              <mat-option [value]="item">{{ statusLabels[item] }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Quantity owned</mat-label>
-          <input matInput type="number" formControlName="quantityOwned" min="0" />
-        </mat-form-field>
+        @if (!isEdit()) {
+          <mat-form-field>
+            <mat-label>How many</mat-label>
+            <input matInput type="number" formControlName="quantity" min="1" max="99" />
+            <mat-hint>Creates one unit each, tracked separately</mat-hint>
+          </mat-form-field>
+        }
       </div>
 
       <div class="row">

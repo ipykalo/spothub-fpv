@@ -1,10 +1,23 @@
-import type { PartDto, PartSourceDto } from '@spothub/shared';
+import type { PartDto, PartSourceDto, PartUnitDto } from '@spothub/shared';
 
-import type { PartEntity, PartSourceEntity } from './part.entity';
+import type { PartEntity, PartSourceEntity, PartUnitEntity } from './part.entity';
 
 /** Date-only columns must not leak a timezone-shifted timestamp to the client. */
 const toDateOnly = (value: Date | null): string | null =>
   value ? value.toISOString().slice(0, 10) : null;
+
+export function toPartUnitDto(unit: PartUnitEntity): PartUnitDto {
+  return {
+    id: unit.id,
+    partId: unit.partId,
+    condition: unit.condition,
+    label: unit.label,
+    acquiredOn: toDateOnly(unit.acquiredOn),
+    notes: unit.notes,
+    fitted: unit.fitted,
+    createdAt: unit.createdAt.toISOString(),
+  };
+}
 
 export function toPartSourceDto(source: PartSourceEntity): PartSourceDto {
   return {
@@ -38,9 +51,8 @@ export function toPartDto(part: PartEntity): PartDto {
     manufacturer: part.manufacturer,
     model: part.model,
     spec: part.spec,
-    quantityOwned: part.quantityOwned,
-    status: part.status,
     notesMd: part.notesMd,
+    units: part.units.map(toPartUnitDto),
     sources: part.sources.map(toPartSourceDto),
     purchasePrice: purchase?.price ?? null,
     purchaseCurrency: purchase?.currency ?? null,

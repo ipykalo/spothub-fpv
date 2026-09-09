@@ -9,7 +9,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { BuildPartsApi } from './build-parts.api';
 
-const EMPTY_COST: BuildCostDto = { totals: [], unpricedCount: 0, installedCount: 0 };
+const EMPTY_COST: BuildCostDto = {
+  totals: [],
+  unpricedCount: 0,
+  installedCount: 0,
+  repairTotals: [],
+  repairCount: 0,
+};
 
 /**
  * Signal-backed state for what is fitted to one build.

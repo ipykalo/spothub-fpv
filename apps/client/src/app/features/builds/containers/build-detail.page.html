@@ -7,7 +7,10 @@
       </a>
       <h1>{{ quad.name }}</h1>
       <p class="meta">
-        <span class="status status-{{ quad.status }}">{{ statusLabels[quad.status] }}</span>
+        <span class="status tone-{{ statusStyle().tone }}">
+          <mat-icon aria-hidden="true">{{ statusStyle().icon }}</mat-icon>
+          {{ statusLabels[quad.status] }}
+        </span>
         @if (quad.buildClass; as cls) {
           <span>{{ classLabels[cls] }}</span>
         }
@@ -41,7 +44,7 @@
 
 <section class="block">
   <h2>Fit a part</h2>
-  <sh-install-part-form [parts]="parts.parts()" [saving]="saving()" (installed)="install($event)" />
+  <sh-install-part-form [units]="fittable()" [saving]="saving()" (installed)="install($event)" />
 </section>
 
 <section class="block">
@@ -51,6 +54,23 @@
     [pendingRemoval]="pendingRemoval()"
     (removeRequested)="remove($event)"
   />
+</section>
+
+<section class="block">
+  <h2>Repairs and crashes</h2>
+  <sh-repair-form [saving]="loggingRepair()" (logged)="logRepair($event)" />
+
+  @if (repairs.error(); as message) {
+    <p role="alert">{{ message }}</p>
+  }
+
+  <div class="timeline-wrap">
+    <sh-repair-timeline
+      [repairs]="repairs.repairs()"
+      [pendingRemoval]="removingRepairId()"
+      (removeRequested)="removeRepair($event)"
+    />
+  </div>
 </section>
 
 @if (installs.removed().length) {

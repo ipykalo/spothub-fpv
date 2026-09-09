@@ -7,7 +7,6 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-  UsePipes,
 } from '@nestjs/common';
 import {
   type BuildCostDto,
@@ -34,11 +33,14 @@ export class BuildPartsController {
   constructor(private readonly installs: BuildPartsService) {}
 
   @Get()
-  @UsePipes(new ZodValidationPipe(listBuildPartsQuerySchema))
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Param('buildId', ParseUUIDPipe) buildId: string,
-    @Query() query: ListBuildPartsQuery,
+    // Scoped to the query, not the method. A method-level @UsePipes runs the
+    // schema over *every* parameter, and this handler also takes a `buildId`
+    // string -- an object schema rejects that outright, so the whole route
+    // answered 400 before it reached the service.
+    @Query(new ZodValidationPipe(listBuildPartsQuerySchema)) query: ListBuildPartsQuery,
   ): Promise<BuildPartDto[]> {
     return this.installs.list(user.id, buildId, query);
   }

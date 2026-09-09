@@ -76,7 +76,16 @@ export const appRoutes: Route[] = [
           ),
       },
       {
+        // Read-only view. The card clamps a listing title to two lines and
+        // shows four attributes; this is where the whole part lives.
         path: ':id',
+        loadComponent: () =>
+          import('./features/parts/containers/part-detail.page').then(
+            (m) => m.PartDetailPage,
+          ),
+      },
+      {
+        path: ':id/edit',
         loadComponent: () =>
           import('./features/parts/containers/part-form.page').then(
             (m) => m.PartFormPage,

@@ -1,17 +1,21 @@
-import type { PartCategory, PartStatus } from '@spothub/shared';
+import type { PartCategory, PartCondition } from '@spothub/shared';
 
 import type {
   CreatePartData,
   CreatePartSourceData,
+  CreatePartUnitData,
   PartEntity,
   PartSourceEntity,
+  PartUnitEntity,
   UpdatePartData,
   UpdatePartSourceData,
+  UpdatePartUnitData,
 } from './part.entity';
 
 export interface PartFilter {
   readonly category?: PartCategory;
-  readonly status?: PartStatus;
+  /** Matches parts having at least one unit in this condition. */
+  readonly condition?: PartCondition;
   readonly search?: string;
 }
 
@@ -55,4 +59,24 @@ export abstract class PartsRepository {
     partId: string,
     sourceId: string,
   ): Promise<boolean>;
+
+  abstract addUnitForOwner(
+    ownerId: string,
+    partId: string,
+    data: CreatePartUnitData,
+  ): Promise<PartUnitEntity | null>;
+
+  abstract updateUnitForOwner(
+    ownerId: string,
+    partId: string,
+    unitId: string,
+    data: UpdatePartUnitData,
+  ): Promise<PartUnitEntity | null>;
+
+  /** Refuses while the unit is fitted: removing it would orphan an install. */
+  abstract deleteUnitForOwner(
+    ownerId: string,
+    partId: string,
+    unitId: string,
+  ): Promise<'deleted' | 'fitted' | 'missing'>;
 }

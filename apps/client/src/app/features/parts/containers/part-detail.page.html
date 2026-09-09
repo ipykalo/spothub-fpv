@@ -1,0 +1,34 @@
+<header class="head">
+  <div class="titles">
+    <a class="back" routerLink="/parts">
+      <mat-icon>arrow_back</mat-icon>
+      Parts
+    </a>
+    <h1>{{ title() }}</h1>
+  </div>
+
+  @if (part(); as found) {
+    <a matButton="outlined" [routerLink]="['/parts', found.id, 'edit']">
+      <mat-icon>edit</mat-icon>
+      Edit
+    </a>
+  }
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (failure(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+@if (part(); as found) {
+  <sh-part-details
+    [part]="found"
+    [removingUnitId]="removingUnitId()"
+    (unitConditionChanged)="setCondition($event)"
+    (unitAdded)="addUnit()"
+    (unitRemoved)="removeUnit($event)"
+  />
+}

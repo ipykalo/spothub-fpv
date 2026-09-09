@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { InstallReason } from './enums';
-import { partSchema } from './part.contract';
+import { partSchema, partUnitSchema } from './part.contract';
 
 /**
  * Fitting a part to a build, over time.
@@ -14,7 +14,8 @@ import { partSchema } from './part.contract';
 const isoDate = z.iso.date();
 
 export const installPartSchema = z.object({
-  partId: z.uuid('Pick a part to install'),
+  /** A specific physical unit, not a kind: you fit one motor, not "a motor". */
+  unitId: z.uuid('Pick a part to install'),
   /** Where on the airframe: "motor FR", "arm RL". */
   position: z
     .union([z.string().trim().max(40), z.null()])
@@ -22,6 +23,8 @@ export const installPartSchema = z.object({
     .default(null),
   installedOn: isoDate,
   reason: z.enum(InstallReason).default(InstallReason.Initial),
+  /** Set when fitting something as part of a repair. */
+  repairId: z.uuid().nullable().default(null),
 });
 
 /** Removing is recording an end date, never deleting the row. */
@@ -32,11 +35,14 @@ export const removeInstallSchema = z.object({
 export const buildPartSchema = z.object({
   id: z.uuid(),
   buildId: z.uuid(),
-  partId: z.uuid(),
+  unitId: z.uuid(),
   position: z.string().nullable(),
   installedOn: z.string(),
   removedOn: z.string().nullable(),
   reason: z.enum(InstallReason),
+  /** The repair this fitting was part of, when it replaced something. */
+  repairId: z.uuid().nullable(),
+  unit: partUnitSchema,
   part: partSchema,
 });
 
@@ -58,6 +64,19 @@ export const buildCostSchema = z.object({
   /** Fitted parts with no purchase price recorded, so the total is a floor. */
   unpricedCount: z.number().int(),
   installedCount: z.number().int(),
+  /**
+   * Money spent on repairs, separate from what the fitted parts cost.
+   *
+   * Two different questions — "what is bolted to this quad" and "what has this
+   * quad cost me in crashes" — and adding them would answer neither.
+   */
+  repairTotals: z.array(
+    z.object({
+      currency: z.string(),
+      amount: z.number(),
+    }),
+  ),
+  repairCount: z.number().int(),
 });
 
 export const listBuildPartsQuerySchema = z.object({

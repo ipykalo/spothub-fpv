@@ -1,44 +1,58 @@
-<mat-card appearance="outlined">
-  <mat-card-header>
-    <mat-card-title>{{ title() }}</mat-card-title>
-    <mat-card-subtitle>
-      <span class="status status-{{ part().status }}">
-        {{ statusLabels[part().status] }}
-      </span>
-      @if (part().quantityOwned !== 1) {
-        <span>· {{ part().quantityOwned }} held</span>
-      }
-    </mat-card-subtitle>
-  </mat-card-header>
+<mat-card appearance="outlined" class="tone-{{ tone() }}">
+  <div class="head">
+    <h3 [title]="title()">{{ title() }}</h3>
 
-  <mat-card-content>
-    @if (specEntries().length) {
+    <div class="badges">
+      @for (tally of tallies(); track tally.condition) {
+        <span class="status tone-{{ tally.style.tone }}">
+          <mat-icon aria-hidden="true">{{ tally.style.icon }}</mat-icon>
+          @if (tally.count > 1) {
+            {{ tally.count }}
+          }
+          {{ tally.label }}
+        </span>
+      }
+      <span class="stock" [title]="stockDetail()">{{ stock() }}</span>
+    </div>
+  </div>
+
+  <div class="body">
+    @if (visibleSpec().length) {
       <dl class="spec">
-        @for (entry of specEntries(); track entry.key) {
+        @for (entry of visibleSpec(); track entry.key) {
           <div>
             <dt>{{ entry.key }}</dt>
             <dd>{{ entry.value }}</dd>
           </div>
         }
+        @if (hiddenSpecCount(); as more) {
+          <div class="more">+{{ more }}</div>
+        }
       </dl>
+    } @else {
+      <p class="spec none">No specification</p>
     }
+  </div>
 
-    @if (part().purchasePrice !== null) {
-      <p class="price">
-        {{ part().purchasePrice }} {{ part().purchaseCurrency }}
-        @if (part().quantityOwned > 1) {
+  <div class="foot">
+    <p class="price">
+      @if (part().purchasePrice !== null) {
+        <span class="amount">{{ part().purchasePrice }}</span>
+        <span class="currency">{{ part().purchaseCurrency }}</span>
+        @if (unitTotal() > 1) {
           <span class="each">each</span>
         }
-      </p>
-    } @else {
-      <p class="price muted">No purchase recorded</p>
-    }
-  </mat-card-content>
+      } @else {
+        <span class="none">No purchase recorded</span>
+      }
+    </p>
 
-  <mat-card-actions>
-    <button matButton [routerLink]="['/parts', part().id]">Edit</button>
-    <button matButton [disabled]="deleting()" (click)="delete.emit(part())">
-      {{ deleting() ? 'Deleting…' : 'Delete' }}
-    </button>
-  </mat-card-actions>
+    <div class="actions">
+      <a matButton [routerLink]="['/parts', part().id]">Open</a>
+      <a matButton [routerLink]="['/parts', part().id, 'edit']">Edit</a>
+      <button matButton [disabled]="deleting()" (click)="delete.emit(part())">
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+    </div>
+  </div>
 </mat-card>
