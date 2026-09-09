@@ -35,8 +35,10 @@ export const PART_CATEGORY_ICONS: Readonly<Record<PartCategory, string>> = {
   // The other end of the radio link.
   [PartCategory.Rx]: 'settings_remote',
   [PartCategory.Antenna]: 'settings_input_antenna',
-  // A pinwheel is as close to a prop as the classic set gets.
-  [PartCategory.Prop]: 'toys',
+  // `filter_vintage` is rounded blades radiating from a hub — the closest
+  // thing to a propeller in the classic set. (`toys` is a toy car, not the
+  // pinwheel its name suggests; `mode_fan` would be ideal but is Symbols.)
+  [PartCategory.Prop]: 'filter_vintage',
   [PartCategory.Battery]: 'battery_full',
   [PartCategory.Other]: 'category',
 };
