@@ -52,12 +52,21 @@ export const PartCategory = {
 } as const;
 export type PartCategory = (typeof PartCategory)[keyof typeof PartCategory];
 
+/**
+ * The *condition* of a part — the half only the owner knows.
+ *
+ * Deliberately says nothing about where the part is. Whether something is
+ * fitted is a fact `build_parts` already holds, so it is derived rather than
+ * typed: a second copy would drift the first time a dropdown was not updated.
+ * It also cannot be expressed here — one row can stand for four motors, and
+ * at "2 of 4 fitted" no single value would be true.
+ */
 export const PartStatus = {
-  /** Bought, not yet fitted to anything. */
-  New: 'NEW',
-  InUse: 'IN_USE',
-  Spare: 'SPARE',
+  /** Fit to use, whether or not it is currently on a quad. */
+  Serviceable: 'SERVICEABLE',
+  /** Damaged. Must not be fitted to anything. */
   Broken: 'BROKEN',
+  /** Worn out or superseded, kept for the record. */
   Retired: 'RETIRED',
 } as const;
 export type PartStatus = (typeof PartStatus)[keyof typeof PartStatus];
@@ -117,9 +126,7 @@ export const PART_CATEGORY_LABELS: Readonly<Record<PartCategory, string>> = {
 };
 
 export const PART_STATUS_LABELS: Readonly<Record<PartStatus, string>> = {
-  [PartStatus.New]: 'New',
-  [PartStatus.InUse]: 'In use',
-  [PartStatus.Spare]: 'Spare',
+  [PartStatus.Serviceable]: 'Serviceable',
   [PartStatus.Broken]: 'Broken',
   [PartStatus.Retired]: 'Retired',
 };

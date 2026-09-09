@@ -154,10 +154,10 @@ enum PartCategory {
   OTHER
 }
 
+/// The condition of a part -- the half only the owner knows. Whether it is
+/// fitted is derived from `build_parts`, never stored here.
 enum PartStatus {
-  NEW
-  IN_USE
-  SPARE
+  SERVICEABLE
   BROKEN
   RETIRED
 }
@@ -175,7 +175,7 @@ model Part {
   /// size, a VTX has power levels. Validated per category in libs/shared.
   spec          Json         @default("{}")
   quantityOwned Int          @default(1) @map("quantity_owned")
-  status        PartStatus   @default(IN_USE)
+  status        PartStatus   @default(SERVICEABLE)
   notesMd       String?      @map("notes_md")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")

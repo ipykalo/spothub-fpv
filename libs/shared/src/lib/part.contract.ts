@@ -45,7 +45,7 @@ export const partFields = z.object({
     .min(0, 'Quantity cannot be negative')
     .max(9_999)
     .default(1),
-  status: z.enum(PartStatus).default(PartStatus.InUse),
+  status: z.enum(PartStatus).default(PartStatus.Serviceable),
   notesMd: z
     .union([z.string().max(20_000), z.null()])
     .transform((value) => (value === null || value === '' ? null : value))

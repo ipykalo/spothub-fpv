@@ -11,12 +11,9 @@ import type { StatusStyle } from '../../core/ui/status-style';
  * one.
  */
 export const PART_STATUS_STYLES: Readonly<Record<PartStatus, StatusStyle>> = {
-  // Bought, never fitted. Available.
-  [PartStatus.New]: { icon: 'fiber_new', tone: 'ready' },
-  // Fitted to something right now.
-  [PartStatus.InUse]: { icon: 'check_circle', tone: 'go' },
-  // Been used, currently on the shelf. Also available.
-  [PartStatus.Spare]: { icon: 'inventory', tone: 'ready' },
+  // Fit to use. `ready` rather than `go`, because a serviceable part says
+  // nothing about being deployed — the fitted count next to it does that.
+  [PartStatus.Serviceable]: { icon: 'check_circle', tone: 'ready' },
   // Damaged. Must not be fitted to anything.
   [PartStatus.Broken]: { icon: 'error', tone: 'stop' },
   // Worn out, kept for the record.

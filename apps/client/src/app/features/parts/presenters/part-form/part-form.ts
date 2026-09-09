@@ -167,7 +167,7 @@ export class PartForm {
     manufacturer: [''],
     model: [''],
     quantityOwned: [1],
-    status: [PartStatus.InUse as PartStatus],
+    status: [PartStatus.Serviceable as PartStatus],
     notesMd: [''],
     spec: this.fb.array([this.specRow('', '')]),
     source: this.fb.group({

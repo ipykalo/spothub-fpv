@@ -55,17 +55,24 @@ export class PartCard {
   });
 
   /**
-   * One row can stand for several physical units, so "4 held" alone does not
-   * say whether any are free. Show how many are on a quad once some are.
+   * Where the units are — the half of the old status field that the database
+   * knows and the owner should never have been typing.
+   *
+   * One row can stand for several physical items, so a single word could
+   * never be right: at two of four fitted, neither "in use" nor "spare" is
+   * true. A count is.
    */
   protected readonly stock = computed(() => {
     const part = this.part();
+    const free = availableUnits(part);
 
     if (part.fittedCount === 0) {
-      return `${part.quantityOwned} held`;
+      return `${part.quantityOwned} in stock`;
     }
 
-    return `${part.fittedCount} of ${part.quantityOwned} fitted`;
+    const fitted = `${part.fittedCount} of ${part.quantityOwned} fitted`;
+
+    return free === 0 ? fitted : `${fitted}, ${free} free`;
   });
 
   protected readonly stockDetail = computed(() => {

@@ -15,11 +15,13 @@
         </dd>
       </div>
       <div>
-        <dt>Quantity owned</dt>
+        <dt>Units</dt>
         <dd>
-          {{ part().quantityOwned }}
+          {{ part().quantityOwned }} owned
           @if (part().fittedCount) {
             <span class="sub">· {{ part().fittedCount }} fitted, {{ free() }} free</span>
+          } @else {
+            <span class="sub">· all in stock</span>
           }
         </dd>
       </div>
