@@ -138,6 +138,12 @@ export class BuildDetailPage {
     try {
       await this.installs.install(this.id(), input);
 
+      // The picker offers units where `fitted` is false, and that flag lives on
+      // the parts list rather than on the install. Without this the unit just
+      // fitted stays in the dropdown until something else reloads the
+      // inventory — which used to mean navigating to Parts and back.
+      await this.parts.load();
+
       // A linked install changes that repair's "parts replaced" count.
       if (input.repairId) {
         await this.repairs.load(this.id());
@@ -263,6 +269,10 @@ export class BuildDetailPage {
       await this.installs.remove(this.id(), install.id, {
         removedOn: new Date().toISOString().slice(0, 10),
       });
+
+      // The same staleness in reverse: the unit is free again and has to come
+      // back into the picker.
+      await this.parts.load();
 
       this.snackBar.open('Removed', undefined, { duration: 2500 });
     } catch {
