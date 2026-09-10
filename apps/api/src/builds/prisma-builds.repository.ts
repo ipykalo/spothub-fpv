@@ -83,6 +83,7 @@ export class PrismaBuildsRepository extends BuildsRepository {
       weightG: build.weightG,
       hasGps: build.hasGps,
       descriptionMd: build.descriptionMd,
+      coverAssetId: build.coverAssetId,
       builtOn: build.builtOn,
       retiredOn: build.retiredOn,
       createdAt: build.createdAt,

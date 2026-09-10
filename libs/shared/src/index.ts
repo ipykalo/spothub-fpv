@@ -4,5 +4,6 @@ export * from './lib/part.contract';
 export * from './lib/build-part.contract';
 export * from './lib/repair.contract';
 export * from './lib/config.contract';
+export * from './lib/asset.contract';
 export * from './lib/betaflight';
 export * from './lib/user.contract';

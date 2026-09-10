@@ -45,6 +45,29 @@ export const envSchema = z.object({
     .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_ACCESS_TTL: seconds.default(900),
   JWT_REFRESH_TTL: seconds.default(2_592_000),
+
+  /**
+   * S3-compatible object storage. MinIO locally, Blob/R2 in production — the
+   * difference is these five values and nothing in the code.
+   */
+  S3_ENDPOINT: z.url(),
+  S3_REGION: z.string().min(1).default('us-east-1'),
+  S3_BUCKET: z.string().min(1),
+  S3_ACCESS_KEY: z.string().min(1),
+  S3_SECRET_KEY: z.string().min(1),
+  /**
+   * MinIO addresses buckets by path (`host/bucket/key`); AWS uses a virtual
+   * host (`bucket.host/key`). Getting this wrong makes every presigned URL
+   * point at a hostname that does not resolve.
+   */
+  S3_FORCE_PATH_STYLE: z
+    .union([z.boolean(), z.enum(['true', 'false'])])
+    .transform((value) => value === true || value === 'true')
+    .default(true),
+
+  /** How long a presigned upload or download URL stays valid. */
+  S3_UPLOAD_URL_TTL: seconds.default(300),
+  S3_DOWNLOAD_URL_TTL: seconds.default(3600),
 });
 
 export type Env = z.output<typeof envSchema>;

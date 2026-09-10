@@ -9,6 +9,7 @@ import { AllExceptionsFilter, JwtAuthGuard } from '../common';
 import { validateEnv } from '../config';
 import { ConfigsModule } from '../configs';
 import { HealthModule } from '../health';
+import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
@@ -34,6 +35,7 @@ import { UsersModule } from '../users';
     RepairsModule,
     ConfigsModule,
     PartsModule,
+    MediaModule,
     HealthModule,
   ],
   providers: [
