@@ -211,8 +211,8 @@ carry a comment explaining why.
 ## State
 
 **Done:** workspace, docker-compose (Postgres + MinIO), Google OAuth with
-rotating refresh tokens and reuse detection, ESLint + Prettier, Dockerfiles,
-verify CI. Every V1 feature except media:
+rotating refresh tokens and reuse detection, ESLint + Prettier, CI that
+verifies and publishes images to GHCR. Every V1 feature except media:
 
 - Builds CRUD end to end, status as colour and icon
 - Parts inventory — catalogue (`parts`), physical units (`part_units`), price
@@ -239,8 +239,27 @@ them: `part_status_condition_only` (a `CASE` conversion between enum types) and
 `part_units` (a `generate_series` expansion where only _open_ installs get a
 distinct unit). Read those before changing the parts model.
 
-**Next, in order:** media upload pipeline, then deployment — GHCR image
-build-and-push, database backups with a tested restore, VPS + Caddy.
+CI builds both images on every run — pull requests included — and pushes to
+GHCR on a branch, tagged with the branch name, the commit sha, and `latest` on
+the default branch. Building them for the first time turned up three faults
+worth remembering:
+
+- There was no `.dockerignore`, so `COPY . .` dropped the host's `node_modules`
+  over the one `npm ci` had just installed inside the image.
+- The runtime stage installs with `--ignore-scripts`, which leaves
+  `@prisma/engines` empty, so `prisma migrate deploy` tried to download the
+  schema engine on boot — needing network at container start and write access
+  the unprivileged `app` user does not have. The engines are copied from the
+  build stage instead, where `prisma generate` has already fetched them.
+- CI ran on pull requests but never on a push to `dev`, and a pull-request run
+  deliberately builds without publishing — so no image would ever have been
+  pushed for the branch the work actually lands on.
+
+The GHCR packages are **private** by default, so the first deploy needs a pull
+secret unless they are made public.
+
+**Next, in order:** VPS + Caddy first deploy, database backups with a tested
+restore, then the media upload pipeline.
 
 The media pipeline uses presigned PUT straight to object storage — the API must
 never receive file bytes. The config file-load feature keeps to this: the file
