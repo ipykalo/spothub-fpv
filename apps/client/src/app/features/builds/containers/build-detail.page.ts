@@ -19,6 +19,7 @@ import {
   BUILD_CLASS_LABELS,
   BUILD_STATUS_LABELS,
   type BuildDto,
+  type AssetDto,
   type BuildPartDto,
   type ConfigDto,
   type CreateConfigDto,
@@ -34,6 +35,7 @@ import { BUILD_STATUS_STYLES } from '../build-status';
 import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
 import { InstallPartForm } from '../presenters/install-part-form/install-part-form';
 import { InstalledPartsList } from '../presenters/installed-parts-list/installed-parts-list';
+import { PhotoGallery } from '../presenters/photo-gallery/photo-gallery';
 import { RepairForm } from '../presenters/repair-form/repair-form';
 import { RepairTimeline } from '../presenters/repair-timeline/repair-timeline';
 import { RepairsStore } from '../repairs.store';
@@ -44,6 +46,7 @@ import { ConfigsStore } from '../configs.store';
 import { BuildPartsStore } from '../build-parts.store';
 import { BuildsApi } from '../builds.api';
 import { BuildsStore } from '../builds.store';
+import { PhotosStore } from '../photos.store';
 
 /**
  * Container: the build page. Owns both stores and the side effects; every
@@ -59,6 +62,7 @@ import { BuildsStore } from '../builds.store';
     RouterLink,
     BuildCostSummary,
     InstallPartForm,
+    PhotoGallery,
     InstalledPartsList,
     RepairForm,
     RepairTimeline,
@@ -76,6 +80,7 @@ export class BuildDetailPage {
   protected readonly repairs = inject(RepairsStore);
   protected readonly configs = inject(ConfigsStore);
   protected readonly parts = inject(PartsStore);
+  protected readonly photos = inject(PhotosStore);
   private readonly builds = inject(BuildsStore);
   private readonly api = inject(BuildsApi);
   private readonly configsApi = inject(ConfigsApi);
@@ -119,6 +124,7 @@ export class BuildDetailPage {
         void this.installs.load(id);
         void this.repairs.load(id);
         void this.configs.load(id);
+        void this.photos.load(id);
 
         // The install picker needs the inventory; harmless if already loaded.
         if (this.parts.parts().length === 0) {
@@ -126,6 +132,52 @@ export class BuildDetailPage {
         }
       });
     });
+  }
+
+  protected async uploadPhotos(files: readonly File[]): Promise<void> {
+    await this.photos.upload(this.id(), files);
+
+    const failed = this.photos.error();
+    if (failed) {
+      this.snackBar.open(failed, undefined, { duration: 4000 });
+    }
+  }
+
+  protected async removePhoto(photo: AssetDto): Promise<void> {
+    const wasCover = this.build()?.coverAssetId === photo.id;
+
+    try {
+      await this.photos.remove(this.id(), photo.id);
+
+      // `builds.cover_asset_id` is SET NULL, so the build lost its cover on the
+      // server and the header has to stop showing one.
+      if (wasCover) {
+        await this.hydrate(this.id(), true);
+      }
+
+      this.snackBar.open('Photo removed', undefined, { duration: 2500 });
+    } catch {
+      this.snackBar.open('Could not remove that photo', undefined, { duration: 4000 });
+    }
+  }
+
+  protected async setCover(photo: AssetDto): Promise<void> {
+    try {
+      await this.photos.setCover(this.id(), photo.id);
+      // Re-read so the header, and the card in the list, show the new cover.
+      await this.hydrate(this.id(), true);
+      this.snackBar.open('Cover updated', undefined, { duration: 2500 });
+    } catch {
+      this.snackBar.open('Could not set that cover', undefined, { duration: 4000 });
+    }
+  }
+
+  protected async reorderPhotos(assetIds: readonly string[]): Promise<void> {
+    try {
+      await this.photos.reorder(this.id(), assetIds);
+    } catch {
+      this.snackBar.open('Could not save that order', undefined, { duration: 4000 });
+    }
   }
 
   protected toggleHistory(): void {
@@ -282,18 +334,25 @@ export class BuildDetailPage {
     }
   }
 
-  private async hydrate(id: string): Promise<void> {
-    const cached = this.builds.find(id);
+  private async hydrate(id: string, force = false): Promise<void> {
+    if (!force) {
+      const cached = this.builds.find(id);
 
-    if (cached) {
-      this.build.set(cached);
-      return;
+      if (cached) {
+        this.build.set(cached);
+        return;
+      }
     }
 
     try {
-      this.build.set(await firstValueFrom(this.api.getOne(id)));
+      // Through the store when forced, so the cached card is refreshed too.
+      this.build.set(
+        force ? await this.builds.refresh(id) : await firstValueFrom(this.api.getOne(id)),
+      );
     } catch {
-      this.build.set(null);
+      if (!force) {
+        this.build.set(null);
+      }
     }
   }
 }

@@ -1,0 +1,78 @@
+@if (!readonlyMode()) {
+  <div
+    class="dropzone"
+    [class.dragging]="dragging"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onFileDrop($event)"
+  >
+    <mat-icon aria-hidden="true">add_photo_alternate</mat-icon>
+    <p>
+      Drop photos here, or
+      <label class="picker">
+        <input type="file" multiple [accept]="accept" (change)="onFileInput($event)" hidden />
+        <span>choose files</span>
+      </label>
+    </p>
+    <p class="hint">JPEG, PNG, WebP or AVIF · up to 25 MB · location data is removed</p>
+  </div>
+}
+
+@if (isEmpty()) {
+  <p class="empty">No photos yet.</p>
+} @else {
+  <div
+    class="grid"
+    cdkDropList
+    cdkDropListOrientation="mixed"
+    [cdkDropListDisabled]="readonlyMode()"
+    (cdkDropListDropped)="onDrop($event)"
+  >
+    @for (photo of photos(); track photo.id) {
+      <figure class="tile" cdkDrag [class.is-cover]="photo.id === coverAssetId()">
+        <img [src]="photo.thumbUrl ?? photo.url" [alt]="photo.fileName ?? 'Build photo'" loading="lazy" />
+
+        @if (photo.id === coverAssetId()) {
+          <span class="badge"><mat-icon aria-hidden="true">star</mat-icon> Cover</span>
+        }
+
+        @if (!readonlyMode()) {
+          <figcaption class="actions">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Use as cover"
+              [attr.aria-label]="'Use ' + (photo.fileName ?? 'this photo') + ' as cover'"
+              [disabled]="photo.id === coverAssetId()"
+              (click)="coverChosen.emit(photo)"
+            >
+              <mat-icon>star</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Remove"
+              [attr.aria-label]="'Remove ' + (photo.fileName ?? 'this photo')"
+              (click)="removeRequested.emit(photo)"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </figcaption>
+        }
+      </figure>
+    }
+
+    @for (upload of pending(); track upload.id) {
+      <figure class="tile uploading">
+        <img [src]="upload.previewUrl" [alt]="upload.fileName" />
+        <figcaption class="progress">
+          @if (upload.error) {
+            <span class="failed">{{ upload.error }}</span>
+          } @else {
+            <mat-progress-bar mode="determinate" [value]="upload.progress" />
+          }
+        </figcaption>
+      </figure>
+    }
+  </div>
+}

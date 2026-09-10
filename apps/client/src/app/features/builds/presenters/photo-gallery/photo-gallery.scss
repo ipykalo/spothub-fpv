@@ -1,0 +1,155 @@
+.dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 1.25rem 1rem;
+  margin-bottom: 1rem;
+  border: 2px dashed var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container-low);
+  text-align: center;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.dropzone.dragging {
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-surface-container-high);
+}
+
+.dropzone p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.dropzone .hint {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8rem;
+}
+
+.picker span {
+  color: var(--mat-sys-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.picker input:focus-visible + span {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.empty {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+
+.tile {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container);
+  cursor: grab;
+}
+
+.tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tile.is-cover {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: -2px;
+}
+
+.tile.uploading img {
+  // Dimmed until it is a real photo, so an in-flight tile is never mistaken
+  // for one that has landed.
+  opacity: 0.55;
+}
+
+.badge {
+  position: absolute;
+  inset-block-start: 0.35rem;
+  inset-inline-start: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.4rem 0.1rem 0.25rem;
+  border-radius: 999px;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.badge mat-icon {
+  font-size: 0.85rem;
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.actions {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.1rem;
+  padding: 0.15rem;
+  background: linear-gradient(transparent, rgb(0 0 0 / 55%));
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+// Revealed on hover, but never hidden from the keyboard: focus inside the
+// tile brings the buttons back, or they are unreachable without a mouse.
+.tile:hover .actions,
+.tile:focus-within .actions {
+  opacity: 1;
+}
+
+.actions .mat-mdc-icon-button {
+  color: #fff;
+}
+
+.progress {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  padding: 0.35rem;
+}
+
+.failed {
+  display: block;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.cdk-drag-preview {
+  border-radius: 6px;
+  box-shadow: var(--mat-sys-level3);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drop-list-dragging .tile:not(.cdk-drag-placeholder) {
+  transition: transform 160ms cubic-bezier(0, 0, 0.2, 1);
+}

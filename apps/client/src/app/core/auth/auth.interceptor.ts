@@ -29,6 +29,14 @@ export function authInterceptor(
   const isApiCall = request.url.startsWith(baseUrl);
   const isRetryable = isApiCall && !NO_RETRY.some((path) => request.url.includes(path));
 
+  // Only our own API gets the token. A presigned upload goes straight to
+  // object storage, which carries its signature in the query string and
+  // rejects a request that also sends an Authorization header — and there is
+  // no reason to hand our bearer token to another host in any case.
+  if (!isApiCall) {
+    return next(request);
+  }
+
   return next(withToken(request, auth.token())).pipe(
     catchError((error: unknown) => {
       if (!isRetryable || !isUnauthorized(error)) {
