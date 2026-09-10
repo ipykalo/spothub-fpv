@@ -78,6 +78,15 @@ export const buildSchema = z.object({
   weightG: z.number().int().nullable(),
   hasGps: z.boolean(),
   descriptionMd: z.string().nullable(),
+  /**
+   * The chosen cover photo, and a short-lived presigned URL for it.
+   *
+   * The URL rides along on the list response so a page of build cards is one
+   * request rather than one per card. It expires — treat it as something to
+   * render now, never as an identifier to store.
+   */
+  coverAssetId: z.uuid().nullable(),
+  coverUrl: z.string().nullable(),
   builtOn: z.string().nullable(),
   retiredOn: z.string().nullable(),
   createdAt: z.string(),

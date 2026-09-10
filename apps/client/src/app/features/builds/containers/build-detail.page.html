@@ -61,6 +61,19 @@
 </section>
 
 <section class="block">
+  <h2>Photos</h2>
+  <sh-photo-gallery
+    [photos]="photos.photos()"
+    [pending]="photos.pending()"
+    [coverAssetId]="build()?.coverAssetId ?? null"
+    (filesChosen)="uploadPhotos($event)"
+    (removeRequested)="removePhoto($event)"
+    (coverChosen)="setCover($event)"
+    (reordered)="reorderPhotos($event)"
+  />
+</section>
+
+<section class="block">
   <h2>Components</h2>
   <sh-installed-parts-list
     [installs]="installs.fitted()"

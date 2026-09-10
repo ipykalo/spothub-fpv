@@ -10,6 +10,10 @@
     </div>
   </div>
 
+  @if (build().coverUrl) {
+    <img class="cover" [src]="build().coverUrl" [alt]="'Photo of ' + build().name" loading="lazy" />
+  }
+
   <div class="body">
     @if (meta().length) {
       <ul class="meta">

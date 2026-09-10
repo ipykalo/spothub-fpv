@@ -1,18 +1,19 @@
 import type { BuildDto } from '@spothub/shared';
 
+import { toNullableDateOnly } from '../common';
 import type { BuildEntity } from './build.entity';
-
-/** Date-only columns must not leak a timezone-shifted timestamp to the client. */
-const toDateOnly = (value: Date | null): string | null =>
-  value ? value.toISOString().slice(0, 10) : null;
 
 /**
  * The single place a domain entity becomes a wire object.
  *
  * Explicit rather than a spread, so a column added to the database is not
  * silently published by the API.
+ *
+ * The cover URL is passed in rather than derived: it is a short-lived
+ * signature minted per response by the media module, and this module knows
+ * nothing about how assets are stored.
  */
-export function toBuildDto(build: BuildEntity): BuildDto {
+export function toBuildDto(build: BuildEntity, coverUrl: string | null): BuildDto {
   return {
     id: build.id,
     name: build.name,
@@ -23,8 +24,10 @@ export function toBuildDto(build: BuildEntity): BuildDto {
     weightG: build.weightG,
     hasGps: build.hasGps,
     descriptionMd: build.descriptionMd,
-    builtOn: toDateOnly(build.builtOn),
-    retiredOn: toDateOnly(build.retiredOn),
+    coverAssetId: build.coverAssetId,
+    coverUrl,
+    builtOn: toNullableDateOnly(build.builtOn),
+    retiredOn: toNullableDateOnly(build.retiredOn),
     createdAt: build.createdAt.toISOString(),
     updatedAt: build.updatedAt.toISOString(),
   };

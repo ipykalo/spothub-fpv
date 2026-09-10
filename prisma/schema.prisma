@@ -37,6 +37,7 @@ model User {
   refreshTokens RefreshToken[]
   builds        Build[]
   parts         Part[]
+  assets        Asset[]
 
   @@map("users")
 }
@@ -124,12 +125,16 @@ model Build {
   weightG       Int?        @map("weight_g")
   hasGps        Boolean     @default(false) @map("has_gps")
   descriptionMd String?     @map("description_md")
+  /// The photo shown on the build card. One of this build's linked assets;
+  /// SetNull so deleting the photo does not delete the quad.
+  coverAssetId  String?     @map("cover_asset_id") @db.Uuid
   builtOn       DateTime?   @map("built_on") @db.Date
   retiredOn     DateTime?   @map("retired_on") @db.Date
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
   owner   User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cover   Asset?      @relation("BuildCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
   parts   BuildPart[]
   repairs Repair[]
   configs Config[]
@@ -325,6 +330,85 @@ enum ConfigKind {
   /// `dump all` -- every setting including defaults.
   DUMP
 }
+
+// ---------------------------------------------------------------- media
+
+enum AssetKind {
+  IMAGE
+  /// A generated derivative. Kept as its own row so it can be served, counted
+  /// and deleted like anything else.
+  THUMB
+}
+
+/// An asset is `ready` only once the bytes are in storage and the API has
+/// processed them. A row exists from the moment the upload is presigned, so an
+/// upload the browser abandoned is a `PENDING` row to sweep, not a lost object.
+enum AssetStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+/// One object in S3-compatible storage.
+///
+/// The bytes never pass through the API: the client is handed a presigned PUT
+/// and uploads straight to storage, then asks the API to commit. That removes
+/// the request size limit, the memory pressure and the upload DoS surface in
+/// one move.
+model Asset {
+  id         String      @id @default(uuid()) @db.Uuid
+  ownerId    String      @map("owner_id") @db.Uuid
+  kind       AssetKind   @default(IMAGE)
+  status     AssetStatus @default(PENDING)
+  /// Key in the bucket. Never a URL: the bucket is private and every read is
+  /// a short-lived presigned GET, so the host can change without a migration.
+  storageKey String      @unique @map("storage_key")
+  /// What the browser called it. Display only — never used to build the key.
+  fileName   String?     @map("file_name")
+  mime       String?
+  sizeBytes  BigInt?     @map("size_bytes")
+  width      Int?
+  height     Int?
+  /// The thumbnail generated from this asset, if it has one.
+  thumbId    String?     @unique @map("thumb_id") @db.Uuid
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  owner    User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// Self-relation: a THUMB belongs to the IMAGE it was derived from, and
+  /// dropping the original takes its derivative with it.
+  thumb    Asset?      @relation("AssetThumb", fields: [thumbId], references: [id], onDelete: SetNull)
+  original Asset?      @relation("AssetThumb")
+  links    AssetLink[]
+  coverFor Build[]     @relation("BuildCover")
+
+  @@index([ownerId, status])
+  @@map("assets")
+}
+
+/// What an asset is attached to.
+///
+/// Polymorphic on purpose: photos hang off builds today, and off parts,
+/// repairs, spots and posts later without a table each.
+model AssetLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  assetId     String   @map("asset_id") @db.Uuid
+  /// build | part | repair | spot | session | post
+  subjectType String   @map("subject_type")
+  subjectId   String   @map("subject_id") @db.Uuid
+  /// Manual order within a subject's gallery.
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  /// One asset cannot be attached to the same subject twice.
+  @@unique([assetId, subjectType, subjectId])
+  @@index([subjectType, subjectId, sortOrder])
+  @@map("asset_links")
+}
+
+// --------------------------------------------------------- firmware config
 
 /// A Betaflight CLI capture, stored verbatim.
 ///

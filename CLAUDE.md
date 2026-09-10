@@ -212,7 +212,7 @@ carry a comment explaining why.
 
 **Done:** workspace, docker-compose (Postgres + MinIO), Google OAuth with
 rotating refresh tokens and reuse detection, ESLint + Prettier, CI that
-verifies and publishes images to GHCR. Every V1 feature except media:
+verifies and publishes images to GHCR. **Every V1 feature:**
 
 - Builds CRUD end to end, status as colour and icon
 - Parts inventory — catalogue (`parts`), physical units (`part_units`), price
@@ -224,6 +224,8 @@ verifies and publishes images to GHCR. Every V1 feature except media:
   shared with the client, downloadable under Configurator's own filename
   convention, and loadable back from a saved `.txt`
 - Config diff viewer — side by side, virtual-scrolled, caveats stated up front
+- Build photos — presigned PUT straight to storage, EXIF stripped and a
+  thumbnail made on commit, carousel with a full-size viewer, cover image
 
 The API was restructured into one module per bounded context — `builds` used to
 hold four, and `parts` held its catalogue, units, sources and URL preview in one
@@ -234,7 +236,7 @@ repair was `PATCH /builds/:buildId/repairs/installs/:installId` and is now
 to the install. `RepairsFacade.existsForBuild` also closed a hole on the install
 path, which accepted a `repairId` from another build without checking it.
 
-Seven migrations applied. Two are hand-written because Prisma cannot express
+Eight migrations applied. Two are hand-written because Prisma cannot express
 them: `part_status_condition_only` (a `CASE` conversion between enum types) and
 `part_units` (a `generate_series` expansion where only _open_ installs get a
 distinct unit). Read those before changing the parts model.
@@ -258,12 +260,28 @@ worth remembering:
 The GHCR packages are **private** by default, so the first deploy needs a pull
 secret unless they are made public.
 
-**Next, in order:** VPS + Caddy first deploy, database backups with a tested
-restore, then the media upload pipeline.
+**Next, in order:** VPS + Caddy first deploy, then database backups with a
+tested restore. V1 is feature-complete; what is left is getting it off the
+laptop.
 
-The media pipeline uses presigned PUT straight to object storage — the API must
-never receive file bytes. The config file-load feature keeps to this: the file
-is read in the browser and its text posted in the JSON body.
+**The media pipeline never lets file bytes reach the API.** The client asks for
+a presigned PUT, uploads straight to object storage, then calls commit — which
+is the only point the API reads the object. The config file-load feature keeps
+to the same rule: the file is read in the browser and its text posted in the
+JSON body.
+
+EXIF stripping happens on commit, server-side, because a client can claim to
+have done it and a photo taken at a home field is a home address. `sharp`
+re-encodes rather than copying, which is what drops the metadata; `rotate()`
+runs first so the orientation tag is applied before it is discarded.
+
+The `assets` table is polymorphic on `subject_type`, so parts and repairs get
+photos later with a row rather than a table. Only `build` exists today.
+
+**Storage CORS is per-environment.** MinIO allows the browser preflight for a
+presigned PUT out of the box; R2 and Blob do not and need explicit
+configuration for `PUT` from the app's origin. Nothing in the code changes —
+which is the point of `StorageGateway` — but the first deploy has to set it.
 
 ## Verification
 

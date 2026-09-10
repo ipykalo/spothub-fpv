@@ -19,6 +19,21 @@ mat-card {
   border-left: 3px solid var(--tone);
 }
 
+/* --------------------------------------------------------------- cover */
+
+/*
+ * Full-bleed, so the card's own padding does not frame the photo. A fixed
+ * aspect ratio keeps a row of cards aligned whatever shape the pictures are.
+ */
+.cover {
+  width: calc(100% + 2rem);
+  margin-inline: -1rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  background: var(--mat-sys-surface-container-high);
+}
+
 /* ---------------------------------------------------------------- head */
 
 .head {

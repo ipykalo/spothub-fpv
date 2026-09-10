@@ -6,19 +6,23 @@ import type {
   UpdateBuildDto,
 } from '@spothub/shared';
 
-import { uniqueSlug } from '../common';
-import type { UpdateBuildData } from './build.entity';
-import { toBuildDto } from './builds.mapper';
+import { fromDateOnly, uniqueSlug } from '../common';
+import { MediaFacade } from '../media';
 import { BuildsRepository } from './abstract/builds.repository';
+import type { BuildEntity, UpdateBuildData } from './build.entity';
+import { toBuildDto } from './builds.mapper';
 
-/** Business rules for builds. Knows nothing about HTTP or Prisma. */
+/** Business rules for builds. Knows nothing about HTTP, Prisma or storage. */
 @Injectable()
 export class BuildsService {
-  constructor(private readonly builds: BuildsRepository) {}
+  constructor(
+    private readonly builds: BuildsRepository,
+    private readonly media: MediaFacade,
+  ) {}
 
   async list(ownerId: string, query: ListBuildsQuery): Promise<BuildDto[]> {
     const builds = await this.builds.findManyForOwner(ownerId, query);
-    return builds.map(toBuildDto);
+    return this.withCovers(ownerId, builds);
   }
 
   async getOne(ownerId: string, id: string): Promise<BuildDto> {
@@ -28,7 +32,7 @@ export class BuildsService {
       throw new NotFoundException('Build not found');
     }
 
-    return toBuildDto(build);
+    return this.withCover(ownerId, build);
   }
 
   async create(ownerId: string, input: CreateBuildDto): Promise<BuildDto> {
@@ -46,11 +50,11 @@ export class BuildsService {
       weightG: input.weightG,
       hasGps: input.hasGps,
       descriptionMd: input.descriptionMd,
-      builtOn: toDate(input.builtOn),
-      retiredOn: toDate(input.retiredOn),
+      builtOn: toNullableDate(input.builtOn),
+      retiredOn: toNullableDate(input.retiredOn),
     });
 
-    return toBuildDto(build);
+    return this.withCover(ownerId, build);
   }
 
   async update(ownerId: string, id: string, input: UpdateBuildDto): Promise<BuildDto> {
@@ -60,7 +64,7 @@ export class BuildsService {
       throw new NotFoundException('Build not found');
     }
 
-    return toBuildDto(build);
+    return this.withCover(ownerId, build);
   }
 
   async remove(ownerId: string, id: string): Promise<void> {
@@ -69,6 +73,37 @@ export class BuildsService {
     if (!deleted) {
       throw new NotFoundException('Build not found');
     }
+  }
+
+  /**
+   * One batched call to the media facade, whatever the length of the list —
+   * signing is local, so a page of cards costs one query rather than one each.
+   */
+  private async withCovers(
+    ownerId: string,
+    builds: readonly BuildEntity[],
+  ): Promise<BuildDto[]> {
+    const ids = builds
+      .map((build) => build.coverAssetId)
+      .filter((id): id is string => id !== null);
+
+    const urls = await this.media.urlsFor(ownerId, ids);
+
+    return builds.map((build) =>
+      toBuildDto(
+        build,
+        build.coverAssetId === null ? null : (urls.get(build.coverAssetId) ?? null),
+      ),
+    );
+  }
+
+  private async withCover(ownerId: string, build: BuildEntity): Promise<BuildDto> {
+    if (build.coverAssetId === null) {
+      return toBuildDto(build, null);
+    }
+
+    const urls = await this.media.urlsFor(ownerId, [build.coverAssetId]);
+    return toBuildDto(build, urls.get(build.coverAssetId) ?? null);
   }
 }
 
@@ -87,13 +122,11 @@ function toUpdateData(input: UpdateBuildDto): UpdateBuildData {
   if (input.weightG !== undefined) patch['weightG'] = input.weightG;
   if (input.hasGps !== undefined) patch['hasGps'] = input.hasGps;
   if (input.descriptionMd !== undefined) patch['descriptionMd'] = input.descriptionMd;
-  if (input.builtOn !== undefined) patch['builtOn'] = toDate(input.builtOn);
-  if (input.retiredOn !== undefined) patch['retiredOn'] = toDate(input.retiredOn);
+  if (input.builtOn !== undefined) patch['builtOn'] = toNullableDate(input.builtOn);
+  if (input.retiredOn !== undefined) patch['retiredOn'] = toNullableDate(input.retiredOn);
 
   return data;
 }
 
-/** `YYYY-MM-DD` is stored at UTC midnight so it round-trips as the same day. */
-function toDate(value: string | null | undefined): Date | null {
-  return value ? new Date(`${value}T00:00:00.000Z`) : null;
-}
+const toNullableDate = (value: string | null | undefined): Date | null =>
+  value ? fromDateOnly(value) : null;

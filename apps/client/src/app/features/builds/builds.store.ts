@@ -78,6 +78,25 @@ export class BuildsStore {
     }
   }
 
+  /**
+   * Re-reads one build and replaces it in the cached list.
+   *
+   * Needed when something outside the build form changes it — setting a cover
+   * photo writes `cover_asset_id` through the photos route, and the card on
+   * the list page would otherwise keep the previous image.
+   */
+  async refresh(id: string): Promise<BuildDto> {
+    const build = await firstValueFrom(this.api.getOne(id));
+
+    this.items.update((builds) =>
+      builds.some((existing) => existing.id === id)
+        ? builds.map((existing) => (existing.id === id ? build : existing))
+        : builds,
+    );
+
+    return build;
+  }
+
   find(id: string): BuildDto | undefined {
     return this.items().find((build) => build.id === id);
   }

@@ -12,6 +12,8 @@ export interface BuildEntity {
   readonly weightG: number | null;
   readonly hasGps: boolean;
   readonly descriptionMd: string | null;
+  /** The chosen cover photo. The URL for it comes from the media facade. */
+  readonly coverAssetId: string | null;
   readonly builtOn: Date | null;
   readonly retiredOn: Date | null;
   readonly createdAt: Date;
@@ -33,5 +35,11 @@ export interface CreateBuildData {
   readonly retiredOn: Date | null;
 }
 
-/** A sparse patch. Only the keys present are written. */
+/**
+ * A sparse patch. Only the keys present are written.
+ *
+ * The cover is deliberately not settable here: it is written through the
+ * photos route, which is the only place that can check the asset is one of
+ * this build's own.
+ */
 export type UpdateBuildData = Partial<Omit<CreateBuildData, 'ownerId' | 'slug'>>;
