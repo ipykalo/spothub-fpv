@@ -18,9 +18,19 @@ RUN apk add --no-cache openssl && addgroup -S app && adduser -S app -G app
 COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts
 
-COPY --from=build /app/dist/apps/api ./dist
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/prisma ./prisma
+COPY --from=build --chown=app:app /app/dist/apps/api ./dist
+
+# The generated client, including the musl query engine the app queries with.
+COPY --from=build --chown=app:app /app/node_modules/.prisma ./node_modules/.prisma
+
+# The CLI's schema engine, which `migrate deploy` needs at startup. The runtime
+# `npm ci --ignore-scripts` above leaves @prisma/engines empty, so without this
+# the CLI tries to download it on boot — which needs network access at start
+# and write access to node_modules that the `app` user deliberately lacks. It
+# failed exactly that way the first time this image was run.
+COPY --from=build --chown=app:app /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+
+COPY --from=build --chown=app:app /app/prisma ./prisma
 
 USER app
 EXPOSE 3000

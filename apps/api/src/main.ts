@@ -4,8 +4,8 @@ import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
-import { AppModule } from './app/app.module';
-import type { Env } from './config/env.schema';
+import { AppModule } from './app';
+import type { Env } from './config';
 
 const GLOBAL_PREFIX = 'api';
 

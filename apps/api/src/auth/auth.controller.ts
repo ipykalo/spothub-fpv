@@ -15,12 +15,11 @@ import { AuthGuard } from '@nestjs/passport';
 import type { AccessTokenDto, CurrentUserDto } from '@spothub/shared';
 import type { CookieOptions, Request, Response } from 'express';
 
-import type { Env } from '../config/env.schema';
-import { AuthService } from './auth.service';
-import type { AuthenticatedUser, GoogleProfile } from './auth.types';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { Public } from './decorators/public.decorator';
-import type { IssuedTokens } from './token.service';
+import { type AuthenticatedUser, CurrentUser, Public } from '../common';
+import type { Env } from '../config';
+import { AuthService } from './services/auth.service';
+import type { GoogleProfile } from './auth.types';
+import type { IssuedTokens } from './services/token.service';
 
 const REFRESH_COOKIE = 'spothub_rt';
 

@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 
-import { Public } from '../auth/decorators/public.decorator';
-import { PrismaService } from '../prisma/prisma.service';
+import { Public } from '../common';
+import { PrismaService } from '../prisma';
 
 interface HealthResponse {
   readonly status: 'ok' | 'degraded';

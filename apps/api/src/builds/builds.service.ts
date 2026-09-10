@@ -6,10 +6,10 @@ import type {
   UpdateBuildDto,
 } from '@spothub/shared';
 
-import { uniqueSlug } from '../common/utils/slug.util';
+import { uniqueSlug } from '../common';
 import type { UpdateBuildData } from './build.entity';
 import { toBuildDto } from './builds.mapper';
-import { BuildsRepository } from './builds.repository';
+import { BuildsRepository } from './abstract/builds.repository';
 
 /** Business rules for builds. Knows nothing about HTTP or Prisma. */
 @Injectable()

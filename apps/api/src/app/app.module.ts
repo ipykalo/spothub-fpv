@@ -2,15 +2,22 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 
-import { AuthModule } from '../auth/auth.module';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { BuildsModule } from '../builds/builds.module';
-import { AllExceptionsFilter } from '../common/filters/all-exceptions.filter';
-import { validateEnv } from '../config/env.schema';
-import { HealthModule } from '../health/health.module';
-import { PartsModule } from '../parts/parts.module';
-import { PrismaModule } from '../prisma/prisma.module';
+import { AuthModule } from '../auth';
+import { BuildPartsModule } from '../build-parts';
+import { BuildsModule } from '../builds';
+import { AllExceptionsFilter, JwtAuthGuard } from '../common';
+import { validateEnv } from '../config';
+import { ConfigsModule } from '../configs';
+import { HealthModule } from '../health';
+import { PartsModule } from '../parts';
+import { PrismaModule } from '../prisma';
+import { RepairsModule } from '../repairs';
+import { UsersModule } from '../users';
 
+/**
+ * Every feature module is listed here even where one arrives transitively —
+ * Nest dedupes, and this is the one place the whole graph is legible.
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -20,8 +27,12 @@ import { PrismaModule } from '../prisma/prisma.module';
       validate: validateEnv,
     }),
     PrismaModule,
+    UsersModule,
     AuthModule,
     BuildsModule,
+    BuildPartsModule,
+    RepairsModule,
+    ConfigsModule,
     PartsModule,
     HealthModule,
   ],

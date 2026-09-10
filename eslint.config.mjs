@@ -112,17 +112,11 @@ export default tseslint.config(
     ],
   },
 
-  // ---------------------------------------------------------------- NestJS
-  {
-    files: ['apps/api/**/*.ts'],
-    rules: {
-      // Nest resolves constructor parameters by decorator metadata, which
-      // requires the parameter types to be emitted rather than erased.
-      '@typescript-eslint/consistent-type-imports': 'off',
-      // Decorated classes legitimately have no members of their own.
-      '@typescript-eslint/no-extraneous-class': 'off',
-    },
-  },
+  // NestJS overrides live in apps/api/eslint.config.mjs, not here. Nx runs
+  // `eslint .` with cwd=apps/api, so ESLint's basePath is that directory and a
+  // block scoped to `apps/api/**/*.ts` never matches — this one was dead for
+  // as long as it existed. Check with `cd apps/api && npx eslint
+  // --print-config <file>` before trusting a new path-scoped rule.
 
   // -------------------------------------------------------------- test files
   {
