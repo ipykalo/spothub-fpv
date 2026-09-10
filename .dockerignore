@@ -1,0 +1,38 @@
+# Both Dockerfiles run `npm ci` and then `COPY . .`. Without this file that
+# copy drops the host's node_modules over the one just installed in the image —
+# native binaries built for Windows, in a Linux container — and the build fails
+# in a way that looks like a Prisma or Nx bug rather than a copy.
+node_modules
+**/node_modules
+
+# Build output. Stale artefacts must never leak into an image; the image builds
+# its own.
+dist
+tmp
+.nx
+**/.angular
+
+# History is large and the build has no use for it.
+.git
+.github
+.gitignore
+
+# Secrets, and anything machine-local. `@nestjs/config` reads real env vars in
+# production; a stray .env in an image would silently win over them.
+.env
+.env.*
+!.env.example
+
+# Editor and OS noise.
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Docs and local-only tooling: none of it changes the built artefact, and each
+# entry here is a cache layer that no longer busts on an unrelated edit.
+*.md
+!README.md
+docker-compose.yml
+.claude
+.agents
