@@ -21,9 +21,7 @@ import {
   updateBuildSchema,
 } from '@spothub/shared';
 
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { AuthenticatedUser } from '../auth/auth.types';
-import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
 import { BuildsService } from './builds.service';
 
 /**

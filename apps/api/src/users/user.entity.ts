@@ -20,3 +20,12 @@ export const AuthProviderKind = {
   Discord: 'DISCORD',
 } as const;
 export type AuthProviderKind = (typeof AuthProviderKind)[keyof typeof AuthProviderKind];
+
+/** A federated identity being linked to a user. */
+export interface LinkIdentityInput {
+  readonly provider: AuthProviderKind;
+  readonly subject: string;
+  readonly email: string;
+  readonly displayName: string | null;
+  readonly avatarUrl: string | null;
+}

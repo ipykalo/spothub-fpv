@@ -36,13 +36,21 @@ export class RepairsApi {
     return this.http.delete<null>(`${this.url(buildId)}/${repairId}`);
   }
 
-  /** Blames an install on a repair, or clears it with null. */
+  /**
+   * Blames an install on a repair, or clears it with null.
+   *
+   * Patches the install rather than the repair: `repairId` is a column on the
+   * install, and the API moved the route to match.
+   */
   linkInstall(
     buildId: string,
     installId: string,
     body: LinkInstallDto,
   ): Observable<null> {
-    return this.http.patch<null>(`${this.url(buildId)}/installs/${installId}`, body);
+    return this.http.patch<null>(
+      `${this.base}/builds/${buildId}/parts/${installId}`,
+      body,
+    );
   }
 
   private url(buildId: string): string {

@@ -1,12 +1,5 @@
 import type { Role } from '@spothub/shared';
 
-/** The authenticated principal attached to a request by the JWT strategy. */
-export interface AuthenticatedUser {
-  readonly id: string;
-  readonly email: string;
-  readonly role: Role;
-}
-
 /** Claims carried by the short-lived access token. */
 export interface AccessTokenPayload {
   /** Subject — the user id. */

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { Build } from '@prisma/client';
 
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma';
 import type { BuildEntity, CreateBuildData, UpdateBuildData } from './build.entity';
-import { BuildFilter, BuildsRepository } from './builds.repository';
+import { BuildFilter, BuildsRepository } from './abstract/builds.repository';
 
 /**
  * The only place in the builds feature that knows Prisma exists.

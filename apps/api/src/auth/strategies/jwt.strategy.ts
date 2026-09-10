@@ -3,9 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import type { Env } from '../../config/env.schema';
-import type { AccessTokenPayload, AuthenticatedUser } from '../auth.types';
-import { UsersRepository } from '../../users/users.repository';
+import type { Env } from '../../config';
+import type { AuthenticatedUser } from '../../common';
+import type { AccessTokenPayload } from '../auth.types';
+import { UsersFacade } from '../../users';
 
 /**
  * Validates the bearer access token on every guarded request.
@@ -17,7 +18,7 @@ import { UsersRepository } from '../../users/users.repository';
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     config: ConfigService<Env, true>,
-    private readonly users: UsersRepository,
+    private readonly users: UsersFacade,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

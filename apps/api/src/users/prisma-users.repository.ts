@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { User } from '@prisma/client';
 
-import { PrismaService } from '../prisma/prisma.service';
-import type { AuthProviderKind, UserEntity } from './user.entity';
-import { LinkIdentityInput, UsersRepository } from './users.repository';
+import { PrismaService } from '../prisma';
+import { UsersRepository } from './abstract/users.repository';
+import type { AuthProviderKind, LinkIdentityInput, UserEntity } from './user.entity';
 
 /**
  * The only place in the users feature that knows Prisma exists.
