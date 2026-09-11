@@ -18,7 +18,25 @@
   </button>
 </div>
 
-<sh-part-category-filter [categories]="categories" [selected]="store.category()" (selectedChange)="onFilter($event)" />
+@if (!firstRun()) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts"
+    [shown]="shown()"
+    [total]="store.total()"
+    searchLabel="Search parts and specs"
+  >
+    <!-- Twelve categories: a row of their own, under the search and the sort. -->
+    <sh-filter-chips
+      class="order-last basis-full"
+      ariaLabel="Filter by category"
+      [options]="categoryOptions"
+      [selected]="store.category()"
+      (selectedChange)="onFilter($event)"
+    />
+  </sh-grid-toolbar>
+}
 
 @if (store.loading()) {
   <mat-progress-bar mode="indeterminate" />
@@ -28,24 +46,30 @@
   <p role="alert">{{ message }}</p>
 }
 
-@if (store.isEmpty()) {
+@if (firstRun()) {
   <div class="px-4 py-12 text-center text-muted">
     <p>Nothing in the inventory yet.</p>
     <button matButton routerLink="/parts/new">Add your first part</button>
   </div>
-} @else {
-  @for (group of store.groups(); track group.category) {
-    <section class="mt-7">
-      <h2 class="mt-0 mb-3 flex items-center gap-1.5 text-base font-semibold tracking-wider uppercase">
-        <mat-icon class="icon-md" aria-hidden="true">{{ group.icon }}</mat-icon>
-        {{ group.label }}
-      </h2>
-
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
-        @for (part of group.parts; track part.id) {
-          <sh-part-card [part]="part" [deleting]="pendingDelete() === part.id" (delete)="remove($event)" />
-        }
-      </div>
-    </section>
+} @else if (!groups().length) {
+  @if (!store.loading()) {
+    <p class="py-8 text-muted">Nothing matches.</p>
   }
+} @else {
+  <div class="mt-6 flex flex-col gap-8">
+    @for (group of groups(); track group.category) {
+      <sh-section
+        [heading]="group.label"
+        [icon]="group.icon"
+        [count]="group.parts.length"
+        [storageKey]="'parts.' + group.category"
+      >
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+          @for (part of group.parts; track part.id) {
+            <sh-part-card [part]="part" [deleting]="pendingDelete() === part.id" (delete)="remove($event)" />
+          }
+        </div>
+      </sh-section>
+    }
+  </div>
 }

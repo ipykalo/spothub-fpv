@@ -143,12 +143,45 @@ build pages, where there is no store behind them.
 features/builds/
   builds.api.ts  builds.store.ts
   containers/    builds-list.page.*   build-form.page.*
-  presenters/    build-card/  build-status-filter/  build-form/
+  presenters/    build-card/  build-form/  photo-gallery/
 ```
 
 **The selector prefix is `sh-`**, set in `apps/client/eslint.config.mjs` and
 the `prefix` field of `apps/client/project.json`. The root component is
 `sh-root`.
+
+## Shared UI components
+
+**Reusable pieces live in `apps/client/src/app/core/components/`, and a
+feature reaches for them before writing its own.** They are presenters: inputs
+in, outputs out, no store.
+
+- **`sh-section`** — every titled region of a page. Collapsible from its
+  heading (`aria-expanded`), remembers the fold per viewer when given a
+  `storageKey`, shows a count badge, and projects header actions through
+  `[shSectionActions]`. Its body is hidden rather than destroyed, so a
+  half-typed form survives being folded.
+- **Forms are asked for, never shown by default.** A section with `addLabel`
+  gets an Add button bound to `[(adding)]`; the container renders the form only
+  while that is true, and closes it after a successful save (the fit-a-part
+  form stays open, because fitting several parts in a sitting is normal).
+- **`sh-autocomplete`** — the app's only dropdown. There is no `mat-select`
+  left, and a new one should not appear. Works with `formControlName`,
+  `ngModel` or plain `[value]`/`(valueChange)`; `emptyLabel` offers a null
+  choice, `compact` gives a 40px field for a list row. It registers itself as
+  its control's value accessor through `NgControl`, the way `MatSelect` does —
+  not through an `NG_VALUE_ACCESSOR` provider, which would need `forwardRef`.
+- **`ChoiceOption<T>` + `choicesFrom()`** — `{ value, label, icon?, hint? }`,
+  built once from an enum and its label map and handed to either the
+  autocomplete or the chips.
+- **`sh-filter-chips`** — a single-choice chip row with "All" first; `null`
+  means no filter.
+- **`sh-grid-toolbar` + `gridView()`** — search, a projected filter slot, sort
+  buttons (a second click reverses), and an "N of M" count. A grid declares a
+  `GridSpec` (what the search box matches, how each key sorts) beside its
+  component and keeps a `GridState` — view state, so a presenter may own one.
+  Empty values sort last in both directions. Every list that can grow gets
+  one: components, history, repairs, captures, parts, builds.
 
 ## Styling
 
@@ -169,8 +202,8 @@ The rules that keep Tailwind and Angular Material from fighting:
   `h2`, `a`, `body`) sit in `@layer base`, so a utility beats them. Material's
   styles are unlayered, so they beat every utility — which means **an override
   of a Material component's internals cannot be a utility.** It stays in the
-  component's `.scss` (the card's severity stripe, the unit condition select's
-  font size, the icon buttons laid over a photo).
+  component's `.scss` (the card's severity stripe, the compact form
+  field, the icon buttons laid over a photo).
 - **Colours are Material's tokens, aliased.** `bg-surface`, `text-muted`,
   `text-primary`, `border-outline-variant` and the rest are `@theme inline`
   aliases for `--mat-sys-*`, so a utility and a Material component can never

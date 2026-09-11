@@ -1,6 +1,21 @@
-@if (configs().length) {
+@if (configs().length > 1) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts"
+    [shown]="rows().length"
+    [total]="configs().length"
+    searchLabel="Search captures"
+  >
+    @if (kindOptions().length > 1) {
+      <sh-filter-chips [options]="kindOptions()" [(selected)]="grid.filter" ariaLabel="Filter by kind" />
+    }
+  </sh-grid-toolbar>
+}
+
+@if (rows().length) {
   <ul class="m-0 grid list-none gap-1.5 p-0">
-    @for (config of configs(); track config.id) {
+    @for (config of rows(); track config.id) {
       <li
         class="grid grid-cols-[1fr_auto] items-center gap-4 rounded bg-surface-container px-3.5 py-2 text-sm min-[50rem]:grid-cols-[minmax(8rem,auto)_minmax(11rem,auto)_1fr_auto]"
       >
@@ -85,6 +100,8 @@
       </li>
     }
   </ul>
+} @else if (configs().length) {
+  <p class="m-0 py-5 text-muted">Nothing matches.</p>
 } @else {
   <p class="m-0 py-5 text-muted">No firmware captured yet.</p>
 }

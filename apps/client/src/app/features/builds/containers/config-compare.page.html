@@ -23,16 +23,9 @@
   </p>
 } @else {
   <div
-    class="mb-3 grid grid-cols-1 items-center gap-3 min-[45rem]:grid-cols-[minmax(12rem,20rem)_auto_minmax(12rem,20rem)] justify-start"
+    class="mb-3 grid grid-cols-1 items-center justify-start gap-3 min-[45rem]:grid-cols-[minmax(12rem,20rem)_auto_minmax(12rem,20rem)]"
   >
-    <mat-form-field>
-      <mat-label>Older</mat-label>
-      <mat-select [ngModel]="leftId()" (ngModelChange)="leftId.set($event)">
-        @for (config of configs.configs(); track config.id) {
-          <mat-option [value]="config.id"> {{ label(config) }} · {{ kindLabels[config.kind] }} </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+    <sh-autocomplete label="Older" [options]="captureOptions()" [value]="leftId()" (valueChange)="leftId.set($event)" />
 
     <!-- A wrapper, because MatIcon sets its own display and a layered `hidden`
          on the icon itself would lose to it. -->
@@ -40,14 +33,12 @@
       <mat-icon class="text-muted" aria-hidden="true">arrow_forward</mat-icon>
     </span>
 
-    <mat-form-field>
-      <mat-label>Newer</mat-label>
-      <mat-select [ngModel]="rightId()" (ngModelChange)="rightId.set($event)">
-        @for (config of configs.configs(); track config.id) {
-          <mat-option [value]="config.id"> {{ label(config) }} · {{ kindLabels[config.kind] }} </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+    <sh-autocomplete
+      label="Newer"
+      [options]="captureOptions()"
+      [value]="rightId()"
+      (valueChange)="rightId.set($event)"
+    />
   </div>
 
   @if (loading()) {

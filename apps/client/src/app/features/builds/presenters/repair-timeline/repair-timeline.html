@@ -1,6 +1,21 @@
-@if (repairs().length) {
+@if (repairs().length > 1) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts"
+    [shown]="rows().length"
+    [total]="repairs().length"
+    searchLabel="Search repairs"
+  >
+    @if (causeOptions().length > 1) {
+      <sh-filter-chips [options]="causeOptions()" [(selected)]="grid.filter" ariaLabel="Filter by cause" />
+    }
+  </sh-grid-toolbar>
+}
+
+@if (rows().length) {
   <ol class="m-0 grid list-none gap-1.5 p-0">
-    @for (repair of repairs(); track repair.id) {
+    @for (repair of rows(); track repair.id) {
       <!-- Severity stripe, same language as the cards. -->
       <li
         class="tone-{{
@@ -49,6 +64,8 @@
       </li>
     }
   </ol>
+} @else if (repairs().length) {
+  <p class="m-0 py-5 text-muted">Nothing matches.</p>
 } @else {
   <p class="m-0 py-5 text-muted">Nothing has gone wrong with this build yet.</p>
 }

@@ -8,14 +8,14 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSelectModule } from '@angular/material/select';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { CONFIG_KIND_LABELS, type ConfigWithRawDto } from '@spothub/shared';
+
+import { Autocomplete } from '../../../core/components/autocomplete/autocomplete';
+import type { ChoiceOption } from '../../../core/components/choice-option';
 
 import { ConfigDiffView } from '../presenters/config-diff-view/config-diff-view';
 import { buildDiffRows, diffCaveats } from '../config-diff';
@@ -32,11 +32,9 @@ import { ConfigsStore } from '../configs.store';
   selector: 'sh-config-compare-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
-    MatFormFieldModule,
+    Autocomplete,
     MatIconModule,
     MatProgressBarModule,
-    MatSelectModule,
     RouterLink,
     ConfigDiffView,
   ],
@@ -58,7 +56,14 @@ export class ConfigComparePage {
   protected readonly failure = signal<string | null>(null);
   protected readonly changesOnly = signal(false);
 
-  protected readonly kindLabels = CONFIG_KIND_LABELS;
+  /** Every capture, labelled the way the diff headers are. */
+  protected readonly captureOptions = computed<readonly ChoiceOption<string>[]>(() =>
+    this.configs.configs().map((config) => ({
+      value: config.id,
+      label: this.label(config),
+      hint: CONFIG_KIND_LABELS[config.kind],
+    })),
+  );
 
   protected readonly rows = computed(() => {
     const left = this.left();

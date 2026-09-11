@@ -4,7 +4,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import {
   REPAIR_CAUSE_LABELS,
   RepairCause,
@@ -12,17 +11,20 @@ import {
   type CreateRepairDto,
 } from '@spothub/shared';
 
+import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import { REPAIR_CAUSE_STYLES } from '../../repair-cause';
+
 /** Presenter: log a repair. Validates, then hands the value up. */
 @Component({
   selector: 'sh-repair-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatSelectModule,
   ],
   templateUrl: './repair-form.html',
   styleUrl: './repair-form.scss',
@@ -34,8 +36,11 @@ export class RepairForm {
 
   private readonly fb = inject(FormBuilder).nonNullable;
 
-  protected readonly causes = Object.values(RepairCause);
-  protected readonly causeLabels = REPAIR_CAUSE_LABELS;
+  protected readonly causeOptions = Object.values(RepairCause).map((cause) => ({
+    value: cause,
+    label: REPAIR_CAUSE_LABELS[cause],
+    icon: REPAIR_CAUSE_STYLES[cause].icon,
+  }));
 
   protected error: string | null = null;
 

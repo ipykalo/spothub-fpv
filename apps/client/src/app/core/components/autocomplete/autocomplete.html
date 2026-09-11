@@ -1,0 +1,53 @@
+<mat-form-field class="w-full" [subscriptSizing]="subscriptSizing()">
+  @if (label(); as text) {
+    <mat-label>{{ text }}</mat-label>
+  }
+
+  @if (selected()?.icon; as glyph) {
+    <mat-icon matIconPrefix class="text-muted" aria-hidden="true">{{ glyph }}</mat-icon>
+  }
+
+  <input
+    matInput
+    autocomplete="off"
+    [matAutocomplete]="panel"
+    [value]="text()"
+    [placeholder]="placeholder()"
+    [disabled]="disabled()"
+    [attr.aria-label]="ariaLabel()"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+  />
+
+  <!--
+    Decoration only. A click anywhere in the field focuses the input, and
+    focus is what opens the list — so the arrow needs no handler of its own.
+  -->
+  <mat-icon matIconSuffix class="text-muted" aria-hidden="true">arrow_drop_down</mat-icon>
+
+  @if (hint(); as text) {
+    <mat-hint>{{ text }}</mat-hint>
+  }
+
+  <mat-autocomplete
+    #panel="matAutocomplete"
+    autoActiveFirstOption
+    [displayWith]="displayOption"
+    (optionSelected)="onSelected($event)"
+    (closed)="onClosed()"
+  >
+    @for (option of filtered(); track option.value) {
+      <mat-option [value]="option">
+        @if (option.icon; as glyph) {
+          <mat-icon aria-hidden="true">{{ glyph }}</mat-icon>
+        }
+        {{ option.label }}
+        @if (option.hint; as extra) {
+          <span class="text-sm text-muted">· {{ extra }}</span>
+        }
+      </mat-option>
+    } @empty {
+      <mat-option disabled>Nothing matches</mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>

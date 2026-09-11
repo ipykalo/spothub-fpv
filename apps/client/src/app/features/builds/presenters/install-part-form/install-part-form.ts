@@ -12,7 +12,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 
 import {
   INSTALL_REASON_LABELS,
@@ -24,6 +23,11 @@ import {
   type RepairDto,
 } from '@spothub/shared';
 
+import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import {
+  type ChoiceOption,
+  choicesFrom,
+} from '../../../../core/components/choice-option';
 import { PART_CATEGORY_ICONS } from '../../../parts/part-category';
 import type { FittableUnit } from '../../../parts/part-condition';
 
@@ -32,12 +36,12 @@ import type { FittableUnit } from '../../../parts/part-condition';
   selector: 'sh-install-part-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatSelectModule,
   ],
   templateUrl: './install-part-form.html',
   styleUrl: './install-part-form.scss',
@@ -53,11 +57,28 @@ export class InstallPartForm {
 
   private readonly fb = inject(FormBuilder).nonNullable;
 
-  protected readonly reasons = Object.values(InstallReason);
-  protected readonly reasonLabels = INSTALL_REASON_LABELS;
-  protected readonly categoryLabels = PART_CATEGORY_LABELS;
-  protected readonly categoryIcons = PART_CATEGORY_ICONS;
-  protected readonly causeLabels = REPAIR_CAUSE_LABELS;
+  protected readonly reasonOptions = choicesFrom(
+    Object.values(InstallReason),
+    INSTALL_REASON_LABELS,
+  );
+
+  /** Typing "motor" or "t-motor 2306" narrows to what is on the shelf. */
+  protected readonly unitOptions = computed<readonly ChoiceOption<string>[]>(() =>
+    this.units().map((unit) => ({
+      value: unit.unitId,
+      label: unit.label,
+      icon: PART_CATEGORY_ICONS[unit.part.category],
+      hint: PART_CATEGORY_LABELS[unit.part.category],
+    })),
+  );
+
+  protected readonly repairOptions = computed<readonly ChoiceOption<string>[]>(() =>
+    this.repairs().map((repair) => ({
+      value: repair.id,
+      label: `${repair.occurredOn} · ${REPAIR_CAUSE_LABELS[repair.cause]}`,
+      ...(repair.descriptionMd ? { hint: repair.descriptionMd } : {}),
+    })),
+  );
 
   protected error: string | null = null;
 
@@ -75,12 +96,12 @@ export class InstallPartForm {
   );
 
   protected readonly form = this.fb.group({
-    unitId: [''],
+    unitId: [null as string | null],
     position: [''],
     // Defaults to today, which is when a part is fitted in almost every case.
     installedOn: [new Date().toISOString().slice(0, 10)],
     reason: [InstallReason.Initial as InstallReason],
-    repairId: [''],
+    repairId: [null as string | null],
   });
 
   constructor() {
@@ -90,7 +111,7 @@ export class InstallPartForm {
       // A repair only explains a replacement; clear a stale link rather than
       // quietly attaching an upgrade to last month's crash.
       if (reason !== InstallReason.Replacement) {
-        this.form.controls.repairId.setValue('');
+        this.form.controls.repairId.setValue(null);
       }
     });
   }
@@ -100,11 +121,11 @@ export class InstallPartForm {
 
     const raw = this.form.getRawValue();
     const parsed = installPartSchema.safeParse({
-      unitId: raw.unitId,
+      unitId: raw.unitId ?? '',
       position: raw.position || null,
       installedOn: raw.installedOn,
       reason: raw.reason,
-      repairId: raw.repairId || null,
+      repairId: raw.repairId,
     });
 
     if (!parsed.success) {
@@ -118,6 +139,6 @@ export class InstallPartForm {
     // Keep the date and reason: fitting several parts in one sitting is the
     // normal case, and retyping the same date each time is friction.
     // Keep the repair too: a crash that took an arm usually took props with it.
-    this.form.patchValue({ unitId: '', position: '' });
+    this.form.patchValue({ unitId: null, position: '' });
   }
 }

@@ -1,0 +1,16 @@
+@use '@angular/material' as mat;
+
+/*
+ * `compact`: a label-less 40px field for a list row, such as a unit's
+ * condition. Material sizes the field from its own tokens, unlayered, so this
+ * is an override of Material and has to live here rather than as a utility.
+ * Only the form-field tokens are touched, not a whole density theme.
+ */
+:host(.compact) {
+  @include mat.form-field-overrides(
+    (
+      container-height: 40px,
+      container-vertical-padding: 8px,
+    )
+  );
+}

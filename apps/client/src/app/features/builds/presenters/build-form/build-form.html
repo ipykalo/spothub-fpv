@@ -14,33 +14,9 @@
       </mat-form-field>
 
       <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-2">
-        <mat-form-field>
-          <mat-label>Class</mat-label>
-          <mat-select formControlName="buildClass">
-            <mat-option [value]="null">Unspecified</mat-option>
-            @for (item of classes; track item) {
-              <mat-option [value]="item">{{ classLabels[item] }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Status</mat-label>
-          <mat-select formControlName="status">
-            @for (item of statuses; track item) {
-              <mat-option [value]="item">{{ statusLabels[item] }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Visibility</mat-label>
-          <mat-select formControlName="visibility">
-            @for (item of visibilities; track item) {
-              <mat-option [value]="item">{{ visibilityLabels[item] }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <sh-autocomplete formControlName="buildClass" label="Class" emptyLabel="Unspecified" [options]="classOptions" />
+        <sh-autocomplete formControlName="status" label="Status" [options]="statusOptions" />
+        <sh-autocomplete formControlName="visibility" label="Visibility" [options]="visibilityOptions" />
 
         <mat-form-field>
           <mat-label>All-up weight (g)</mat-label>

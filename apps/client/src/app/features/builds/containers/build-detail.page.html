@@ -1,40 +1,20 @@
 @if (build(); as quad) {
-  <header class="mb-5 flex flex-wrap items-start justify-between gap-4">
-    <div>
+  <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0">
       <a class="inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline" routerLink="/hangar">
         <mat-icon class="icon-sm">arrow_back</mat-icon>
         Hangar
       </a>
-      <h1 class="mt-1.5 mb-1 text-2xl">{{ quad.name }}</h1>
-      <p class="m-0 flex flex-wrap gap-x-3.5 gap-y-2 text-sm text-muted">
-        <!-- Matches the card chip: same tokens, same shape. -->
-        <span
-          class="tone-{{
-            statusStyle().tone
-          }} inline-flex items-center gap-1 rounded-full bg-(--tone-surface) py-0.5 pr-2 pl-1.5 font-semibold text-(--tone)"
-        >
-          <mat-icon class="icon-sm" aria-hidden="true">{{ statusStyle().icon }}</mat-icon>
-          {{ statusLabels[quad.status] }}
-        </span>
-        @if (quad.buildClass; as cls) {
-          <span>{{ classLabels[cls] }}</span>
-        }
-        @if (quad.weightG; as weight) {
-          <span>{{ weight }} g</span>
-        }
-        @if (quad.hasGps) {
-          <span>GPS</span>
-        }
-        @if (configs.current(); as firmware) {
-          @if (firmware.fwVersion; as version) {
-            <!-- Firmware badge, from the most recent capture. -->
-            <span class="inline-flex items-center gap-1 tabular-nums" title="From the most recent capture">
-              <mat-icon class="icon-sm" aria-hidden="true">memory</mat-icon>
-              Betaflight {{ version }}
-            </span>
-          }
-        }
-      </p>
+      <h1 class="mt-1.5 mb-2 text-2xl wrap-anywhere">{{ quad.name }}</h1>
+      <!-- Matches the card chip: same tokens, same shape. -->
+      <span
+        class="tone-{{
+          statusStyle().tone
+        }} inline-flex items-center gap-1 rounded-full bg-(--tone-surface) py-0.5 pr-2 pl-1.5 text-sm font-semibold text-(--tone)"
+      >
+        <mat-icon class="icon-sm" aria-hidden="true">{{ statusStyle().icon }}</mat-icon>
+        {{ statusLabels[quad.status] }}
+      </span>
     </div>
 
     <a matButton="outlined" [routerLink]="['/hangar', quad.id, 'edit']">
@@ -46,8 +26,6 @@
   <h1>Build</h1>
 }
 
-<sh-build-cost-summary [cost]="installs.cost()" />
-
 @if (installs.loading()) {
   <mat-progress-bar mode="indeterminate" />
 }
@@ -56,80 +34,178 @@
   <p role="alert">{{ message }}</p>
 }
 
-<section class="mt-7">
-  <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">Fit a part</h2>
-  <sh-install-part-form
-    [units]="fittable()"
-    [repairs]="repairs.repairs()"
-    [saving]="saving()"
-    (installed)="install($event)"
-  />
-</section>
+<div class="flex flex-col gap-8">
+  <sh-section heading="Details" storageKey="build.details">
+    @if (build(); as quad) {
+      <dl class="mt-0 mb-5 grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-x-6 gap-y-3.5">
+        <div>
+          <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Class</dt>
+          <dd class="m-0">
+            @if (quad.buildClass; as cls) {
+              {{ classLabels[cls] }}
+            } @else {
+              <span class="text-muted italic">Unspecified</span>
+            }
+          </dd>
+        </div>
+        <div>
+          <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">All-up weight</dt>
+          <dd class="m-0 tabular-nums">
+            @if (quad.weightG; as weight) {
+              {{ weight }} g
+            } @else {
+              <span class="text-muted italic">Not weighed</span>
+            }
+          </dd>
+        </div>
+        <div>
+          <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">GPS</dt>
+          <dd class="m-0">{{ quad.hasGps ? 'Fitted' : 'None' }}</dd>
+        </div>
+        <div>
+          <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Firmware</dt>
+          <dd class="m-0 inline-flex items-center gap-1 tabular-nums">
+            @if (configs.current()?.fwVersion; as version) {
+              <mat-icon class="icon-sm text-muted" aria-hidden="true">memory</mat-icon>
+              <span title="From the most recent capture">Betaflight {{ version }}</span>
+            } @else {
+              <span class="text-muted italic">No capture yet</span>
+            }
+          </dd>
+        </div>
+        <div>
+          <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Visibility</dt>
+          <dd class="m-0">{{ visibilityLabels[quad.visibility] }}</dd>
+        </div>
+        @if (quad.builtOn; as built) {
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Built</dt>
+            <dd class="m-0 tabular-nums">{{ built }}</dd>
+          </div>
+        }
+        @if (quad.retiredOn; as retired) {
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Retired</dt>
+            <dd class="m-0 tabular-nums">{{ retired }}</dd>
+          </div>
+        }
+      </dl>
+    }
 
-<section class="mt-7">
-  <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">Photos</h2>
-  <sh-photo-gallery
-    [photos]="photos.photos()"
-    [pending]="photos.pending()"
-    [coverAssetId]="build()?.coverAssetId ?? null"
-    (filesChosen)="uploadPhotos($event)"
-    (removeRequested)="removePhoto($event)"
-    (coverChosen)="setCover($event)"
-    (reordered)="reorderPhotos($event)"
-  />
-</section>
+    <sh-build-cost-summary [cost]="installs.cost()" />
 
-<section class="mt-7">
-  <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">Components</h2>
-  <sh-installed-parts-list
-    [installs]="installs.fitted()"
-    [pendingRemoval]="pendingRemoval()"
-    (removeRequested)="remove($event)"
-  />
-</section>
+    @if (build()?.descriptionMd; as notes) {
+      <h3 class="mt-5 mb-2 text-sm font-semibold tracking-wider text-muted uppercase">Notes</h3>
+      <p class="m-0 max-w-176 whitespace-pre-wrap wrap-anywhere">{{ notes }}</p>
+    }
+  </sh-section>
 
-<section class="mt-7">
-  <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">Repairs and crashes</h2>
-  <sh-repair-form [saving]="loggingRepair()" (logged)="logRepair($event)" />
+  <sh-section
+    heading="Photos"
+    storageKey="build.photos"
+    addLabel="Add photos"
+    [count]="photos.photos().length"
+    [(adding)]="addingPhotos"
+  >
+    <sh-photo-gallery
+      [photos]="photos.photos()"
+      [pending]="photos.pending()"
+      [coverAssetId]="build()?.coverAssetId ?? null"
+      [showUploader]="addingPhotos()"
+      (filesChosen)="uploadPhotos($event)"
+      (removeRequested)="removePhoto($event)"
+      (coverChosen)="setCover($event)"
+      (reordered)="reorderPhotos($event)"
+    />
+  </sh-section>
 
-  @if (repairs.error(); as message) {
-    <p role="alert">{{ message }}</p>
+  <sh-section heading="Fit a part" storageKey="build.fit" addLabel="Add part" [(adding)]="addingFit">
+    @if (addingFit()) {
+      <sh-install-part-form
+        [units]="fittable()"
+        [repairs]="repairs.repairs()"
+        [saving]="saving()"
+        (installed)="install($event)"
+      />
+    } @else {
+      <p class="m-0 text-sm text-muted">
+        {{ fittable().length }} unit{{ fittable().length === 1 ? '' : 's' }} on the shelf ready to fit.
+      </p>
+    }
+  </sh-section>
+
+  <sh-section heading="Components" storageKey="build.components" [count]="installs.fitted().length">
+    <sh-installed-parts-list
+      [installs]="installs.fitted()"
+      [pendingRemoval]="pendingRemoval()"
+      (removeRequested)="remove($event)"
+    />
+  </sh-section>
+
+  @if (installs.removed().length) {
+    <!-- Folded by default: history is looked up, not read every visit. -->
+    <sh-section
+      heading="Components history"
+      storageKey="build.history"
+      [count]="installs.removed().length"
+      [open]="false"
+    >
+      <sh-installed-parts-list [installs]="installs.removed()" [history]="true" />
+    </sh-section>
   }
 
-  <div class="mt-3.5">
+  <sh-section
+    heading="Repairs and crashes"
+    storageKey="build.repairs"
+    addLabel="Add repair"
+    [count]="repairs.repairs().length"
+    [(adding)]="addingRepair"
+  >
+    @if (addingRepair()) {
+      <div class="mb-4">
+        <sh-repair-form [saving]="loggingRepair()" (logged)="logRepair($event)" />
+      </div>
+    }
+
+    @if (repairs.error(); as message) {
+      <p role="alert">{{ message }}</p>
+    }
+
     <sh-repair-timeline
       [repairs]="repairs.repairs()"
       [pendingRemoval]="removingRepairId()"
       (removeRequested)="removeRepair($event)"
     />
-  </div>
-</section>
+  </sh-section>
 
-<section class="mt-7">
-  <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">
-    Firmware
+  <sh-section
+    heading="Firmware"
+    storageKey="build.firmware"
+    addLabel="Add capture"
+    [count]="configs.configs().length"
+    [(adding)]="addingConfig"
+  >
     @if (configs.configs().length >= 2) {
-      <!-- Inside the heading, so it reads as belonging to Firmware. -->
-      <a
-        class="ml-3.5 inline-flex items-center gap-1 text-sm font-medium tracking-normal text-primary normal-case no-underline hover:underline"
-        [routerLink]="['/hangar', id(), 'compare']"
-      >
-        <mat-icon class="icon-sm" aria-hidden="true">compare_arrows</mat-icon>
+      <a shSectionActions matButton [routerLink]="['/hangar', id(), 'compare']">
+        <mat-icon>compare_arrows</mat-icon>
         Compare captures
       </a>
     }
-  </h2>
-  <sh-config-paste-form
-    [saving]="savingConfig()"
-    [knownMcuId]="configs.current()?.mcuId ?? null"
-    (pasted)="saveConfig($event)"
-  />
 
-  @if (configs.error(); as message) {
-    <p role="alert">{{ message }}</p>
-  }
+    @if (addingConfig()) {
+      <div class="mb-4">
+        <sh-config-paste-form
+          [saving]="savingConfig()"
+          [knownMcuId]="configs.current()?.mcuId ?? null"
+          (pasted)="saveConfig($event)"
+        />
+      </div>
+    }
 
-  <div class="mt-3.5">
+    @if (configs.error(); as message) {
+      <p role="alert">{{ message }}</p>
+    }
+
     <sh-config-list
       [configs]="configs.configs()"
       [pendingRemoval]="removingConfigId()"
@@ -139,18 +215,5 @@
       (downloadRequested)="downloadConfig($event)"
       (removeRequested)="removeConfig($event)"
     />
-  </div>
-</section>
-
-@if (installs.removed().length) {
-  <section class="mt-7">
-    <button matButton type="button" (click)="toggleHistory()">
-      <mat-icon>{{ showHistory() ? 'expand_less' : 'expand_more' }}</mat-icon>
-      {{ showHistory() ? 'Hide' : 'Show' }} previously fitted ({{ installs.removed().length }})
-    </button>
-
-    @if (showHistory()) {
-      <sh-installed-parts-list [installs]="installs.removed()" [history]="true" />
-    }
-  </section>
-}
+  </sh-section>
+</div>

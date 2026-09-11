@@ -18,6 +18,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   BUILD_CLASS_LABELS,
   BUILD_STATUS_LABELS,
+  VISIBILITY_LABELS,
   type BuildDto,
   type AssetDto,
   type BuildPartDto,
@@ -29,6 +30,7 @@ import {
   type RepairDto,
 } from '@spothub/shared';
 
+import { Section } from '../../../core/components/section/section';
 import { fittableUnits } from '../../parts/part-condition';
 import { PartsStore } from '../../parts/parts.store';
 import { BUILD_STATUS_STYLES } from '../build-status';
@@ -49,8 +51,12 @@ import { BuildsStore } from '../builds.store';
 import { PhotosStore } from '../photos.store';
 
 /**
- * Container: the build page. Owns both stores and the side effects; every
- * region below the header is rendered by a presenter.
+ * Container: the build page. Owns the stores and the side effects; every
+ * region below the header is a collapsible section rendered by a presenter.
+ *
+ * Which forms are open is decided here too. Every "add" form stays closed
+ * until asked for, so the page shows what the build *is* before it shows how
+ * to change it.
  */
 @Component({
   selector: 'sh-build-detail-page',
@@ -60,6 +66,7 @@ import { PhotosStore } from '../photos.store';
     MatIconModule,
     MatProgressBarModule,
     RouterLink,
+    Section,
     BuildCostSummary,
     InstallPartForm,
     PhotoGallery,
@@ -90,13 +97,18 @@ export class BuildDetailPage {
   protected readonly build = signal<BuildDto | null>(null);
   protected readonly saving = signal(false);
   protected readonly pendingRemoval = signal<string | null>(null);
-  protected readonly showHistory = signal(false);
   protected readonly loggingRepair = signal(false);
   protected readonly removingRepairId = signal<string | null>(null);
   protected readonly savingConfig = signal(false);
   protected readonly removingConfigId = signal<string | null>(null);
   protected readonly fetchingConfigId = signal<string | null>(null);
   protected readonly copiedConfigId = signal<string | null>(null);
+
+  /** Which "add" form is open, one flag per section. */
+  protected readonly addingPhotos = signal(false);
+  protected readonly addingFit = signal(false);
+  protected readonly addingRepair = signal(false);
+  protected readonly addingConfig = signal(false);
 
   /**
    * Every free, serviceable unit across the inventory. The picker chooses a
@@ -107,6 +119,7 @@ export class BuildDetailPage {
 
   protected readonly statusLabels = BUILD_STATUS_LABELS;
   protected readonly classLabels = BUILD_CLASS_LABELS;
+  protected readonly visibilityLabels = VISIBILITY_LABELS;
 
   /** Same icon and tone the card uses, so the two pages cannot disagree. */
   protected readonly statusStyle = computed(() => {
@@ -138,8 +151,12 @@ export class BuildDetailPage {
     await this.photos.upload(this.id(), files);
 
     const failed = this.photos.error();
+
     if (failed) {
       this.snackBar.open(failed, undefined, { duration: 4000 });
+    } else {
+      // Done adding: fold the drop zone away and let the photos have the room.
+      this.addingPhotos.set(false);
     }
   }
 
@@ -180,10 +197,10 @@ export class BuildDetailPage {
     }
   }
 
-  protected toggleHistory(): void {
-    this.showHistory.update((shown) => !shown);
-  }
-
+  /**
+   * The fit form stays open after a success, unlike the others: fitting
+   * several parts in one sitting is the normal case.
+   */
   protected async install(input: InstallPartDto): Promise<void> {
     this.saving.set(true);
 
@@ -209,12 +226,12 @@ export class BuildDetailPage {
     }
   }
 
-  /** Removal records an end date; the row stays so the history survives. */
   protected async saveConfig(input: CreateConfigDto): Promise<void> {
     this.savingConfig.set(true);
 
     try {
       await this.configs.create(this.id(), input);
+      this.addingConfig.set(false);
       this.snackBar.open('Capture saved', undefined, { duration: 2500 });
     } catch {
       this.snackBar.open('Could not save that capture', undefined, { duration: 4000 });
@@ -292,6 +309,7 @@ export class BuildDetailPage {
       await this.repairs.create(this.id(), input);
       // The rollup counts repair spend, so it changes when one is logged.
       await this.installs.load(this.id());
+      this.addingRepair.set(false);
       this.snackBar.open('Logged', undefined, { duration: 2500 });
     } catch {
       this.snackBar.open('Could not log that repair', undefined, { duration: 4000 });
@@ -314,6 +332,7 @@ export class BuildDetailPage {
     }
   }
 
+  /** Removal records an end date; the row stays so the history survives. */
   protected async remove(install: BuildPartDto): Promise<void> {
     this.pendingRemoval.set(install.id);
 

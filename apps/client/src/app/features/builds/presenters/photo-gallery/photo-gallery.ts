@@ -52,6 +52,11 @@ export class PhotoGallery {
   readonly pending = input<readonly PendingUpload[]>([]);
   readonly coverAssetId = input<string | null>(null);
   readonly readonlyMode = input(false);
+  /**
+   * Whether the drop zone shows. The build page keeps it behind an Add
+   * button, so by default the section shows photos rather than a control.
+   */
+  readonly showUploader = input(true);
 
   readonly filesChosen = output<readonly File[]>();
   readonly removeRequested = output<AssetDto>();

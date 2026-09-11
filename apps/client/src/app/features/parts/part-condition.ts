@@ -1,4 +1,9 @@
-import { PartCondition, type PartDto, type PartUnitDto } from '@spothub/shared';
+import {
+  PART_CATEGORY_LABELS,
+  PartCondition,
+  type PartDto,
+  type PartUnitDto,
+} from '@spothub/shared';
 
 import type { StatusStyle } from '../../core/ui/status-style';
 
@@ -86,6 +91,15 @@ export function unitName(part: PartDto, unit: PartUnitDto): string {
   const index = part.units.findIndex((candidate) => candidate.id === unit.id);
 
   return `#${index + 1}`;
+}
+
+/**
+ * What a part is called. Manufacturer and model are both optional, so it
+ * falls back to the category rather than listing anything nameless.
+ */
+export function partName(part: PartDto): string {
+  const named = [part.manufacturer, part.model].filter(Boolean).join(' ');
+  return named || PART_CATEGORY_LABELS[part.category];
 }
 
 /** Every free, serviceable unit across the inventory, ready for a picker. */

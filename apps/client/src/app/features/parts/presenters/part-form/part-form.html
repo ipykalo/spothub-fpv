@@ -6,14 +6,7 @@
   <mat-card-content>
     <form class="grid gap-2" [formGroup]="form" (ngSubmit)="submit()">
       <div class="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-2">
-        <mat-form-field>
-          <mat-label>Category</mat-label>
-          <mat-select formControlName="category">
-            @for (item of categories; track item) {
-              <mat-option [value]="item">{{ categoryLabels[item] }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <sh-autocomplete formControlName="category" label="Category" [options]="categoryOptions" />
 
         @if (!isEdit()) {
           <mat-form-field>

@@ -14,7 +14,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import {
   BUILD_CLASS_LABELS,
   BUILD_STATUS_LABELS,
@@ -27,6 +26,10 @@ import {
   type CreateBuildDto,
 } from '@spothub/shared';
 
+import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import { choicesFrom } from '../../../../core/components/choice-option';
+import { BUILD_STATUS_STYLES } from '../../build-status';
+
 /**
  * Presenter: owns the form and its validation, nothing else. It never saves —
  * it emits a value the container has already been told is valid, so the same
@@ -36,13 +39,13 @@ import {
   selector: 'sh-build-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
   ],
   templateUrl: './build-form.html',
   styleUrl: './build-form.scss',
@@ -58,12 +61,22 @@ export class BuildForm {
 
   private readonly fb = inject(FormBuilder).nonNullable;
 
-  protected readonly classes = Object.values(BuildClass);
-  protected readonly statuses = Object.values(BuildStatus);
-  protected readonly visibilities = Object.values(Visibility);
-  protected readonly classLabels = BUILD_CLASS_LABELS;
-  protected readonly statusLabels = BUILD_STATUS_LABELS;
-  protected readonly visibilityLabels = VISIBILITY_LABELS;
+  protected readonly classOptions = choicesFrom(
+    Object.values(BuildClass),
+    BUILD_CLASS_LABELS,
+  );
+
+  /** With the same icon the status carries on the card. */
+  protected readonly statusOptions = Object.values(BuildStatus).map((status) => ({
+    value: status,
+    label: BUILD_STATUS_LABELS[status],
+    icon: BUILD_STATUS_STYLES[status].icon,
+  }));
+
+  protected readonly visibilityOptions = choicesFrom(
+    Object.values(Visibility),
+    VISIBILITY_LABELS,
+  );
 
   private readonly validationError = signal<string | null>(null);
 

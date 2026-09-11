@@ -1,13 +1,29 @@
-<div class="mb-6 flex flex-wrap items-center gap-4">
+<div class="mb-4 flex flex-wrap items-center gap-4">
   <h1 class="m-0 flex-auto text-2xl">Hangar</h1>
-
-  <sh-build-status-filter [statuses]="statuses" [selected]="store.status()" (selectedChange)="onFilter($event)" />
 
   <button matButton="filled" routerLink="/hangar/new">
     <mat-icon>add</mat-icon>
     New build
   </button>
 </div>
+
+@if (!firstRun()) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts"
+    [shown]="rows().length"
+    [total]="store.builds().length"
+    searchLabel="Search builds"
+  >
+    <sh-filter-chips
+      ariaLabel="Filter by status"
+      [options]="statusOptions"
+      [selected]="store.status()"
+      (selectedChange)="onFilter($event)"
+    />
+  </sh-grid-toolbar>
+}
 
 @if (store.loading()) {
   <mat-progress-bar mode="indeterminate" />
@@ -17,14 +33,18 @@
   <p role="alert">{{ message }}</p>
 }
 
-@if (store.isEmpty()) {
+@if (firstRun()) {
   <div class="px-4 py-12 text-center text-muted">
     <p>No builds yet.</p>
     <button matButton routerLink="/hangar/new">Add your first quad</button>
   </div>
+} @else if (!rows().length) {
+  @if (!store.loading()) {
+    <p class="py-8 text-muted">Nothing matches.</p>
+  }
 } @else {
   <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
-    @for (build of store.builds(); track build.id) {
+    @for (build of rows(); track build.id) {
       <sh-build-card [build]="build" [deleting]="pendingDelete() === build.id" (delete)="remove($event)" />
     }
   </div>

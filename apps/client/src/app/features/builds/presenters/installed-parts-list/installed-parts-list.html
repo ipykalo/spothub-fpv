@@ -1,6 +1,21 @@
-@if (installs().length) {
+@if (installs().length > 1) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts()"
+    [shown]="rows().length"
+    [total]="installs().length"
+    searchLabel="Search components"
+  >
+    @if (categoryOptions().length > 1) {
+      <sh-filter-chips [options]="categoryOptions()" [(selected)]="grid.filter" ariaLabel="Filter by category" />
+    }
+  </sh-grid-toolbar>
+}
+
+@if (rows().length) {
   <ul class="m-0 grid list-none gap-1.5 p-0">
-    @for (install of installs(); track install.id) {
+    @for (install of rows(); track install.id) {
       <li
         class="grid grid-cols-[1fr_auto] items-center gap-3 rounded bg-surface-container px-3 py-2 text-sm min-[40rem]:grid-cols-[minmax(5rem,8rem)_1fr_auto_auto]"
         [class.opacity-70]="history()"
@@ -44,6 +59,8 @@
       </li>
     }
   </ul>
+} @else if (installs().length) {
+  <p class="m-0 py-5 text-muted">Nothing matches.</p>
 } @else {
   <p class="m-0 py-5 text-muted">
     @if (history()) {

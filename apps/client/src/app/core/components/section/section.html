@@ -1,0 +1,43 @@
+<header class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-outline-variant pb-2">
+  <h2 class="m-0 min-w-0 flex-auto">
+    <button
+      type="button"
+      class="inline-flex max-w-full cursor-pointer items-center gap-2 rounded border-0 bg-transparent p-0 text-left font-sans text-xl leading-tight font-semibold text-inherit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+      [attr.aria-expanded]="open()"
+      [attr.aria-controls]="bodyId"
+      (click)="toggle()"
+    >
+      <mat-icon class="shrink-0 transition-transform duration-150" [class.-rotate-90]="!open()" aria-hidden="true"
+        >expand_more</mat-icon
+      >
+      @if (icon(); as glyph) {
+        <mat-icon class="shrink-0" aria-hidden="true">{{ glyph }}</mat-icon>
+      }
+      <span class="truncate">{{ heading() }}</span>
+      @if (count() !== null) {
+        <span class="rounded-full bg-surface-container px-2 py-0.5 text-sm font-medium text-muted tabular-nums">{{
+          count()
+        }}</span>
+      }
+    </button>
+  </h2>
+
+  <ng-content select="[shSectionActions]" />
+
+  @if (addLabel(); as label) {
+    <button
+      type="button"
+      [matButton]="adding() ? 'text' : 'tonal'"
+      [attr.aria-expanded]="adding()"
+      (click)="toggleAdding()"
+    >
+      <mat-icon>{{ adding() ? 'close' : 'add' }}</mat-icon>
+      {{ adding() ? 'Cancel' : label }}
+    </button>
+  }
+</header>
+
+<!-- Hidden, not destroyed: a half-typed form survives being folded away. -->
+<div class="pt-4" [id]="bodyId" [hidden]="!open()">
+  <ng-content />
+</div>

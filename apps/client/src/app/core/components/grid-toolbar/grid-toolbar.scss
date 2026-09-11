@@ -1,0 +1,14 @@
+@use '@angular/material' as mat;
+
+/*
+ * The search box sits in a toolbar, not a form: 40px, level with the chips and
+ * buttons beside it. An override of Material's own tokens, so it lives here.
+ */
+.compact {
+  @include mat.form-field-overrides(
+    (
+      container-height: 40px,
+      container-vertical-padding: 8px,
+    )
+  );
+}

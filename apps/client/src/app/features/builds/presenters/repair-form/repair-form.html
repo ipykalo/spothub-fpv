@@ -8,14 +8,7 @@
     <input matInput formControlName="descriptionMd" placeholder="Caught a branch, snapped the rear-left arm" />
   </mat-form-field>
 
-  <mat-form-field>
-    <mat-label>Cause</mat-label>
-    <mat-select formControlName="cause">
-      @for (item of causes; track item) {
-        <mat-option [value]="item">{{ causeLabels[item] }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
+  <sh-autocomplete formControlName="cause" label="Cause" [options]="causeOptions" />
 
   <mat-form-field>
     <mat-label>When</mat-label>
