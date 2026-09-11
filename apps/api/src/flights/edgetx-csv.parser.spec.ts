@@ -209,6 +209,133 @@ describe('parseEdgeTxCsv', () => {
     expect(() => parseEdgeTxCsv('a,b,c\n1,2,3', 'x.csv')).toThrow(LogParseError);
     expect(() => parseEdgeTxCsv('', 'x.csv')).toThrow(LogParseError);
   });
+
+  it('reads a flight mode in quotes, the way EdgeTX writes text', () => {
+    const bench = Array.from({ length: 20 }, (_, i) => ({
+      s: i,
+      v: 16.9,
+      fm: '"ACRO*"',
+    }));
+    const flying = steadyFlight(20, 30).map((row) => ({ ...row, fm: '"ACRO"' }));
+
+    const [flight] = parseEdgeTxCsv(log([...bench, ...flying]), 'x.csv').flights;
+
+    expect(flight.startedAt.toISOString()).toBe('2026-09-12T14:00:20.000Z');
+    expect(flight.durationS).toBe(30);
+  });
+});
+
+/**
+ * A real log's header: an Air65 whoop on ExpressLRS whose flight controller
+ * sends no telemetry. FM is `""` and the battery columns read zero, while the
+ * receiver's link statistics and the radio's own inputs are all there.
+ */
+const AIR65_HEADER = [
+  'Date,Time,Ptch(rad),Roll(rad),Yaw(rad),FM,RxBt(V),Curr(A),Capa(mAh),Bat%(%)',
+  '1RSS(dB),2RSS(dB),RQly(%),RSNR(dB),ANT,RFMD,TPWR(mW),TRSS(dB),TQly(%),TSNR(dB)',
+  'Rud,Ele,Thr,Ail,SA,SB,SC,SD,SE,SF,LSW',
+  Array.from({ length: 32 }, (_, i) => `CH${String(i + 1)}(us)`).join(','),
+  'TxBat(V)',
+].join(',');
+
+interface RadioRow {
+  /** Seconds after 14:00:00, on the 2000-01-01 of a radio whose clock is unset. */
+  readonly s: number;
+  /** The arm switch: SA, driving channel 5. */
+  readonly armed: boolean;
+  readonly thr?: number;
+  readonly rssi?: number;
+  readonly snr?: number;
+  readonly downlink?: number;
+  readonly power?: number;
+  readonly radioV?: number;
+}
+
+function air65Log(rows: readonly RadioRow[]): string {
+  const names = AIR65_HEADER.split(',');
+  const lines = rows.map((row) => {
+    const cells: Partial<Record<string, string | number>> = {
+      Date: '2000-01-01',
+      Time: clock(row.s),
+      FM: '""',
+      'RxBt(V)': '0.0',
+      'Curr(A)': '0.0',
+      '1RSS(dB)': row.rssi ?? -60,
+      'RQly(%)': 100,
+      'RSNR(dB)': row.snr ?? 10,
+      'TPWR(mW)': row.power ?? 25,
+      'TQly(%)': row.downlink ?? 100,
+      Thr: row.thr ?? -1024,
+      SA: row.armed ? 1 : -1,
+      LSW: '0x0000000000000000',
+      'CH5(us)': row.armed ? 2012 : 988,
+      'TxBat(V)': row.radioV ?? 7.7,
+    };
+
+    return names
+      .map((name) => cells[name] ?? (name.startsWith('CH') ? 1500 : 0))
+      .join(',');
+  });
+
+  return [AIR65_HEADER, ...lines].join('\n');
+}
+
+/** One row a second for `length` seconds, the arm switch on from `from` to `to`. */
+function armedBetween(from: number, to: number, length: number): RadioRow[] {
+  return Array.from({ length }, (_, s) => ({ s, armed: s >= from && s <= to }));
+}
+
+describe('a log from a quad that sends no telemetry', () => {
+  it('times the flight by the arm switch when there is no flight mode', () => {
+    const [flight] = parseEdgeTxCsv(
+      air65Log(armedBetween(10, 100, 121)),
+      'Air65-2000-01-01-000105.csv',
+    ).flights;
+
+    expect(flight.startedAt.toISOString()).toBe('2000-01-01T14:00:10.000Z');
+    expect(flight.durationS).toBe(90);
+  });
+
+  it('counts the whole log when the arm switch never moves', () => {
+    const [flight] = parseEdgeTxCsv(air65Log(armedBetween(0, 30, 31)), 'x.csv').flights;
+
+    expect(flight.durationS).toBe(30);
+  });
+
+  it('reports no battery figures, rather than zeros that read as measurements', () => {
+    const [flight] = parseEdgeTxCsv(
+      air65Log(armedBetween(10, 100, 121)),
+      'x.csv',
+    ).flights;
+
+    expect(flight.startVoltage).toBeNull();
+    expect(flight.minVoltage).toBeNull();
+    expect(flight.endVoltage).toBeNull();
+    expect(flight.mahUsed).toBeNull();
+    expect(flight.maxCurrentA).toBeNull();
+  });
+
+  it('reads the link, the throttle and the radio battery', () => {
+    const extra: Partial<Record<number, Partial<RadioRow>>> = {
+      50: { thr: 1024, rssi: -95, snr: -2, downlink: 60, power: 500, radioV: 7.5 },
+      // After landing the pack comes out and the telemetry link drops: that is
+      // not part of the flight.
+      110: { downlink: 0, radioV: 7.4 },
+    };
+    const rows = armedBetween(10, 100, 121).map((row) => ({ ...row, ...extra[row.s] }));
+
+    const [flight] = parseEdgeTxCsv(air65Log(rows), 'x.csv').flights;
+
+    expect(flight.minLinkQuality).toBe(100);
+    expect(flight.minRssiDbm).toBe(-95);
+    expect(flight.minSnrDb).toBe(-2);
+    expect(flight.minDownlinkQuality).toBe(60);
+    expect(flight.maxTxPowerMw).toBe(500);
+    expect(flight.maxThrottlePct).toBe(100);
+    // 90 of the 91 armed rows at idle and one at full: about 1 % on average.
+    expect(flight.avgThrottlePct).toBe(1);
+    expect(flight.minRadioVoltage).toBe(7.5);
+  });
 });
 
 describe('modelNameFrom', () => {

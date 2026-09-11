@@ -360,6 +360,17 @@ so the job retries, and a retry skips what was already parsed.
   more than 30 s splits a file into flights; when Betaflight's flight mode is
   logged, only armed rows count (`ACRO*` means disarmed), so bench time is not
   flight time.
+- **A quad that sends no telemetry still gives a useful flight.** The receiver
+  logs its own link statistics (RQly, 1RSS/2RSS, RSNR, TQly, TPWR) and the
+  radio logs its sticks, channels and battery, so those need nothing from the
+  flight controller. Without a flight mode, the arm switch on CH5 times the
+  flight — ExpressLRS requires arming on AUX1 — but only if it moved during
+  the log. Three things the first real log (an Air65 with telemetry off)
+  turned up: EdgeTX **quotes text cells** (`""`, `"ACRO*"`), which hid the
+  disarmed star; current and capacity **read 0, not blank**, when nothing
+  sends them, so a flight-long zero is stored as null; and the date was
+  **2000-01-01** — a radio whose clock is unset. The flights page flags any
+  session before 2015 as "radio clock not set".
 - **Times are the radio's wall clock stored as UTC** — the radio records no
   zone. Render them with `timeZone: 'UTC'` or every flight shifts.
 - Sessions group flights less than 90 minutes apart and keep their ids across
@@ -367,6 +378,12 @@ so the job retries, and a retry skips what was already parsed.
   session, merges ones a new flight bridges, and splits one a deletion gaps.
 - Without a chosen build, a flight goes to the build named like the radio
   model, case-insensitively — most radios name the model after the quad.
+- **A log counts as imported while a flight from it is still in the
+  logbook** (or if it never held one). Delete every flight a log gave and the
+  next drop imports it again; delete only some and the rest keep it imported,
+  so a flight deleted as "not really a flight" stays deleted. The first cut
+  keyed this on `status = PARSED` alone, and a log whose flights had all been
+  deleted could never be brought back.
 - Real SD-card logs go in `apps/api/src/flights/__fixtures__/edgetx/`; the
   spec parses every one. `npm test` runs the API suite.
 

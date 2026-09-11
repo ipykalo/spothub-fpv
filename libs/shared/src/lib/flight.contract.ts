@@ -133,6 +133,19 @@ export interface FlightDto {
   readonly mahUsed: number | null;
   readonly maxCurrentA: number | null;
   readonly minLinkQuality: number | null;
+  /**
+   * The link, the sticks and the radio's battery: logged by the receiver and
+   * the radio themselves, so present even when the quad sends no telemetry.
+   */
+  readonly minRssiDbm: number | null;
+  readonly minSnrDb: number | null;
+  /** The telemetry link back from the quad. */
+  readonly minDownlinkQuality: number | null;
+  readonly maxTxPowerMw: number | null;
+  /** The throttle stick, 0–100 %: where the stick sat, not what the motors did. */
+  readonly avgThrottlePct: number | null;
+  readonly maxThrottlePct: number | null;
+  readonly minRadioVoltage: number | null;
   readonly hasGps: boolean;
   readonly distanceM: number | null;
   readonly maxAltitudeM: number | null;

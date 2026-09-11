@@ -36,8 +36,9 @@
       />
     } @else {
       <p class="m-0 max-w-176 text-sm text-muted">
-        Flights come from the radio's EdgeTX telemetry logs: pack voltage, current, capacity used and link quality for
-        every flight, and the track when the quad carries GPS. Times are as the radio's clock recorded them.
+        Flights come from the radio's EdgeTX telemetry logs. Every log gives link quality and signal, throttle and the
+        radio's battery; pack voltage, current and capacity used come when the quad sends telemetry, and the track when
+        it carries GPS. Times are as the radio's clock recorded them.
       </p>
     }
   </sh-section>
@@ -50,8 +51,17 @@
 
   @for (session of store.sessions(); track session.id) {
     <sh-section icon="event" [heading]="heading(session)" [count]="session.flightCount" [open]="$index < openSessions">
-      <span shSectionActions class="text-sm text-muted tabular-nums">
-        {{ airtime(session.totalDurationS) }} in the air
+      <span shSectionActions class="inline-flex flex-wrap items-center gap-x-4 text-sm text-muted tabular-nums">
+        @if (clockUnset(session)) {
+          <span
+            class="inline-flex items-center gap-1 text-status-stop"
+            title="The radio's clock was not set when these were logged, so this is not the real date. Set it on the radio under Radio Setup, Date/Time."
+          >
+            <mat-icon class="icon-sm" aria-hidden="true">schedule</mat-icon>
+            radio clock not set
+          </span>
+        }
+        <span>{{ airtime(session.totalDurationS) }} in the air</span>
       </span>
 
       <sh-session-flights

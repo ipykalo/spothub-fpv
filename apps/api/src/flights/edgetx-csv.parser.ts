@@ -8,6 +8,11 @@
  * GPS at all — voltage, current and link quality are what a freestyle quad
  * without a GPS module still reports, and they are what battery health needs.
  *
+ * Some figures need nothing from the quad at all. The receiver reports its
+ * own link statistics and the radio logs its sticks, channels and battery, so
+ * a quad whose flight controller sends no telemetry still gives link quality,
+ * signal, throttle and — from the arm switch — how long it was armed.
+ *
  * Pure: text in, flights out. No Nest, no storage, no shared imports, so it
  * can be tested against real SD-card logs in isolation.
  */
@@ -27,6 +32,15 @@ const MIN_SATELLITES = 4;
 /** A voltage at or below this means "no telemetry yet", not an empty pack. */
 const MIN_REAL_VOLTAGE = 0.5;
 
+/** EdgeTX logs a stick from -1024 (fully low) to 1024 (fully high). */
+const STICK_RANGE = 1024;
+
+/**
+ * Channel 5 above this reads as the arm switch on. ExpressLRS requires arming
+ * on AUX1, which is channel 5, and most other setups put it there too.
+ */
+const ARM_CHANNEL_ON_US = 1500;
+
 export interface ParsedFlight {
   readonly startedAt: Date;
   readonly endedAt: Date;
@@ -38,6 +52,17 @@ export interface ParsedFlight {
   readonly mahUsed: number | null;
   readonly maxCurrentA: number | null;
   readonly minLinkQuality: number | null;
+  /** The weakest signal the receiver heard, in dBm, on its better antenna. */
+  readonly minRssiDbm: number | null;
+  readonly minSnrDb: number | null;
+  /** The telemetry link back from the quad, as the radio measured it. */
+  readonly minDownlinkQuality: number | null;
+  readonly maxTxPowerMw: number | null;
+  /** Where the throttle stick sat, 0–100 %: the stick, not the motors. */
+  readonly avgThrottlePct: number | null;
+  readonly maxThrottlePct: number | null;
+  /** The radio's own battery. */
+  readonly minRadioVoltage: number | null;
   readonly hasGps: boolean;
   readonly distanceM: number | null;
   readonly maxAltitudeM: number | null;
@@ -64,8 +89,16 @@ interface Sample {
   readonly current: number | null;
   readonly capacity: number | null;
   readonly linkQuality: number | null;
+  readonly rssi: number | null;
+  readonly snr: number | null;
+  readonly downlinkQuality: number | null;
+  readonly txPower: number | null;
+  readonly throttlePct: number | null;
+  readonly radioVoltage: number | null;
   /** From the flight-mode string; null when the log does not say. */
   readonly armed: boolean | null;
+  /** From channel 5; null when the log has no channels. */
+  readonly armSwitch: boolean | null;
   readonly lat: number | null;
   readonly lon: number | null;
   readonly altitude: number | null;
@@ -80,6 +113,14 @@ interface Columns {
   readonly current: number;
   readonly capacity: number;
   readonly linkQuality: number;
+  readonly rssi1: number;
+  readonly rssi2: number;
+  readonly snr: number;
+  readonly downlinkQuality: number;
+  readonly txPower: number;
+  readonly throttle: number;
+  readonly armChannel: number;
+  readonly radioVoltage: number;
   readonly flightMode: number;
   readonly gps: number;
   readonly altitude: number;
@@ -154,7 +195,17 @@ function readHeader(header: string): Columns {
     voltage: find('rxbt', 'vfas'),
     current: find('curr'),
     capacity: find('capa'),
+    // CRSF link statistics: the receiver's side of the link, then the radio's.
     linkQuality: find('rqly'),
+    rssi1: find('1rss'),
+    rssi2: find('2rss'),
+    snr: find('rsnr'),
+    downlinkQuality: find('tqly'),
+    txPower: find('tpwr'),
+    // The radio's own inputs, logged whatever the quad sends.
+    throttle: find('thr'),
+    armChannel: find('ch5'),
+    radioVoltage: find('txbat'),
     flightMode: find('fm'),
     gps: find('gps'),
     altitude: find('alt', 'galt'),
@@ -184,7 +235,17 @@ function readRow(cells: readonly string[], columns: Columns): Sample | null {
     current: numeric(cell(cells, columns.current)),
     capacity: numeric(cell(cells, columns.capacity)),
     linkQuality: numeric(cell(cells, columns.linkQuality)),
+    rssi: strongest(
+      numeric(cell(cells, columns.rssi1)),
+      numeric(cell(cells, columns.rssi2)),
+    ),
+    snr: numeric(cell(cells, columns.snr)),
+    downlinkQuality: numeric(cell(cells, columns.downlinkQuality)),
+    txPower: numeric(cell(cells, columns.txPower)),
+    throttlePct: stickPercent(numeric(cell(cells, columns.throttle))),
+    radioVoltage: numeric(cell(cells, columns.radioVoltage)),
     armed: armedFrom(cell(cells, columns.flightMode)),
+    armSwitch: switchOn(numeric(cell(cells, columns.armChannel))),
     lat,
     lon,
     altitude: numeric(cell(cells, columns.altitude)),
@@ -193,8 +254,13 @@ function readRow(cells: readonly string[], columns: Columns): Sample | null {
   };
 }
 
+/**
+ * One cell, trimmed and unquoted. EdgeTX writes text in quotes — a flight
+ * mode is `"ACRO*"`, and no flight mode at all is `""` — so read raw, the
+ * disarmed star would sit behind a quote and never be seen.
+ */
 function cell(cells: readonly string[], index: number): string | undefined {
-  return index === -1 ? undefined : cells[index]?.trim();
+  return index === -1 ? undefined : cells[index]?.trim().replace(/^"(.*)"$/, '$1');
 }
 
 /**
@@ -230,6 +296,25 @@ function numeric(value: string | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** The stronger of two antennas. 0 dBm means "no reading", never a real signal. */
+function strongest(...readings: readonly (number | null)[]): number | null {
+  const real = readings.filter((dbm): dbm is number => dbm !== null && dbm !== 0);
+  return real.length > 0 ? Math.max(...real) : null;
+}
+
+function stickPercent(value: number | null): number | null {
+  if (value === null) {
+    return null;
+  }
+
+  const percent = ((value + STICK_RANGE) / (2 * STICK_RANGE)) * 100;
+  return Math.min(100, Math.max(0, percent));
+}
+
+function switchOn(microseconds: number | null): boolean | null {
+  return microseconds === null ? null : microseconds > ARM_CHANNEL_ON_US;
+}
+
 /** EdgeTX writes a fix as one cell, `lat lon`, space-separated. */
 function position(value: string | undefined): [number | null, number | null] {
   const parts = value?.split(/\s+/).map(Number) ?? [];
@@ -262,24 +347,19 @@ function armedFrom(flightMode: string | undefined): boolean | null {
 /**
  * Splits samples into flights.
  *
- * When the log says when the quad was armed, only armed rows count, so a
- * minute on the bench before take-off does not pad the flight. A pause longer
- * than `SPLIT_GAP_MS` — logging stopped, or a long disarm — ends one flight;
- * a short disarm, like flipping out of a crash, does not.
+ * Only armed rows count, so a minute on the bench before take-off does not
+ * pad the flight. A pause longer than `SPLIT_GAP_MS` — logging stopped, or a
+ * long disarm — ends one flight; a short disarm, like flipping out of a crash,
+ * does not.
  */
 function segment(samples: readonly Sample[]): {
   segments: Sample[][];
   discarded: number;
 } {
-  const knowsArming = samples.some((sample) => sample.armed === true);
-  const flying = knowsArming
-    ? samples.filter((sample) => sample.armed === true)
-    : samples;
-
   const runs: Sample[][] = [];
   let current: Sample[] = [];
 
-  for (const sample of flying) {
+  for (const sample of armedSamples(samples)) {
     const previous = current.at(-1);
 
     if (previous && sample.t - previous.t > SPLIT_GAP_MS) {
@@ -299,6 +379,27 @@ function segment(samples: readonly Sample[]): {
   return { segments, discarded: runs.length - segments.length };
 }
 
+/**
+ * The rows the quad was armed for.
+ *
+ * Betaflight's flight mode is the authority. From a quad that sends no
+ * telemetry, the arm switch on channel 5 stands in — but only if it moved
+ * during the log: a channel held high the whole time, as it is when logging is
+ * started by the arm switch, says nothing about when the quad flew. With
+ * neither, every row counts.
+ */
+function armedSamples(samples: readonly Sample[]): readonly Sample[] {
+  if (samples.some((sample) => sample.armed === true)) {
+    return samples.filter((sample) => sample.armed === true);
+  }
+
+  const switchMoved =
+    samples.some((sample) => sample.armSwitch === true) &&
+    samples.some((sample) => sample.armSwitch === false);
+
+  return switchMoved ? samples.filter((sample) => sample.armSwitch === true) : samples;
+}
+
 function spanMs(run: readonly Sample[]): number {
   const first = run.at(0);
   const last = run.at(-1);
@@ -314,7 +415,16 @@ function summarise(run: readonly Sample[]): ParsedFlight {
   );
   const capacities = values(run, (sample) => sample.capacity).filter((mah) => mah >= 0);
   const currents = values(run, (sample) => sample.current).filter((amps) => amps >= 0);
-  const links = values(run, (sample) => sample.linkQuality);
+  const throttle = values(run, (sample) => sample.throttlePct);
+  const radioVoltages = values(run, (sample) => sample.radioVoltage).filter(
+    (voltage) => voltage > MIN_REAL_VOLTAGE,
+  );
+
+  // A current or capacity sensor that reads zero for a whole flight has
+  // nothing behind it — the quad sends no telemetry — and no quad flies on no
+  // current. Zero there would read as a measurement; it is an absence.
+  const peakCurrent = maxOf(currents) ?? 0;
+  const peakCapacity = maxOf(capacities) ?? 0;
 
   const track = gpsSummary(run);
 
@@ -329,11 +439,19 @@ function summarise(run: readonly Sample[]): ParsedFlight {
     // Capacity is cumulative since the pack was plugged in, so what this
     // flight used is the rise across it, not the last value.
     mahUsed:
-      capacities.length > 0
-        ? Math.round((maxOf(capacities) ?? 0) - (minOf(capacities) ?? 0))
-        : null,
-    maxCurrentA: round(maxOf(currents), 1),
-    minLinkQuality: links.length > 0 ? Math.round(minOf(links) ?? 0) : null,
+      peakCapacity > 0 ? Math.round(peakCapacity - (minOf(capacities) ?? 0)) : null,
+    maxCurrentA: peakCurrent > 0 ? round(peakCurrent, 1) : null,
+    minLinkQuality: round(minOf(values(run, (sample) => sample.linkQuality)), 0),
+    minRssiDbm: round(minOf(values(run, (sample) => sample.rssi)), 0),
+    minSnrDb: round(minOf(values(run, (sample) => sample.snr)), 0),
+    minDownlinkQuality: round(minOf(values(run, (sample) => sample.downlinkQuality)), 0),
+    maxTxPowerMw: round(
+      maxOf(values(run, (sample) => sample.txPower).filter((mw) => mw > 0)),
+      0,
+    ),
+    avgThrottlePct: round(meanOf(throttle), 0),
+    maxThrottlePct: round(maxOf(throttle), 0),
+    minRadioVoltage: round(minOf(radioVoltages), 2),
     ...track,
   };
 }
@@ -452,6 +570,12 @@ function minOf(list: readonly number[]): number | undefined {
 
 function maxOf(list: readonly number[]): number | undefined {
   return list.length > 0 ? Math.max(...list) : undefined;
+}
+
+function meanOf(list: readonly number[]): number | undefined {
+  return list.length > 0
+    ? list.reduce((sum, value) => sum + value, 0) / list.length
+    : undefined;
 }
 
 function round(value: number | undefined, digits: number): number | null {

@@ -615,6 +615,16 @@ model Flight {
   maxCurrentA    Float? @map("max_current_a")
   minLinkQuality Int?   @map("min_link_quality")
 
+  // --- link, sticks and radio: logged by the receiver and the radio
+  // themselves, so these arrive even from a quad that sends no telemetry
+  minRssiDbm         Int?   @map("min_rssi_dbm")
+  minSnrDb           Int?   @map("min_snr_db")
+  minDownlinkQuality Int?   @map("min_downlink_quality")
+  maxTxPowerMw       Int?   @map("max_tx_power_mw")
+  avgThrottlePct     Int?   @map("avg_throttle_pct")
+  maxThrottlePct     Int?   @map("max_throttle_pct")
+  minRadioVoltage    Float? @map("min_radio_voltage")
+
   // --- track: only when the quad carries GPS
   hasGps           Boolean @default(false) @map("has_gps")
   distanceM        Float?  @map("distance_m")

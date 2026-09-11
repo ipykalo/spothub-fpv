@@ -42,14 +42,45 @@
         @if (flight.maxCurrentA !== null) {
           <span class="text-muted" title="Peak current">{{ flight.maxCurrentA }} A peak</span>
         }
-        @if (flight.minLinkQuality !== null) {
+        @if (flight.minLinkQuality !== null || flight.minRssiDbm !== null) {
           <span
             class="inline-flex items-center gap-1"
-            [class.text-status-stop]="flight.minLinkQuality < 50"
-            title="Lowest link quality"
+            title="The weakest the link got: link quality, signal strength, signal-to-noise"
           >
             <mat-icon class="icon-sm text-muted" aria-hidden="true">settings_input_antenna</mat-icon>
-            LQ {{ flight.minLinkQuality }}%
+            @if (flight.minLinkQuality !== null) {
+              <span [class.text-status-stop]="flight.minLinkQuality < 50">LQ {{ flight.minLinkQuality }}%</span>
+            }
+            @if (flight.minRssiDbm !== null) {
+              <span class="text-muted">{{ flight.minRssiDbm }} dBm</span>
+            }
+            @if (flight.minSnrDb !== null) {
+              <span class="text-muted">SNR {{ flight.minSnrDb }}</span>
+            }
+          </span>
+        }
+        @if (flight.minDownlinkQuality !== null) {
+          <span
+            [class.text-muted]="flight.minDownlinkQuality >= 50"
+            [class.text-status-stop]="flight.minDownlinkQuality < 50"
+            title="Lowest telemetry link quality, quad to radio"
+          >
+            telemetry {{ flight.minDownlinkQuality }}%
+          </span>
+        }
+        @if (flight.maxTxPowerMw !== null) {
+          <span class="text-muted" title="Highest power the radio transmitted at">{{ flight.maxTxPowerMw }} mW</span>
+        }
+        @if (flight.avgThrottlePct !== null && flight.maxThrottlePct !== null) {
+          <span class="inline-flex items-center gap-1" title="Throttle stick: average and highest">
+            <mat-icon class="icon-sm text-muted" aria-hidden="true">speed</mat-icon>
+            {{ flight.avgThrottlePct }}% avg · {{ flight.maxThrottlePct }}% max
+          </span>
+        }
+        @if (flight.minRadioVoltage !== null) {
+          <span class="inline-flex items-center gap-1 text-muted" title="Radio battery, lowest during the flight">
+            <mat-icon class="icon-sm" aria-hidden="true">settings_remote</mat-icon>
+            {{ flight.minRadioVoltage }} V
           </span>
         }
         @if (flight.hasGps) {

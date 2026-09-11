@@ -23,6 +23,21 @@ const WITH_FILES = {
 
 type LogImportWithFiles = LogImport & { files: LogFile[] };
 
+/**
+ * A log counts as imported while something from it is still in the logbook —
+ * or when it never held a flight at all, so a log of bench time is not
+ * re-uploaded on every drop.
+ *
+ * Delete every flight a log gave and it can be imported again, which is what
+ * someone clearing out an import and redoing it expects. Delete only some and
+ * the rest keep it imported, so the ones deleted as "not really a flight" stay
+ * deleted the next time the whole folder is dropped.
+ */
+const STILL_IMPORTED = {
+  status: LogFileStatus.PARSED,
+  OR: [{ flightCount: 0 }, { flights: { some: {} } }],
+} satisfies Prisma.LogFileWhereInput;
+
 /** The only place log files and imports meet Prisma. */
 @Injectable()
 export class PrismaFlightLogsRepository extends FlightLogsRepository {
@@ -30,7 +45,7 @@ export class PrismaFlightLogsRepository extends FlightLogsRepository {
     super();
   }
 
-  async findParsedChecksums(
+  async findImportedChecksums(
     ownerId: string,
     checksums: readonly string[],
   ): Promise<string[]> {
@@ -39,11 +54,7 @@ export class PrismaFlightLogsRepository extends FlightLogsRepository {
     }
 
     const rows = await this.prisma.logFile.findMany({
-      where: {
-        ownerId,
-        checksum: { in: [...checksums] },
-        status: LogFileStatus.PARSED,
-      },
+      where: { ownerId, checksum: { in: [...checksums] }, ...STILL_IMPORTED },
       select: { checksum: true },
     });
 
@@ -55,12 +66,19 @@ export class PrismaFlightLogsRepository extends FlightLogsRepository {
       where: { ownerId_checksum: { ownerId: data.ownerId, checksum: data.checksum } },
     });
 
-    if (existing?.status === LogFileStatus.PARSED) {
-      return null;
+    if (existing) {
+      const stillImported = await this.prisma.logFile.count({
+        where: { id: existing.id, ...STILL_IMPORTED },
+      });
+
+      if (stillImported > 0) {
+        return null;
+      }
     }
 
-    // An earlier attempt that never finished keeps its row and its key; the
-    // upload simply goes into it again.
+    // An earlier attempt that never finished keeps its row and its key, and
+    // so does a log whose flights were all deleted: the upload simply goes
+    // into it again, and the worker parses it afresh.
     const row = existing
       ? await this.prisma.logFile.update({
           where: { id: existing.id },

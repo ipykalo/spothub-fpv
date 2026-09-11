@@ -20,6 +20,13 @@ export interface FlightEntity {
   readonly mahUsed: number | null;
   readonly maxCurrentA: number | null;
   readonly minLinkQuality: number | null;
+  readonly minRssiDbm: number | null;
+  readonly minSnrDb: number | null;
+  readonly minDownlinkQuality: number | null;
+  readonly maxTxPowerMw: number | null;
+  readonly avgThrottlePct: number | null;
+  readonly maxThrottlePct: number | null;
+  readonly minRadioVoltage: number | null;
   readonly hasGps: boolean;
   readonly distanceM: number | null;
   readonly maxAltitudeM: number | null;

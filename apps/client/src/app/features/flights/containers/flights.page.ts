@@ -43,6 +43,12 @@ const CLOCK = new Intl.DateTimeFormat(undefined, {
 const OPEN_SESSIONS = 3;
 
 /**
+ * Earlier than this, the radio's clock was never set: a radio without a
+ * working clock battery starts from 1 January 2000 at every power-on.
+ */
+const CLOCK_SET_AFTER = Date.UTC(2015, 0, 1);
+
+/**
  * Container: the logbook. Owns the stores and the side effects; the import
  * panel and each session's flights are presenters.
  */
@@ -134,6 +140,11 @@ export class FlightsPage {
     const end = new Date(session.endedAt);
 
     return `${DAY.format(start)} · ${CLOCK.format(start)}–${CLOCK.format(end)}`;
+  }
+
+  /** Not the real date: every outing from a radio with no clock lands on 1 January 2000. */
+  protected clockUnset(session: SessionDto): boolean {
+    return new Date(session.startedAt).getTime() < CLOCK_SET_AFTER;
   }
 
   protected airtime(seconds: number): string {

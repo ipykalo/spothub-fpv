@@ -52,7 +52,7 @@ export class FlightLogsService {
    * would re-upload a season of logs to find out they were all known.
    */
   async known(ownerId: string, input: KnownLogsDto): Promise<KnownLogsResultDto> {
-    return { known: await this.logs.findParsedChecksums(ownerId, input.checksums) };
+    return { known: await this.logs.findImportedChecksums(ownerId, input.checksums) };
   }
 
   async requestUpload(
