@@ -1,0 +1,49 @@
+<form
+  class="grid grid-cols-2 items-start gap-2 min-[55rem]:grid-cols-[minmax(12rem,2fr)_minmax(7rem,1fr)_minmax(9rem,1fr)_minmax(8rem,1fr)_auto]"
+  [formGroup]="form"
+  (ngSubmit)="submit()"
+>
+  <sh-autocomplete
+    formControlName="unitId"
+    label="Part"
+    placeholder="Type to search the shelf"
+    [options]="unitOptions()"
+    [hint]="units().length ? null : 'Nothing available. Units already fitted, broken or retired are not offered.'"
+  />
+
+  <mat-form-field>
+    <mat-label>Position</mat-label>
+    <input matInput formControlName="position" placeholder="motor FR" />
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label>Fitted on</mat-label>
+    <input matInput type="date" formControlName="installedOn" />
+  </mat-form-field>
+
+  <sh-autocomplete formControlName="reason" label="Reason" [options]="reasonOptions" />
+
+  @if (showRepairPicker()) {
+    <sh-autocomplete
+      formControlName="repairId"
+      label="Part of repair"
+      emptyLabel="Not linked"
+      hint="Which crash this replaced something for"
+      [options]="repairOptions()"
+    />
+  }
+
+  <button
+    matButton="filled"
+    type="submit"
+    class="col-span-full mt-2 justify-self-start min-[55rem]:col-auto min-[55rem]:justify-self-auto"
+    [disabled]="saving() || !units().length"
+  >
+    <mat-icon>add</mat-icon>
+    Fit
+  </button>
+</form>
+
+@if (error) {
+  <p class="mt-1 mb-0 text-sm text-danger" role="alert">{{ error }}</p>
+}

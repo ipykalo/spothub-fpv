@@ -24,6 +24,8 @@ import { PartDetails } from '../presenters/part-details/part-details';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PartsApi } from '../parts.api';
 import { PartsStore } from '../parts.store';
+import { CollapseAll } from '../../../core/components/section/collapse-all';
+import { SectionGroup } from '../../../core/components/section/section-group';
 
 /**
  * Container: the read-only part page. Resolves which part to show and owns
@@ -33,12 +35,14 @@ import { PartsStore } from '../parts.store';
   selector: 'sh-part-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CollapseAll,
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
     RouterLink,
     PartDetails,
   ],
+  hostDirectives: [SectionGroup],
   templateUrl: './part-detail.page.html',
   styleUrl: './part-detail.page.scss',
 })

@@ -1,56 +1,69 @@
-<mat-card appearance="outlined" class="tone-{{ tone() }}">
-  <div class="head">
-    <div class="titled">
-      <mat-icon class="kind" [attr.aria-label]="categoryLabel()">{{ categoryIcon() }}</mat-icon>
-      <h3 [title]="title()">{{ title() }}</h3>
+<mat-card appearance="outlined" class="tone-{{ tone() }} flex h-full min-h-52 flex-col gap-2 px-4 pt-3.5 pb-2.5">
+  <div class="flex flex-col gap-1.5">
+    <!-- Icon beside the title rather than inside it: the h3 is line-clamped,
+         and a glyph in the clamped box would count toward the two lines. -->
+    <div class="flex items-start gap-2">
+      <mat-icon class="icon-md mt-0.5 shrink-0 text-muted" [attr.aria-label]="categoryLabel()">{{
+        categoryIcon()
+      }}</mat-icon>
+      <!-- Two lines then an ellipsis, with both lines reserved so one- and
+           two-line titles align their badges. The whole name is on the detail page. -->
+      <h3 class="m-0 line-clamp-2 min-h-10.5 flex-auto text-base leading-[1.3] font-semibold" [title]="title()">
+        {{ title() }}
+      </h3>
     </div>
 
-    <div class="badges">
+    <div class="flex flex-wrap items-center gap-1.5">
       @for (tally of tallies(); track tally.condition) {
-        <span class="status tone-{{ tally.style.tone }}">
-          <mat-icon aria-hidden="true">{{ tally.style.icon }}</mat-icon>
+        <span
+          class="tone-{{
+            tally.style.tone
+          }} inline-flex items-center gap-1 rounded-full bg-(--tone-surface) py-0.5 pr-2 pl-1 text-xs font-bold tracking-wide text-(--tone) uppercase"
+        >
+          <mat-icon class="icon-xs" aria-hidden="true">{{ tally.style.icon }}</mat-icon>
           @if (tally.count > 1) {
             {{ tally.count }}
           }
           {{ tally.label }}
         </span>
       }
-      <span class="stock" [title]="stockDetail()">{{ stock() }}</span>
+      <span class="text-xs text-muted tabular-nums" [title]="stockDetail()">{{ stock() }}</span>
     </div>
   </div>
 
-  <div class="body">
+  <div class="min-h-9 flex-auto overflow-hidden">
     @if (visibleSpec().length) {
-      <dl class="spec">
+      <dl class="m-0 flex flex-wrap content-start gap-x-3 gap-y-0.5 text-xs leading-normal">
         @for (entry of visibleSpec(); track entry.key) {
-          <div>
-            <dt>{{ entry.key }}</dt>
-            <dd>{{ entry.value }}</dd>
+          <div class="flex min-w-0 gap-1">
+            <dt class="whitespace-nowrap text-muted">{{ entry.key }}</dt>
+            <dd class="m-0 truncate font-semibold">{{ entry.value }}</dd>
           </div>
         }
         @if (hiddenSpecCount(); as more) {
-          <div class="more">+{{ more }}</div>
+          <div class="text-muted">+{{ more }}</div>
         }
       </dl>
     } @else {
-      <p class="spec none">No specification</p>
+      <p class="m-0 text-xs text-muted italic">No specification</p>
     }
   </div>
 
-  <div class="foot">
-    <p class="price">
+  <!-- The border sits above the price only, so the card reads as name → detail → cost. -->
+  <div class="flex flex-col gap-0.5 border-t border-outline-variant pt-2">
+    <p class="m-0 flex min-h-6 items-baseline gap-1 tabular-nums">
       @if (part().purchasePrice !== null) {
-        <span class="amount">{{ part().purchasePrice }}</span>
-        <span class="currency">{{ part().purchaseCurrency }}</span>
+        <span class="text-lg leading-[1.3] font-semibold">{{ part().purchasePrice }}</span>
+        <span class="text-xs text-muted">{{ part().purchaseCurrency }}</span>
         @if (unitTotal() > 1) {
-          <span class="each">each</span>
+          <span class="text-xs text-muted">each</span>
         }
       } @else {
-        <span class="none">No purchase recorded</span>
+        <span class="text-xs text-muted italic">No purchase recorded</span>
       }
     </p>
 
-    <div class="actions">
+    <div class="-ml-2 flex gap-0.5">
       <a matButton [routerLink]="['/parts', part().id]">Open</a>
       <a matButton [routerLink]="['/parts', part().id, 'edit']">Edit</a>
       <button matButton [disabled]="deleting()" (click)="delete.emit(part())">

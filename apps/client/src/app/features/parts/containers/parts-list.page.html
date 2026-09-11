@@ -1,8 +1,8 @@
-<div class="toolbar">
-  <h1>Parts</h1>
+<div class="mb-4 flex flex-wrap items-baseline gap-4">
+  <h1 class="m-0 text-2xl">Parts</h1>
 
   @if (store.total()) {
-    <span class="count">
+    <span class="text-sm text-muted tabular-nums">
       {{ store.total() }} kinds · {{ store.unitTotal() }} units
       @if (store.fittedTotal()) {
         · {{ store.fittedTotal() }} fitted
@@ -10,7 +10,9 @@
     </span>
   }
 
-  <span class="spacer"></span>
+  <span class="flex-auto"></span>
+
+  <sh-collapse-all />
 
   <button matButton="filled" routerLink="/parts/new">
     <mat-icon>add</mat-icon>
@@ -18,7 +20,25 @@
   </button>
 </div>
 
-<sh-part-category-filter [categories]="categories" [selected]="store.category()" (selectedChange)="onFilter($event)" />
+@if (!firstRun()) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts"
+    [shown]="shown()"
+    [total]="store.total()"
+    searchLabel="Search parts and specs"
+  >
+    <!-- Twelve categories: a row of their own, under the search and the sort. -->
+    <sh-filter-chips
+      class="order-last basis-full"
+      ariaLabel="Filter by category"
+      [options]="categoryOptions"
+      [selected]="store.category()"
+      (selectedChange)="onFilter($event)"
+    />
+  </sh-grid-toolbar>
+}
 
 @if (store.loading()) {
   <mat-progress-bar mode="indeterminate" />
@@ -28,24 +48,30 @@
   <p role="alert">{{ message }}</p>
 }
 
-@if (store.isEmpty()) {
-  <div class="empty">
+@if (firstRun()) {
+  <div class="px-4 py-12 text-center text-muted">
     <p>Nothing in the inventory yet.</p>
     <button matButton routerLink="/parts/new">Add your first part</button>
   </div>
-} @else {
-  @for (group of store.groups(); track group.category) {
-    <section class="group">
-      <h2>
-        <mat-icon aria-hidden="true">{{ group.icon }}</mat-icon>
-        {{ group.label }}
-      </h2>
-
-      <div class="grid">
-        @for (part of group.parts; track part.id) {
-          <sh-part-card [part]="part" [deleting]="pendingDelete() === part.id" (delete)="remove($event)" />
-        }
-      </div>
-    </section>
+} @else if (!groups().length) {
+  @if (!store.loading()) {
+    <p class="py-8 text-muted">Nothing matches.</p>
   }
+} @else {
+  <div class="mt-6 flex flex-col gap-8">
+    @for (group of groups(); track group.category) {
+      <sh-section
+        [heading]="group.label"
+        [icon]="group.icon"
+        [count]="group.parts.length"
+        [storageKey]="'parts.' + group.category"
+      >
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+          @for (part of group.parts; track part.id) {
+            <sh-part-card [part]="part" [deleting]="pendingDelete() === part.id" (delete)="remove($event)" />
+          }
+        </div>
+      </sh-section>
+    }
+  </div>
 }

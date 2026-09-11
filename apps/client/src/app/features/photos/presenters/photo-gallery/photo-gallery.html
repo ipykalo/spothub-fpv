@@ -1,0 +1,242 @@
+@if (!readonlyMode() && showUploader()) {
+  <!--
+    Narrow, and narrower than the viewer: it is a control, not the content.
+    Stretched to the full column it dominated the photos it exists to add.
+  -->
+  <div
+    class="mx-auto mb-4 flex w-full max-w-120 flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-lg border-2 border-dashed border-outline-variant bg-surface-low px-4 py-2.5 text-center transition-colors data-dragging:border-primary data-dragging:bg-surface-high"
+    [attr.data-dragging]="dragging || null"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onFileDrop($event)"
+  >
+    <mat-icon class="text-muted" aria-hidden="true">add_photo_alternate</mat-icon>
+    <p class="m-0 text-sm">
+      Drop photos here, or
+      <label>
+        <input type="file" multiple [accept]="accept" (change)="onFileInput($event)" hidden />
+        <span class="cursor-pointer text-primary underline">choose files</span>
+      </label>
+    </p>
+    <!-- The hint takes its own line; the prompt keeps the icon company. -->
+    <p class="m-0 basis-full text-xs text-muted">JPEG, PNG, WebP or AVIF · up to 25 MB · location data is removed</p>
+  </div>
+}
+
+@if (isEmpty()) {
+  <p class="m-0 text-center text-sm text-muted">No photos yet.</p>
+} @else {
+  @if (active(); as photo) {
+    <!--
+      The viewer and the strip share one measure (max-w-184, 46rem), centred
+      under the heading. Left-aligned against a wider column, the viewer read
+      as though it had failed to load rather than as a deliberate size.
+    -->
+    <div
+      class="group relative mx-auto aspect-4/3 w-full max-w-184 overflow-hidden rounded-lg bg-surface-high"
+      role="group"
+      aria-roledescription="carousel"
+      [attr.aria-label]="'Photo ' + (activeIndex() + 1) + ' of ' + photos().length"
+    >
+      <!--
+        A button, not a bare image: it opens the full-size view on click, and
+        being a button means Enter and Space do it too. The arrow keys are
+        bound here rather than on the region, so tabbing to the photo is
+        enough to step through the set without a mouse.
+      -->
+      <button
+        type="button"
+        class="block h-full w-full cursor-zoom-in border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        [attr.aria-label]="'View ' + (photo.fileName ?? 'this photo') + ' full size'"
+        (click)="openViewer()"
+        (keydown.arrowleft)="step(-1)"
+        (keydown.arrowright)="step(1)"
+      >
+        <!-- contain, not cover: cropping a quad's arms off to fill a box loses the subject. -->
+        <img
+          class="block h-full w-full object-contain"
+          [src]="photo.url ?? photo.thumbUrl"
+          [alt]="photo.fileName ?? 'Build photo'"
+        />
+      </button>
+
+      @if (photo.id === coverAssetId()) {
+        <span
+          class="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-primary py-0.5 pr-2 pl-1 text-xs font-semibold text-on-primary"
+        >
+          <mat-icon class="icon-xs" aria-hidden="true">star</mat-icon> Cover
+        </span>
+      }
+
+      @if (hasMany()) {
+        <!--
+          Revealed on hover, but never hidden from the keyboard: focus anywhere
+          in the viewer brings them back. With no hover at all (a touch screen)
+          they stay visible, or they could not be reached.
+        -->
+        <button
+          type="button"
+          class="absolute top-1/2 grid size-9.5 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-black/45 p-0 text-white opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-black/65 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white [@media(hover:none)]:opacity-100 left-2"
+          aria-label="Previous photo"
+          (click)="step(-1)"
+        >
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <button
+          type="button"
+          class="absolute top-1/2 grid size-9.5 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-black/45 p-0 text-white opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-black/65 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white [@media(hover:none)]:opacity-100 right-2"
+          aria-label="Next photo"
+          (click)="step(1)"
+        >
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+        <span class="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-xs text-white tabular-nums"
+          >{{ activeIndex() + 1 }} / {{ photos().length }}</span
+        >
+      }
+
+      @if (!readonlyMode()) {
+        <div
+          class="viewer-actions absolute right-1 bottom-1 flex gap-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+        >
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Use as cover"
+            [attr.aria-label]="'Use ' + (photo.fileName ?? 'this photo') + ' as cover'"
+            [disabled]="photo.id === coverAssetId()"
+            (click)="coverChosen.emit(photo)"
+          >
+            <mat-icon>star</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Remove"
+            [attr.aria-label]="'Remove ' + (photo.fileName ?? 'this photo')"
+            (click)="removeRequested.emit(photo)"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!--
+    justify-center-safe matters: plain centring puts the overflow on both
+    sides once the row is full, which leaves the first thumbnail unreachable.
+  -->
+  <div
+    class="mx-auto mt-2 flex w-full max-w-184 justify-center-safe gap-2 overflow-x-auto pb-1"
+    cdkDropList
+    cdkDropListOrientation="horizontal"
+    [cdkDropListDisabled]="readonlyMode()"
+    (cdkDropListDropped)="onDrop($event)"
+  >
+    @for (photo of photos(); track photo.id; let i = $index) {
+      <button
+        type="button"
+        class="thumb relative aspect-4/3 w-23 flex-none overflow-hidden rounded-md border-2 border-transparent bg-surface-container cursor-pointer p-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+        cdkDrag
+        [class.active]="i === activeIndex()"
+        [class.is-cover]="photo.id === coverAssetId()"
+        [attr.aria-current]="i === activeIndex() ? 'true' : null"
+        [attr.aria-label]="'Show photo ' + (i + 1)"
+        (click)="show(i)"
+      >
+        <img
+          class="block h-full w-full object-cover"
+          [src]="photo.thumbUrl ?? photo.url"
+          [alt]="photo.fileName ?? 'Build photo'"
+          loading="lazy"
+        />
+      </button>
+    }
+
+    @for (upload of pending(); track upload.id) {
+      <span
+        class="thumb relative aspect-4/3 w-23 flex-none overflow-hidden rounded-md border-2 border-transparent bg-surface-container"
+      >
+        <!-- Dimmed until it is a real photo, so an in-flight tile is never
+             mistaken for one that has landed. -->
+        <img class="block h-full w-full object-cover opacity-55" [src]="upload.previewUrl" [alt]="upload.fileName" />
+        @if (upload.error) {
+          <span
+            class="absolute inset-x-0 bottom-0 bg-danger-container p-0.5 text-center text-[0.65rem] text-on-danger-container"
+            >{{ upload.error }}</span
+          >
+        } @else {
+          <mat-progress-bar mode="determinate" [value]="upload.progress" />
+        }
+      </span>
+    }
+  </div>
+}
+
+<!--
+  Full-size view, on a native <dialog>. showModal() gives Escape-to-close, a
+  focus trap, an inert background and top-layer stacking without a line of
+  script for any of them -- reimplementing those by hand is how lightboxes end
+  up trapping keyboard users behind a z-index. The dialog fills the viewport,
+  so a click anywhere outside the image lands on it, which is what closes it.
+-->
+<dialog
+  #viewer
+  class="m-0 h-dvh max-h-dvh w-screen max-w-screen overflow-hidden border-0 bg-transparent p-0 backdrop:bg-black/88"
+  aria-label="Photo viewer"
+  tabindex="-1"
+  (close)="onViewerClosed()"
+  (click)="onBackdropClick($event)"
+  (keydown.arrowleft)="step(-1)"
+  (keydown.arrowright)="step(1)"
+>
+  @if (viewerOpen()) {
+    @if (active(); as photo) {
+      <button
+        type="button"
+        class="absolute grid cursor-pointer place-items-center rounded-full border-0 bg-white/12 p-0 text-white transition-colors hover:bg-white/24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white top-3 right-3 size-10"
+        aria-label="Close photo viewer"
+        (click)="closeViewer()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+
+      @if (hasMany()) {
+        <!-- On a phone the arrows would sit on the photo, so they drop to the
+             bottom corners and the image takes the full width. -->
+        <button
+          type="button"
+          class="absolute grid cursor-pointer place-items-center rounded-full border-0 bg-white/12 p-0 text-white transition-colors hover:bg-white/24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white top-1/2 size-12 -translate-y-1/2 max-[32rem]:top-auto max-[32rem]:bottom-12 max-[32rem]:translate-y-0 left-3"
+          aria-label="Previous photo"
+          (click)="step(-1)"
+        >
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <button
+          type="button"
+          class="absolute grid cursor-pointer place-items-center rounded-full border-0 bg-white/12 p-0 text-white transition-colors hover:bg-white/24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white top-1/2 size-12 -translate-y-1/2 max-[32rem]:top-auto max-[32rem]:bottom-12 max-[32rem]:translate-y-0 right-3"
+          aria-label="Next photo"
+          (click)="step(1)"
+        >
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      }
+
+      <img
+        class="absolute inset-x-18 top-14 bottom-12 m-auto h-[calc(100%-6.5rem)] w-[calc(100%-9rem)] object-contain max-[32rem]:inset-x-2 max-[32rem]:bottom-18 max-[32rem]:h-[calc(100%-8rem)] max-[32rem]:w-[calc(100%-1rem)]"
+        [src]="photo.url ?? photo.thumbUrl"
+        [alt]="photo.fileName ?? 'Build photo'"
+      />
+
+      <p
+        class="absolute inset-x-0 bottom-0 m-0 flex items-center justify-center gap-2.5 px-4 py-3 text-center text-sm text-white/82"
+      >
+        {{ photo.fileName ?? 'Build photo' }}
+        @if (hasMany()) {
+          <span class="text-white/55 tabular-nums">{{ activeIndex() + 1 }} / {{ photos().length }}</span>
+        }
+      </p>
+    }
+  }
+</dialog>

@@ -1,0 +1,107 @@
+@if (configs().length > 1) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts"
+    [shown]="rows().length"
+    [total]="configs().length"
+    searchLabel="Search captures"
+  >
+    @if (kindOptions().length > 1) {
+      <sh-filter-chips [options]="kindOptions()" [(selected)]="grid.filter" ariaLabel="Filter by kind" />
+    }
+  </sh-grid-toolbar>
+}
+
+@if (rows().length) {
+  <ul class="m-0 grid list-none gap-1.5 p-0">
+    @for (config of rows(); track config.id) {
+      <li
+        class="grid grid-cols-[1fr_auto] items-center gap-4 rounded bg-surface-container px-3.5 py-2 text-sm min-[50rem]:grid-cols-[minmax(8rem,auto)_minmax(11rem,auto)_1fr_auto]"
+      >
+        <span class="flex flex-col whitespace-nowrap tabular-nums">
+          {{ date(config.capturedAt) }}
+          <span class="font-mono text-xs text-muted">{{ kindLabels[config.kind] }}</span>
+        </span>
+
+        <span class="flex min-w-0 flex-col gap-0.5">
+          @if (config.fwVersion; as version) {
+            <strong class="tabular-nums">{{ version }}</strong>
+            @if (flashedAt().has(config.id)) {
+              <!-- A flash is where Betaflight's own advice says settings stop carrying over. -->
+              <span
+                class="ml-1.5 inline-flex items-center gap-0.5 text-xs font-semibold tracking-wide text-status-work uppercase"
+                title="Firmware changed since the previous capture"
+              >
+                <mat-icon class="icon-xs" aria-hidden="true">bolt</mat-icon>
+                flashed
+              </span>
+            }
+          } @else {
+            <span class="text-muted italic">Unknown firmware</span>
+          }
+
+          <span class="truncate font-mono text-xs text-muted">
+            @if (config.boardName; as board) {
+              {{ board }}
+            } @else if (config.fwTarget; as target) {
+              {{ target }}
+            } @else {
+              <span class="italic">unknown board</span>
+            }
+            @if (config.manufacturerId; as maker) {
+              · {{ maker }}
+            }
+          </span>
+        </span>
+
+        <span class="min-w-0 text-muted wrap-anywhere">
+          @if (config.note; as text) {
+            {{ text }}
+          } @else {
+            <span class="italic">No note</span>
+          }
+        </span>
+
+        <span class="flex gap-0.5 whitespace-nowrap">
+          <button
+            matButton
+            type="button"
+            [disabled]="busyId() === config.id"
+            title="Copy the CLI text, ready to paste back into Betaflight"
+            (click)="copyRequested.emit(config)"
+          >
+            <mat-icon aria-hidden="true">
+              {{ copiedId() === config.id ? 'check' : 'content_copy' }}
+            </mat-icon>
+            {{ copiedId() === config.id ? 'Copied' : 'Copy' }}
+          </button>
+
+          <button
+            matButton
+            type="button"
+            [disabled]="busyId() === config.id"
+            title="Save as a .txt file"
+            (click)="downloadRequested.emit(config)"
+          >
+            <mat-icon aria-hidden="true">download</mat-icon>
+            Save
+          </button>
+
+          <button
+            matButton
+            type="button"
+            [disabled]="pendingRemoval() === config.id"
+            (click)="removeRequested.emit(config)"
+          >
+            {{ pendingRemoval() === config.id ? 'Deleting…' : 'Delete' }}
+          </button>
+        </span>
+      </li>
+    }
+  </ul>
+} @else if (configs().length) {
+  <p class="m-0 py-5 text-muted">Nothing matches.</p>
+} @else {
+  <p class="m-0 py-5 text-muted">No firmware captured yet.</p>
+}

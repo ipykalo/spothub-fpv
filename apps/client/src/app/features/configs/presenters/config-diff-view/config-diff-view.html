@@ -1,0 +1,65 @@
+@for (caveat of caveats(); track caveat.title) {
+  <div
+    class="tone-{{
+      caveat.severity
+    }} mb-2.5 flex max-w-240 items-start gap-2.5 rounded border-l-3 border-l-(--tone) bg-(--tone-surface) px-3.5 py-2.5 text-sm text-(--tone)"
+    role="note"
+  >
+    <mat-icon class="icon-md mt-px shrink-0" aria-hidden="true">
+      {{ caveat.severity === 'stop' ? 'warning' : 'info' }}
+    </mat-icon>
+    <span>
+      <strong class="block">{{ caveat.title }}</strong>
+      {{ caveat.detail }}
+    </span>
+  </div>
+}
+
+<div class="mb-2.5 flex flex-wrap items-center justify-between gap-3">
+  <span class="inline-flex items-center gap-1.5 text-sm text-muted">
+    @if (changeCount()) {
+      <strong class="text-fg tabular-nums">{{ changeCount() }}</strong>
+      line{{ changeCount() === 1 ? '' : 's' }} differ
+    } @else {
+      <mat-icon class="icon-md text-status-go" aria-hidden="true">check_circle</mat-icon>
+      These two captures are identical
+    }
+  </span>
+
+  @if (changeCount()) {
+    <mat-slide-toggle [(ngModel)]="changesOnly">Changes only</mat-slide-toggle>
+  }
+</div>
+
+@if (changeCount()) {
+  <div class="overflow-hidden rounded border border-outline-variant">
+    <!-- Same four columns as the rows, so each heading sits over its cells. -->
+    <div
+      class="grid grid-cols-[3rem_1fr_3rem_1fr] bg-surface-high text-xs font-semibold tracking-wider text-muted uppercase"
+    >
+      <span class="col-[1/3] px-2.5 py-1.5">{{ leftLabel() }}</span>
+      <span class="col-[3/5] border-l border-outline-variant px-2.5 py-1.5">{{ rightLabel() }}</span>
+    </div>
+
+    <cdk-virtual-scroll-viewport itemSize="22" class="h-128 bg-surface">
+      <div
+        class="row {{ row.kind }} grid h-5.5 grid-cols-[3rem_1fr_3rem_1fr] items-center"
+        *cdkVirtualFor="let row of visible()"
+      >
+        <span class="pr-2 text-right font-mono text-[0.68rem] text-muted tabular-nums opacity-65 select-none">{{
+          row.leftNo
+        }}</span>
+        <code class="left overflow-hidden px-2 font-mono text-[0.76rem] leading-5.5 text-ellipsis whitespace-pre">{{
+          row.left
+        }}</code>
+        <span class="pr-2 text-right font-mono text-[0.68rem] text-muted tabular-nums opacity-65 select-none">{{
+          row.rightNo
+        }}</span>
+        <code
+          class="right border-l border-outline-variant overflow-hidden px-2 font-mono text-[0.76rem] leading-5.5 text-ellipsis whitespace-pre"
+          >{{ row.right }}</code
+        >
+      </div>
+    </cdk-virtual-scroll-viewport>
+  </div>
+}

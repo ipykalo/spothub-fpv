@@ -22,7 +22,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
 import {
   PART_CATEGORY_LABELS,
   PartCategory,
@@ -34,6 +33,10 @@ import {
   type PartSourceDto,
   type UrlPreviewDto,
 } from '@spothub/shared';
+
+import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import { choicesFrom } from '../../../../core/components/choice-option';
+import { PART_CATEGORY_ICONS } from '../../part-category';
 
 /**
  * What the form hands back.
@@ -93,6 +96,7 @@ const SPEC_SUGGESTIONS: Readonly<Record<PartCategory, readonly string[]>> = {
   selector: 'sh-part-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
@@ -101,7 +105,6 @@ const SPEC_SUGGESTIONS: Readonly<Record<PartCategory, readonly string[]>> = {
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
-    MatSelectModule,
   ],
   templateUrl: './part-form.html',
   styleUrl: './part-form.scss',
@@ -121,8 +124,11 @@ export class PartForm {
 
   private readonly fb = inject(FormBuilder).nonNullable;
 
-  protected readonly categories = Object.values(PartCategory);
-  protected readonly categoryLabels = PART_CATEGORY_LABELS;
+  protected readonly categoryOptions = choicesFrom(
+    Object.values(PartCategory),
+    PART_CATEGORY_LABELS,
+    PART_CATEGORY_ICONS,
+  );
 
   private readonly validationError = signal<string | null>(null);
   private readonly selectedCategory = signal<PartCategory>(PartCategory.Motor);

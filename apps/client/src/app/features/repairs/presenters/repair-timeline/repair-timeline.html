@@ -1,0 +1,71 @@
+@if (repairs().length > 1) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts"
+    [shown]="rows().length"
+    [total]="repairs().length"
+    searchLabel="Search repairs"
+  >
+    @if (causeOptions().length > 1) {
+      <sh-filter-chips [options]="causeOptions()" [(selected)]="grid.filter" ariaLabel="Filter by cause" />
+    }
+  </sh-grid-toolbar>
+}
+
+@if (rows().length) {
+  <ol class="m-0 grid list-none gap-1.5 p-0">
+    @for (repair of rows(); track repair.id) {
+      <!-- Severity stripe, same language as the cards. -->
+      <li
+        class="tone-{{
+          causeStyles[repair.cause].tone
+        }} grid grid-cols-[1fr_auto] items-center gap-4 rounded border-l-3 border-l-(--tone) bg-surface-container px-3.5 py-2 text-sm min-[50rem]:grid-cols-[minmax(7rem,auto)_minmax(6rem,auto)_1fr_auto_auto]"
+      >
+        <span class="inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-(--tone) uppercase">
+          <mat-icon class="icon-sm" aria-hidden="true">{{ causeStyles[repair.cause].icon }}</mat-icon>
+          {{ causeLabels[repair.cause] }}
+        </span>
+
+        <span class="whitespace-nowrap text-muted tabular-nums">{{ repair.occurredOn }}</span>
+
+        <span class="flex min-w-0 flex-col gap-0.5 wrap-anywhere">
+          @if (repair.descriptionMd; as text) {
+            {{ text }}
+          } @else {
+            <span class="text-muted italic">No description</span>
+          }
+
+          @if (repair.installCount) {
+            <span class="inline-flex items-center gap-1 text-xs text-muted">
+              <mat-icon class="icon-sm" aria-hidden="true">build</mat-icon>
+              {{ repair.installCount }} part{{ repair.installCount === 1 ? '' : 's' }}
+              replaced
+            </span>
+          }
+        </span>
+
+        <span class="whitespace-nowrap tabular-nums">
+          @if (repair.cost !== null) {
+            <strong>{{ repair.cost }}</strong> {{ repair.currency }}
+          } @else {
+            <span class="text-muted italic">—</span>
+          }
+        </span>
+
+        <button
+          matButton
+          type="button"
+          [disabled]="pendingRemoval() === repair.id"
+          (click)="removeRequested.emit(repair)"
+        >
+          {{ pendingRemoval() === repair.id ? 'Deleting…' : 'Delete' }}
+        </button>
+      </li>
+    }
+  </ol>
+} @else if (repairs().length) {
+  <p class="m-0 py-5 text-muted">Nothing matches.</p>
+} @else {
+  <p class="m-0 py-5 text-muted">Nothing has gone wrong with this build yet.</p>
+}

@@ -1,0 +1,139 @@
+<form class="grid gap-2" [formGroup]="form" (ngSubmit)="submit()">
+  <p class="m-0 max-w-192 text-sm text-muted">
+    In Betaflight's CLI tab, run <code>diff all</code> and paste the output here — or drop in a <code>.txt</code> saved
+    with its <strong>Save to File</strong> button. <code>diff</code> is what Betaflight recommends keeping: it records
+    only what you changed from default.
+  </p>
+
+  <div class="flex flex-wrap items-center gap-3">
+    <button matButton="outlined" type="button" (click)="file.click()">
+      <mat-icon>upload_file</mat-icon>
+      Choose file
+    </button>
+
+    <input #file type="file" accept=".txt,text/plain" hidden (change)="onFileChosen($event)" />
+
+    @if (fileName(); as name) {
+      <span class="inline-flex items-center gap-1 font-mono text-sm">
+        <mat-icon class="icon-sm" aria-hidden="true">description</mat-icon>
+        {{ name }}
+      </span>
+    } @else {
+      <span class="text-sm text-muted">or drop a file onto the box below</span>
+    }
+  </div>
+
+  <!--
+    The whole box is the drop target, not just the textarea, so a near miss
+    still lands. `grid` because mat-form-field is inline-flex, and would
+    otherwise sit at content width instead of matching the rest of the form.
+  -->
+  <div
+    class="relative grid rounded data-over:outline-2 data-over:outline-offset-2 data-over:outline-status-ready data-over:outline-dashed"
+    [attr.data-over]="dragging() || null"
+    (drop)="onDrop($event)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+  >
+    <mat-form-field>
+      <mat-label>CLI output</mat-label>
+      <textarea
+        matInput
+        rows="12"
+        formControlName="raw"
+        placeholder="# diff all&#10;&#10;# version&#10;# Betaflight / STM32F405 (S405) 4.5.0 …"
+      ></textarea>
+    </mat-form-field>
+
+    @if (dragging()) {
+      <!-- pointer-events-none: the drag events belong to the box underneath. -->
+      <div
+        class="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5 rounded bg-status-ready-surface font-semibold text-status-ready"
+      >
+        <mat-icon aria-hidden="true">file_download</mat-icon>
+        Drop to load
+      </div>
+    }
+  </div>
+
+  @if (detected(); as found) {
+    <!-- What the parser saw, shown before saving so nothing is a surprise after. -->
+    <div
+      class="flex items-start gap-2.5 rounded bg-(--tone-surface) px-3.5 py-2.5 text-sm text-(--tone)"
+      [class.tone-ready]="!unrecognised()"
+      [class.tone-work]="unrecognised()"
+    >
+      @if (unrecognised()) {
+        <mat-icon class="icon-md mt-0.5 shrink-0" aria-hidden="true">help</mat-icon>
+        <span>
+          No Betaflight header found. It will still be saved verbatim, but the firmware and board will be blank.
+        </span>
+      } @else {
+        <mat-icon class="icon-md mt-0.5 shrink-0" aria-hidden="true">memory</mat-icon>
+        <dl class="m-0 flex flex-wrap gap-x-5 gap-y-1">
+          <div class="flex gap-1.5">
+            <dt class="opacity-75">Command</dt>
+            <dd class="m-0 font-mono font-semibold">{{ kindLabels[found.kind] }}</dd>
+          </div>
+          @if (found.fwVersion; as version) {
+            <div class="flex gap-1.5">
+              <dt class="opacity-75">Firmware</dt>
+              <dd class="m-0 font-mono font-semibold">{{ version }}</dd>
+            </div>
+          }
+          @if (found.fwTarget; as target) {
+            <div class="flex gap-1.5">
+              <dt class="opacity-75">Target</dt>
+              <dd class="m-0 font-mono font-semibold">{{ target }}</dd>
+            </div>
+          }
+          @if (found.boardName; as board) {
+            <div class="flex gap-1.5">
+              <dt class="opacity-75">Board</dt>
+              <dd class="m-0 font-mono font-semibold">{{ board }}</dd>
+            </div>
+          }
+          @if (found.manufacturerId; as maker) {
+            <div class="flex gap-1.5">
+              <dt class="opacity-75">Maker</dt>
+              <dd class="m-0 font-mono font-semibold">{{ maker }}</dd>
+            </div>
+          }
+          @if (found.craftName; as craft) {
+            <div class="flex gap-1.5">
+              <dt class="opacity-75">Craft</dt>
+              <dd class="m-0 font-mono font-semibold">{{ craft }}</dd>
+            </div>
+          }
+        </dl>
+      }
+    </div>
+  }
+
+  @if (otherBoard()) {
+    <p
+      class="m-0 flex items-center gap-2 rounded bg-status-stop-surface px-3.5 py-2.5 text-sm text-status-stop"
+      role="alert"
+    >
+      <mat-icon class="icon-md shrink-0" aria-hidden="true">warning</mat-icon>
+      This came off a different flight controller than the last capture on this build — the MCU id does not match. Save
+      it anyway if you have swapped the board.
+    </p>
+  }
+
+  <div class="grid grid-cols-[1fr_auto] items-start gap-3">
+    <mat-form-field>
+      <mat-label>Note</mat-label>
+      <input matInput formControlName="note" placeholder="After the March crash, softened D on roll" />
+    </mat-form-field>
+
+    <button matButton="filled" type="submit" class="mt-2" [disabled]="saving()">
+      <mat-icon>save</mat-icon>
+      Save capture
+    </button>
+  </div>
+</form>
+
+@if (error) {
+  <p class="mt-1 mb-0 text-sm text-danger" role="alert">{{ error }}</p>
+}

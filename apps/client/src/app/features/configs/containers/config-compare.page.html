@@ -1,0 +1,61 @@
+<header class="mb-5">
+  <a
+    class="inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline"
+    [routerLink]="['/hangar', id()]"
+  >
+    <mat-icon class="icon-sm">arrow_back</mat-icon>
+    Build
+  </a>
+  <h1 class="mt-1.5 mb-0 text-2xl">Compare firmware</h1>
+</header>
+
+@if (configs.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (configs.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+@if (configs.configs().length < 2) {
+  <p class="py-8 text-muted">
+    Two captures are needed to compare. Save another from the build page after your next change.
+  </p>
+} @else {
+  <div
+    class="mb-3 grid grid-cols-1 items-center justify-start gap-3 min-[45rem]:grid-cols-[minmax(12rem,20rem)_auto_minmax(12rem,20rem)]"
+  >
+    <sh-autocomplete label="Older" [options]="captureOptions()" [value]="leftId()" (valueChange)="leftId.set($event)" />
+
+    <!-- A wrapper, because MatIcon sets its own display and a layered `hidden`
+         on the icon itself would lose to it. -->
+    <span class="mb-5 hidden min-[45rem]:inline-flex">
+      <mat-icon class="text-muted" aria-hidden="true">arrow_forward</mat-icon>
+    </span>
+
+    <sh-autocomplete
+      label="Newer"
+      [options]="captureOptions()"
+      [value]="rightId()"
+      (valueChange)="rightId.set($event)"
+    />
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (failure(); as message) {
+    <p role="alert">{{ message }}</p>
+  }
+
+  @if (ready()) {
+    <sh-config-diff-view
+      [rows]="rows()"
+      [caveats]="caveats()"
+      [leftLabel]="left() ? label(left()!) : 'Older'"
+      [rightLabel]="right() ? label(right()!) : 'Newer'"
+      [(changesOnly)]="changesOnly"
+    />
+  }
+}

@@ -1,0 +1,6 @@
+@if (group.count() > 1) {
+  <button matButton type="button" (click)="toggle()">
+    <mat-icon>{{ group.allOpen() ? 'unfold_less' : 'unfold_more' }}</mat-icon>
+    {{ group.allOpen() ? 'Collapse all' : 'Expand all' }}
+  </button>
+}

@@ -1,0 +1,43 @@
+<div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+  <mat-form-field class="compact w-64 max-w-full" subscriptSizing="dynamic">
+    <mat-icon matIconPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      autocomplete="off"
+      [value]="query()"
+      [placeholder]="searchLabel()"
+      [attr.aria-label]="searchLabel()"
+      (input)="onSearch($event)"
+    />
+    @if (query()) {
+      <button matIconButton matIconSuffix type="button" aria-label="Clear search" (click)="clear()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <ng-content />
+
+  <div class="ml-auto flex flex-wrap items-center gap-1" role="group" aria-label="Sort">
+    <span class="mr-1 text-sm text-muted">Sort</span>
+    @for (option of sorts(); track option.key) {
+      <button
+        type="button"
+        [matButton]="sort().key === option.key ? 'tonal' : 'text'"
+        [attr.aria-pressed]="sort().key === option.key"
+        (click)="sortBy(option)"
+      >
+        {{ option.label }}
+        @if (sort().key === option.key) {
+          <mat-icon iconPositionEnd [attr.aria-label]="sort().direction === 'asc' ? 'ascending' : 'descending'">{{
+            sort().direction === 'asc' ? 'arrow_upward' : 'arrow_downward'
+          }}</mat-icon>
+        }
+      </button>
+    }
+  </div>
+
+  @if (shown() !== null && total() !== null && shown() !== total()) {
+    <span class="text-sm text-muted tabular-nums" aria-live="polite">{{ shown() }} of {{ total() }}</span>
+  }
+</div>

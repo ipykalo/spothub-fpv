@@ -1,161 +1,170 @@
-<mat-card appearance="outlined">
-  <mat-card-content>
-    <dl class="facts">
-      <div>
-        <dt>Category</dt>
-        <dd class="kind">
-          <mat-icon aria-hidden="true">{{ categoryIcons[part().category] }}</mat-icon>
-          {{ categoryLabels[part().category] }}
-        </dd>
-      </div>
-      <div>
-        <dt>Units</dt>
-        <dd>
-          {{ total() }} owned
-          @if (fitted()) {
-            <span class="sub">· {{ fitted() }} fitted, {{ free() }} free</span>
-          } @else {
-            <span class="sub">· all in stock</span>
-          }
-        </dd>
-      </div>
-      <div>
-        <dt>Manufacturer</dt>
-        <dd>
-          @if (part().manufacturer; as maker) {
-            {{ maker }}
-          } @else {
-            <span class="none">Not recorded</span>
-          }
-        </dd>
-      </div>
-      <div class="wide">
-        <dt>Model</dt>
-        <dd>
-          @if (part().model; as model) {
-            {{ model }}
-          } @else {
-            <span class="none">Not recorded</span>
-          }
-        </dd>
-      </div>
-    </dl>
-  </mat-card-content>
-</mat-card>
+<div class="flex flex-col gap-8">
+  <sh-section heading="Details" storageKey="part.details">
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <dl class="m-0 grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-6 gap-y-3.5">
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Category</dt>
+            <dd class="m-0 flex items-center gap-1.5 text-base wrap-anywhere">
+              <mat-icon class="icon-md text-muted" aria-hidden="true">{{ categoryIcons[part().category] }}</mat-icon>
+              {{ categoryLabels[part().category] }}
+            </dd>
+          </div>
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Units</dt>
+            <dd class="m-0 text-base wrap-anywhere">
+              {{ total() }} owned
+              @if (fitted()) {
+                <span class="text-sm text-muted">· {{ fitted() }} fitted, {{ free() }} free</span>
+              } @else {
+                <span class="text-sm text-muted">· all in stock</span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Manufacturer</dt>
+            <dd class="m-0 text-base wrap-anywhere">
+              @if (part().manufacturer; as maker) {
+                {{ maker }}
+              } @else {
+                <span class="text-muted italic">Not recorded</span>
+              }
+            </dd>
+          </div>
+          <div class="col-span-full">
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Model</dt>
+            <!-- Long listing names wrap here rather than being clamped as on the card. -->
+            <dd class="m-0 text-base wrap-anywhere">
+              @if (part().model; as model) {
+                {{ model }}
+              } @else {
+                <span class="text-muted italic">Not recorded</span>
+              }
+            </dd>
+          </div>
+        </dl>
+      </mat-card-content>
+    </mat-card>
+  </sh-section>
 
-<section class="block">
-  <h2>Specification</h2>
-
-  @if (specEntries().length) {
-    <dl class="spec">
-      @for (entry of specEntries(); track entry.key) {
-        <div>
-          <dt>{{ entry.key }}</dt>
-          <dd>{{ entry.value }}</dd>
-        </div>
-      }
-    </dl>
-  } @else {
-    <p class="none">Nothing recorded for this part.</p>
-  }
-</section>
-
-<section class="block">
-  <h2>Units</h2>
-  <p class="hint">
-    Each row is one physical item. Condition is per unit, so a dead motor does not condemn its siblings.
-  </p>
-
-  <ul class="units">
-    @for (unit of part().units; track unit.id) {
-      <li class="tone-{{ conditionStyles[unit.condition].tone }}">
-        <span class="unit-name">{{ name(unit) }}</span>
-
-        <mat-select
-          class="condition"
-          [value]="unit.condition"
-          (valueChange)="unitConditionChanged.emit({ unit, condition: $event })"
-          [attr.aria-label]="'Condition of ' + name(unit)"
-        >
-          @for (item of conditions; track item) {
-            <mat-option [value]="item">{{ conditionLabels[item] }}</mat-option>
-          }
-        </mat-select>
-
-        <span class="where">
-          @if (unit.fitted) {
-            <mat-icon aria-hidden="true">link</mat-icon>
-            Fitted
-          } @else {
-            In stock
-          }
-        </span>
-
-        <button
-          matButton
-          type="button"
-          [disabled]="unit.fitted || removingUnitId() === unit.id"
-          [title]="unit.fitted ? 'Take it off its build first' : 'Delete this unit'"
-          (click)="unitRemoved.emit(unit)"
-        >
-          {{ removingUnitId() === unit.id ? 'Removing…' : 'Delete' }}
-        </button>
-      </li>
+  <sh-section heading="Specification" storageKey="part.spec" [count]="specEntries().length">
+    @if (specEntries().length) {
+      <dl
+        class="m-0 grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-x-6 gap-y-3 rounded bg-surface-container px-4.5 py-4"
+      >
+        @for (entry of specEntries(); track entry.key) {
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">{{ entry.key }}</dt>
+            <dd class="m-0 text-base wrap-anywhere">{{ entry.value }}</dd>
+          </div>
+        }
+      </dl>
+    } @else {
+      <p class="m-0 text-muted italic">Nothing recorded for this part.</p>
     }
-  </ul>
+  </sh-section>
 
-  <button matButton="outlined" type="button" (click)="unitAdded.emit()">
-    <mat-icon>add</mat-icon>
-    Add a unit
-  </button>
-</section>
+  <sh-section heading="Units" storageKey="part.units" [count]="part().units.length">
+    <!-- Adding a unit needs no form: it is one more of the same thing. -->
+    <button shSectionActions matButton="tonal" type="button" (click)="unitAdded.emit()">
+      <mat-icon>add</mat-icon>
+      Add unit
+    </button>
 
-<section class="block">
-  <h2>Sources</h2>
+    <p class="mt-0 mb-3 max-w-176 text-sm text-muted">
+      Each row is one physical item. Condition is per unit, so a dead motor does not condemn its siblings.
+    </p>
 
-  @if (sources().length) {
-    <ul class="sources">
-      @for (source of sources(); track source.id) {
-        <li [class.purchase]="source.isPurchase">
-          <span class="vendor">
-            @if (source.isPurchase) {
-              <mat-icon class="bought" aria-label="Bought here">check_circle</mat-icon>
-            }
-            {{ source.vendor ?? 'Unknown vendor' }}
-          </span>
+    <ul class="m-0 grid list-none gap-1.5 p-0">
+      @for (unit of part().units; track unit.id) {
+        <li
+          class="tone-{{
+            conditionStyles[unit.condition].tone
+          }} grid grid-cols-[1fr_auto] items-center gap-4 rounded border-l-3 border-l-(--tone) bg-surface-container px-3.5 py-1.5 text-sm min-[40rem]:grid-cols-[5rem_minmax(11rem,14rem)_1fr_auto]"
+        >
+          <span class="font-semibold tabular-nums">{{ name(unit) }}</span>
 
-          <span class="cost">
-            @if (source.price !== null) {
-              <strong>{{ source.price }}</strong> {{ source.currency }}
+          <sh-autocomplete
+            compact
+            subscriptSizing="dynamic"
+            [options]="conditionOptions"
+            [value]="unit.condition"
+            [ariaLabel]="'Condition of ' + name(unit)"
+            (valueChange)="changeCondition(unit, $event)"
+          />
+
+          <span class="flex items-center gap-1 text-sm text-muted">
+            @if (unit.fitted) {
+              <mat-icon class="icon-sm" aria-hidden="true">link</mat-icon>
+              Fitted
             } @else {
-              <span class="none">No price</span>
+              In stock
             }
           </span>
 
-          <span class="when">
-            @if (source.purchasedOn; as bought) {
-              {{ bought }}
-            } @else {
-              <span class="none">—</span>
-            }
-          </span>
-
-          @if (source.url; as link) {
-            <a [href]="link" target="_blank" rel="noopener noreferrer">Open listing</a>
-          } @else {
-            <span class="none">no link</span>
-          }
+          <button
+            matButton
+            type="button"
+            [disabled]="unit.fitted || removingUnitId() === unit.id"
+            [title]="unit.fitted ? 'Take it off its build first' : 'Delete this unit'"
+            (click)="unitRemoved.emit(unit)"
+          >
+            {{ removingUnitId() === unit.id ? 'Removing…' : 'Delete' }}
+          </button>
         </li>
       }
     </ul>
-  } @else {
-    <p class="none">No purchase or price capture recorded.</p>
-  }
-</section>
+  </sh-section>
 
-@if (part().notesMd; as notes) {
-  <section class="block">
-    <h2>Notes</h2>
-    <pre class="notes">{{ notes }}</pre>
-  </section>
-}
+  <sh-section heading="Sources" storageKey="part.sources" [count]="sources().length">
+    @if (sources().length) {
+      <ul class="m-0 grid list-none gap-1.5 p-0">
+        @for (source of sources(); track source.id) {
+          <li
+            class="grid grid-cols-[1fr_auto] items-center gap-4 rounded bg-surface-container px-3.5 py-2 text-sm outline-primary min-[40rem]:grid-cols-[1fr_auto_auto_auto]"
+            [class.outline]="source.isPurchase"
+          >
+            <span class="flex min-w-0 items-center gap-1.5 truncate">
+              @if (source.isPurchase) {
+                <mat-icon class="icon-sm text-primary" aria-label="Bought here">check_circle</mat-icon>
+              }
+              {{ source.vendor ?? 'Unknown vendor' }}
+            </span>
+
+            <span class="whitespace-nowrap tabular-nums">
+              @if (source.price !== null) {
+                <strong>{{ source.price }}</strong> {{ source.currency }}
+              } @else {
+                <span class="text-muted italic">No price</span>
+              }
+            </span>
+
+            <span class="whitespace-nowrap tabular-nums">
+              @if (source.purchasedOn; as bought) {
+                {{ bought }}
+              } @else {
+                <span class="text-muted italic">—</span>
+              }
+            </span>
+
+            @if (source.url; as link) {
+              <a [href]="link" target="_blank" rel="noopener noreferrer">Open listing</a>
+            } @else {
+              <span class="text-muted italic">no link</span>
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="m-0 text-muted italic">No purchase or price capture recorded.</p>
+    }
+  </sh-section>
+
+  @if (part().notesMd; as notes) {
+    <sh-section heading="Notes" storageKey="part.notes">
+      <pre
+        class="m-0 max-h-88 overflow-auto rounded bg-surface-container px-4.5 py-4 text-sm leading-[1.55] whitespace-pre-wrap wrap-anywhere [font-family:inherit]"
+        >{{ notes }}</pre>
+    </sh-section>
+  }
+</div>

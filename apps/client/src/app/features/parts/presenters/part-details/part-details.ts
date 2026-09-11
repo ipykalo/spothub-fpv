@@ -7,7 +7,6 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import {
   PART_CATEGORY_LABELS,
@@ -17,6 +16,8 @@ import {
   type PartUnitDto,
 } from '@spothub/shared';
 
+import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import { Section } from '../../../../core/components/section/section';
 import { PART_CATEGORY_ICONS } from '../../part-category';
 import {
   PART_CONDITION_STYLES,
@@ -40,7 +41,7 @@ interface SpecEntry {
 @Component({
   selector: 'sh-part-details',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatCardModule, MatIconModule, MatSelectModule],
+  imports: [Autocomplete, MatButtonModule, MatCardModule, MatIconModule, Section],
   templateUrl: './part-details.html',
   styleUrl: './part-details.scss',
 })
@@ -58,9 +59,13 @@ export class PartDetails {
 
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
   protected readonly categoryIcons = PART_CATEGORY_ICONS;
-  protected readonly conditionLabels = PART_CONDITION_LABELS;
   protected readonly conditionStyles = PART_CONDITION_STYLES;
-  protected readonly conditions = Object.values(PartCondition);
+
+  protected readonly conditionOptions = Object.values(PartCondition).map((condition) => ({
+    value: condition,
+    label: PART_CONDITION_LABELS[condition],
+    icon: PART_CONDITION_STYLES[condition].icon,
+  }));
 
   /** Units not currently on a quad. */
   protected readonly free = computed(() => availableUnits(this.part()));
@@ -69,6 +74,12 @@ export class PartDetails {
 
   protected name(unit: PartUnitDto): string {
     return unitName(this.part(), unit);
+  }
+
+  protected changeCondition(unit: PartUnitDto, condition: PartCondition | null): void {
+    if (condition !== null && condition !== unit.condition) {
+      this.unitConditionChanged.emit({ unit, condition });
+    }
   }
 
   protected readonly specEntries = computed<readonly SpecEntry[]>(() =>

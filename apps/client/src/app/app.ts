@@ -5,6 +5,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 
 import { AuthStore } from './core/auth/auth.store';
+import { ThemeStore } from './core/theme/theme.store';
 
 @Component({
   selector: 'sh-root',
@@ -15,6 +16,7 @@ import { AuthStore } from './core/auth/auth.store';
 })
 export class App {
   protected readonly auth = inject(AuthStore);
+  protected readonly theme = inject(ThemeStore);
   private readonly router = inject(Router);
 
   protected async signOut(): Promise<void> {

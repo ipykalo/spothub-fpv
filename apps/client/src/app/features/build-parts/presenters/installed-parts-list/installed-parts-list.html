@@ -1,0 +1,72 @@
+@if (installs().length > 1) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts()"
+    [shown]="rows().length"
+    [total]="installs().length"
+    searchLabel="Search components"
+  >
+    @if (categoryOptions().length > 1) {
+      <sh-filter-chips [options]="categoryOptions()" [(selected)]="grid.filter" ariaLabel="Filter by category" />
+    }
+  </sh-grid-toolbar>
+}
+
+@if (rows().length) {
+  <ul class="m-0 grid list-none gap-1.5 p-0">
+    @for (install of rows(); track install.id) {
+      <li
+        class="grid grid-cols-[1fr_auto] items-center gap-3 rounded bg-surface-container px-3 py-2 text-sm min-[40rem]:grid-cols-[minmax(5rem,8rem)_1fr_auto_auto]"
+        [class.opacity-70]="history()"
+      >
+        <span class="font-semibold">
+          @if (install.position) {
+            {{ install.position }}
+          } @else {
+            <span class="font-normal text-muted">no position</span>
+          }
+        </span>
+
+        <span class="flex min-w-0 flex-col">
+          <a class="truncate text-inherit no-underline hover:underline" [routerLink]="['/parts', install.part.id]">{{
+            name(install)
+          }}</a>
+          <span class="flex items-center gap-1 text-xs text-muted">
+            <mat-icon class="icon-sm" aria-hidden="true">{{ categoryIcons[install.part.category] }}</mat-icon>
+            {{ categoryLabels[install.part.category] }} · {{ unitName(install) }}
+          </span>
+        </span>
+
+        <span class="flex flex-col items-start text-sm whitespace-nowrap text-muted tabular-nums min-[40rem]:items-end">
+          {{ install.installedOn }}
+          @if (install.removedOn; as off) {
+            → {{ off }}
+          }
+          <span class="text-xs">{{ reasonLabels[install.reason] }}</span>
+        </span>
+
+        @if (!history()) {
+          <button
+            matButton
+            type="button"
+            [disabled]="pendingRemoval() === install.id"
+            (click)="removeRequested.emit(install)"
+          >
+            {{ pendingRemoval() === install.id ? 'Removing…' : 'Remove' }}
+          </button>
+        }
+      </li>
+    }
+  </ul>
+} @else if (installs().length) {
+  <p class="m-0 py-5 text-muted">Nothing matches.</p>
+} @else {
+  <p class="m-0 py-5 text-muted">
+    @if (history()) {
+      Nothing has been taken off this build yet.
+    } @else {
+      No components fitted yet.
+    }
+  </p>
+}

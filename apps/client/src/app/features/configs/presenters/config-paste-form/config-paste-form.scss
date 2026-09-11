@@ -1,0 +1,25 @@
+/* Inline code in the hint. Three uses in one paragraph -- a rule reads more
+   clearly than the same long utility string repeated three times. */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  background: var(--mat-sys-surface-container-high);
+}
+
+/*
+ * The CLI textarea. Material styles its input element itself, unlayered, so
+ * these cannot be utilities: a layered utility would lose.
+ */
+textarea {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  /* A CLI capture is column-aligned; wrapping it would misread as content. */
+  white-space: pre;
+  /* Roughly a screenful of a diff -- enough to see the header and the first
+     few sections without scrolling. */
+  min-height: 14rem;
+  resize: vertical;
+}

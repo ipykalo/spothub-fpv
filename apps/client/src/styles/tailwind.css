@@ -1,0 +1,120 @@
+/*
+ * Tailwind — theme and utilities, deliberately without preflight.
+ *
+ * Preflight is a reset: it strips button chrome, list styles and border
+ * defaults, which is precisely what Angular Material's components are built
+ * on. So this imports Tailwind's pieces rather than `tailwindcss` whole.
+ *
+ * Material's styles are unlayered and the utilities sit in `@layer utilities`,
+ * so where both set the same property on a Material element, Material wins.
+ * That is the safe direction: a utility cannot quietly break a component's
+ * internals, and on our own elements there is nothing to compete with.
+ */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+
+/* Scan the client's own templates and components, and nothing else. */
+@source '../app';
+
+/* `dark:` follows the class ThemeStore sets, not the operating system. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * The brand scale — Betaflight's amber, taken from Betaflight Configurator's
+ * own theme.css so the two read as the same family. `static` emits every one
+ * as a real CSS variable, so component styles can use them as well as
+ * utilities.
+ */
+@theme static {
+  --color-primary-50: #fffeea;
+  --color-primary-100: #fffac5;
+  --color-primary-200: #fff685;
+  --color-primary-300: #ffea46;
+  --color-primary-400: #ffc526;
+  --color-primary-500: #ffbb00;
+  --color-primary-600: #e29000;
+  --color-primary-700: #bb6502;
+  --color-primary-800: #984e08;
+  --color-primary-900: #7c400b;
+  --color-primary-950: #482100;
+
+  /* Self-hosted through @fontsource; the fallbacks are Betaflight's own. */
+  --font-sans: 'Open Sans Variable', 'Open Sans', 'Segoe UI', Tahoma, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+/*
+ * Semantic colours, aliasing Material's system tokens.
+ *
+ * One source of truth: `bg-surface` and a Material card resolve to the same
+ * variable, so they cannot drift, and both flip with `color-scheme` — which is
+ * why none of these need a `dark:` variant. `inline` makes each utility point
+ * at the Material variable itself rather than at a copy taken at load time.
+ *
+ * `primary` (no shade) is the theme-aware role — an amber that keeps its
+ * contrast on white and on near-black. `primary-500` is the raw brand colour.
+ */
+@theme inline {
+  --color-primary: var(--mat-sys-primary);
+  --color-on-primary: var(--mat-sys-on-primary);
+
+  --color-surface: var(--mat-sys-surface);
+  --color-surface-low: var(--mat-sys-surface-container-low);
+  --color-surface-container: var(--mat-sys-surface-container);
+  --color-surface-high: var(--mat-sys-surface-container-high);
+
+  --color-fg: var(--mat-sys-on-surface);
+  --color-muted: var(--mat-sys-on-surface-variant);
+  --color-outline: var(--mat-sys-outline);
+  --color-outline-variant: var(--mat-sys-outline-variant);
+
+  --color-danger: var(--mat-sys-error);
+  --color-danger-container: var(--mat-sys-error-container);
+  --color-on-danger-container: var(--mat-sys-on-error-container);
+
+  /* Status is semantic, not brand: "grounded" is not an amber. Defined with
+     light-dark() in styles.scss. */
+  --color-status-go: var(--status-go);
+  --color-status-go-surface: var(--status-go-surface);
+  --color-status-stop: var(--status-stop);
+  --color-status-stop-surface: var(--status-stop-surface);
+  --color-status-work: var(--status-work);
+  --color-status-work-surface: var(--status-work-surface);
+  --color-status-ready: var(--status-ready);
+  --color-status-ready-surface: var(--status-ready-surface);
+  --color-status-idle: var(--status-idle);
+  --color-status-idle-surface: var(--status-idle-surface);
+}
+
+/*
+ * Status tones. A tone class sets the pair of variables an element's other
+ * utilities read -- text-(--tone), bg-(--tone-surface), border-l-(--tone) --
+ * so a card, a badge and a timeline row share one vocabulary. Five components
+ * used to redefine these privately.
+ */
+@utility tone-go {
+  --tone: var(--status-go);
+  --tone-surface: var(--status-go-surface);
+}
+@utility tone-stop {
+  --tone: var(--status-stop);
+  --tone-surface: var(--status-stop-surface);
+}
+@utility tone-work {
+  --tone: var(--status-work);
+  --tone-surface: var(--status-work-surface);
+}
+@utility tone-ready {
+  --tone: var(--status-ready);
+  --tone-surface: var(--status-ready-surface);
+}
+@utility tone-idle {
+  --tone: var(--status-idle);
+  --tone-surface: var(--status-idle-surface);
+}
+
+/* Tone classes are usually built at runtime (tone-{{ style.tone }}), so the
+   scanner never sees them written out and would otherwise drop them. */
+@source inline('tone-{go,stop,work,ready,idle}');

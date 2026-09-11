@@ -1,54 +1,58 @@
 <mat-card appearance="outlined">
   <mat-card-content>
-    <h3>What is on it</h3>
+    <h3 class="mt-0 mb-3 text-sm font-semibold tracking-wider text-muted uppercase">What is on it</h3>
 
     @if (cost().totals.length) {
-      <ul class="totals">
+      <ul class="mt-0 mb-2.5 flex list-none flex-wrap gap-x-6 gap-y-1 p-0">
         @for (total of cost().totals; track total.currency) {
-          <li>
-            <span class="amount">{{ total.amount }}</span>
-            <span class="currency">{{ total.currency }}</span>
+          <li class="flex items-baseline gap-1.5">
+            <span class="text-2xl leading-[1.1] font-semibold tabular-nums">{{ total.amount }}</span>
+            <span class="text-sm text-muted">{{ total.currency }}</span>
           </li>
         }
       </ul>
     } @else {
-      <p class="muted">Nothing priced yet.</p>
+      <p class="mt-2 mb-0 text-sm text-muted">Nothing priced yet.</p>
     }
 
-    <p class="meta">
+    <p class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
       {{ cost().installedCount }} fitted
 
       @if (cost().unpricedCount) {
-        <span class="warn">
-          <mat-icon aria-hidden="true">info</mat-icon>
+        <span class="inline-flex items-center gap-1">
+          <mat-icon class="icon-sm" aria-hidden="true">info</mat-icon>
           {{ cost().unpricedCount }} with no recorded purchase, so this is a floor
         </span>
       }
     </p>
 
     @if (cost().totals.length > 1 || cost().repairTotals.length > 1) {
-      <p class="muted">Listed per currency — these are not added together, and no rate was applied.</p>
+      <p class="mt-2 mb-0 text-sm text-muted">
+        Listed per currency — these are not added together, and no rate was applied.
+      </p>
     }
   </mat-card-content>
 </mat-card>
 
-<mat-card appearance="outlined" class="repairs">
+<mat-card appearance="outlined">
   <mat-card-content>
-    <h3>What it has cost to fix</h3>
+    <h3 class="mt-0 mb-3 text-sm font-semibold tracking-wider text-muted uppercase">What it has cost to fix</h3>
 
     @if (cost().repairTotals.length) {
-      <ul class="totals">
+      <ul class="mt-0 mb-2.5 flex list-none flex-wrap gap-x-6 gap-y-1 p-0">
         @for (total of cost().repairTotals; track total.currency) {
-          <li>
-            <span class="amount">{{ total.amount }}</span>
-            <span class="currency">{{ total.currency }}</span>
+          <li class="flex items-baseline gap-1.5">
+            <span class="text-2xl leading-[1.1] font-semibold tabular-nums">{{ total.amount }}</span>
+            <span class="text-sm text-muted">{{ total.currency }}</span>
           </li>
         }
       </ul>
     } @else {
-      <p class="muted">Nothing spent on repairs yet.</p>
+      <p class="mt-2 mb-0 text-sm text-muted">Nothing spent on repairs yet.</p>
     }
 
-    <p class="meta">{{ cost().repairCount }} repair{{ cost().repairCount === 1 ? '' : 's' }} logged</p>
+    <p class="m-0 text-sm text-muted">
+      {{ cost().repairCount }} repair{{ cost().repairCount === 1 ? '' : 's' }} logged
+    </p>
   </mat-card-content>
 </mat-card>

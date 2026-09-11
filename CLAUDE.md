@@ -139,16 +139,114 @@ markup. Presenters take `input()`s, emit `output()`s, inject nothing stateful
 and hold no application state — which is what lets them serve the V4 public
 build pages, where there is no store behind them.
 
+**One bounded context per client feature, mirroring the API split.** The
+hangar used to be one `features/builds/` folder holding five contexts —
+builds, build-parts, repairs, configs and photos — each already with its own
+`*.api.ts` / `*.store.ts` pair that never called another's. That was a
+discoverability problem, not a coupling bug: nothing enforced the split, so it
+took reading file prefixes to tell "everything about repairs" apart from
+"everything about builds". Split into five feature folders:
+
 ```
-features/builds/
-  builds.api.ts  builds.store.ts
-  containers/    builds-list.page.*   build-form.page.*
-  presenters/    build-card/  build-status-filter/  build-form/
+features/
+  builds/       builds.api/store, build-status, containers (list, form, detail), build-card + build-form presenters
+  build-parts/  build-parts.api/store, install-part-form + installed-parts-list presenters
+  repairs/      repairs.api/store, repair-cause, repair-form + repair-timeline presenters
+  configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
+  photos/       photos.api/store, photo-gallery presenter
+  parts/        catalogue, units, sources
 ```
+
+`build-detail.page.ts` stays in `builds/containers/` and imports the other
+four as a composition root — the same relationship the API's `build-parts`
+module has with `PartsFacade` / `RepairsFacade`. Nothing else changes: routes,
+API calls and behaviour are identical, and no facade or DI boundary is needed
+here, because a client store never reaches into another's HTTP calls the way
+an API repository could reach into another module's table.
 
 **The selector prefix is `sh-`**, set in `apps/client/eslint.config.mjs` and
 the `prefix` field of `apps/client/project.json`. The root component is
 `sh-root`.
+
+## Shared UI components
+
+**Reusable pieces live in `apps/client/src/app/core/components/`, and a
+feature reaches for them before writing its own.** They are presenters: inputs
+in, outputs out, no store.
+
+- **`sh-section`** — every titled region of a page. Collapsible from its
+  heading (`aria-expanded`), remembers the fold per viewer when given a
+  `storageKey`, shows a count badge, and projects header actions through
+  `[shSectionActions]`. Its body is hidden rather than destroyed, so a
+  half-typed form survives being folded.
+- **Forms are asked for, never shown by default.** A section with `addLabel`
+  gets an Add button bound to `[(adding)]`; the container renders the form only
+  while that is true, and closes it after a successful save (the fit-a-part
+  form stays open, because fitting several parts in a sitting is normal).
+- **`sh-autocomplete`** — the app's only dropdown. There is no `mat-select`
+  left, and a new one should not appear. Works with `formControlName`,
+  `ngModel` or plain `[value]`/`(valueChange)`; `emptyLabel` offers a null
+  choice, `compact` gives a 40px field for a list row. It registers itself as
+  its control's value accessor through `NgControl`, the way `MatSelect` does —
+  not through an `NG_VALUE_ACCESSOR` provider, which would need `forwardRef`.
+- **`ChoiceOption<T>` + `choicesFrom()`** — `{ value, label, icon?, hint? }`,
+  built once from an enum and its label map and handed to either the
+  autocomplete or the chips.
+- **`sh-filter-chips`** — a single-choice chip row with "All" first; `null`
+  means no filter.
+- **`sh-grid-toolbar` + `gridView()`** — search, a projected filter slot, sort
+  buttons (a second click reverses), and an "N of M" count. A grid declares a
+  `GridSpec` (what the search box matches, how each key sorts) beside its
+  component and keeps a `GridState` — view state, so a presenter may own one.
+  Empty values sort last in both directions. Every list that can grow gets
+  one: components, history, repairs, captures, parts, builds.
+
+## Styling
+
+**Layout and our own elements are Tailwind utilities in the template; a
+component's `.scss` holds only what a utility cannot do.** Tailwind v4 runs
+through `@tailwindcss/postcss` (`apps/client/.postcssrc.json`), set up in
+`apps/client/src/styles/tailwind.css`. The look follows Betaflight: amber
+(`#ffbb00`) headings and actions on neutral grey, Open Sans self-hosted from
+`@fontsource-variable/open-sans`, light and dark themes toggled in the toolbar
+by `ThemeStore` (`core/theme/`).
+
+The rules that keep Tailwind and Angular Material from fighting:
+
+- **No preflight.** `tailwind.css` imports only `theme` and `utilities`;
+  preflight would reset Material's own elements.
+- **Cascade layers decide who wins, not specificity.** `styles.scss` declares
+  `@layer theme, base, components, utilities;` first. Element defaults (`h1`,
+  `h2`, `a`, `body`) sit in `@layer base`, so a utility beats them. Material's
+  styles are unlayered, so they beat every utility — which means **an override
+  of a Material component's internals cannot be a utility.** It stays in the
+  component's `.scss` (the card's severity stripe, the compact form
+  field, the icon buttons laid over a photo).
+- **Colours are Material's tokens, aliased.** `bg-surface`, `text-muted`,
+  `text-primary`, `border-outline-variant` and the rest are `@theme inline`
+  aliases for `--mat-sys-*`, so a utility and a Material component can never
+  disagree, and both flip with `color-scheme`. That is why nothing needs a
+  `dark:` variant — reach for one only for something Material has no token
+  for.
+- **Status colours are tones**: `tone-go|stop|work|ready|idle` set `--tone` and
+  `--tone-surface`, read by `text-(--tone)`, `bg-(--tone-surface)`,
+  `border-l-(--tone)`. They are safelisted in `tailwind.css` because templates
+  build the class at runtime (`tone-{{ style.tone }}`).
+- **Icon sizes are `icon-xs|sm|md`**, global and unlayered in `styles.scss`,
+  because MatIcon injects its own 24px rule at runtime. A `size-*` utility on
+  a `mat-icon` silently loses. Icons inside Material buttons keep Material's
+  size.
+- **A utility that sets `display` loses on a Material host element** (`hidden`
+  on a `mat-icon`, for one). Put it on a wrapper.
+- **The Material palette is generated, never hand-edited.** Regenerate
+  `styles/_theme-colors.scss` with the command in the comment above
+  `mat.theme()` in `styles.scss`. The neutral seeds must stay grey: left to
+  derive from the amber, every surface and field turns tan. Pass the
+  directory **with a trailing slash** — without it the schematic writes
+  `src/styles_theme-colors.scss` beside the folder.
+- **Old class names can collide with utilities.** `block`, `grid`, `hidden`,
+  `row`-style names that were once component classes now mean something
+  globally; do not reintroduce one as a private class name.
 
 ## Gotchas
 

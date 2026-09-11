@@ -1,18 +1,22 @@
-<header class="head">
-  <div class="titles">
-    <a class="back" routerLink="/parts">
-      <mat-icon>arrow_back</mat-icon>
+<header class="mb-5 flex flex-wrap items-start justify-between gap-4">
+  <div class="min-w-0">
+    <a class="inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline" routerLink="/parts">
+      <mat-icon class="icon-sm">arrow_back</mat-icon>
       Parts
     </a>
-    <h1>{{ title() }}</h1>
+    <!-- The full listing name, wrapped rather than clamped as it is on the card. -->
+    <h1 class="mt-1.5 mb-0 text-2xl leading-tight wrap-anywhere">{{ title() }}</h1>
   </div>
 
-  @if (part(); as found) {
-    <a matButton="outlined" [routerLink]="['/parts', found.id, 'edit']">
-      <mat-icon>edit</mat-icon>
-      Edit
-    </a>
-  }
+  <div class="flex items-center gap-2">
+    <sh-collapse-all />
+    @if (part(); as found) {
+      <a matButton="outlined" [routerLink]="['/parts', found.id, 'edit']">
+        <mat-icon>edit</mat-icon>
+        Edit
+      </a>
+    }
+  </div>
 </header>
 
 @if (loading()) {

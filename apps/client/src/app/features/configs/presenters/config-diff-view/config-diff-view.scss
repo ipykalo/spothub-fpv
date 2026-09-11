@@ -1,0 +1,28 @@
+:host {
+  display: block;
+}
+
+/*
+ * Tint the changed side only, so the eye lands on what moved rather than on a
+ * whole row lighting up.
+ *
+ * Kept as CSS on purpose. These rows are virtual-scrolled, often thousands of
+ * them, and one class per row keyed on its kind is far cheaper than a
+ * conditional class binding per cell per row.
+ */
+.row.removed .left,
+.row.changed .left {
+  background: var(--status-stop-surface);
+  color: var(--status-stop);
+}
+
+.row.added .right,
+.row.changed .right {
+  background: var(--status-go-surface);
+  color: var(--status-go);
+}
+
+.row.removed .right,
+.row.added .left {
+  background: var(--mat-sys-surface-container);
+}

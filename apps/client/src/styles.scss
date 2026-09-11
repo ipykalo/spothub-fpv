@@ -1,30 +1,93 @@
 @use '@angular/material' as mat;
+@use 'styles/theme-colors' as theme;
+
+/*
+ * Cascade-layer order, established before anything uses a layer.
+ *
+ * Element defaults sit in `base`, Tailwind's utilities in `utilities`, so a
+ * utility always beats a default — `text-muted` on an h2 wins over the amber
+ * below — without either reaching for `!important`.
+ *
+ * Deliberately NOT layered: Material's theme, and the Material overrides at the
+ * bottom of this file. Unlayered beats layered, which is exactly what stops a
+ * utility from reaching into a Material component's internals.
+ */
+@layer theme, base, components, utilities;
 
 html {
+  /*
+   * Follows the operating system until the toggle says otherwise. ThemeStore —
+   * and, before Angular loads, the inline script in index.html — set it to
+   * `light` or `dark` explicitly, and every `--mat-sys-*` token and every
+   * `light-dark()` below resolves against it.
+   */
   color-scheme: light dark;
 
+  /*
+   * The palette is generated from Betaflight's amber (#ffbb00) by Angular
+   * Material's own theme-color schematic, not hand-picked: M3 derives every
+   * tone from the seed so text keeps its contrast in both themes, which a
+   * hand-rolled scale gets wrong.
+   *
+   * The neutrals are seeded separately, from a zero-chroma grey. Left to the
+   * schematic they derive from the amber too, and every surface and field
+   * came out tan — where Betaflight is amber on plain grey. Regenerate with:
+   *   nx g @angular/material:theme-color --primaryColor="#ffbb00"
+   *     --neutralColor="#808080" --neutralVariantColor="#808080"
+   */
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: theme.$primary-palette,
+        tertiary: theme.$tertiary-palette,
       ),
-      typography: Roboto,
+      typography: (
+        plain-family: (
+          'Open Sans Variable',
+          'Open Sans',
+          sans-serif,
+        ),
+        brand-family: (
+          'Open Sans Variable',
+          'Open Sans',
+          sans-serif,
+        ),
+      ),
       density: 0,
     )
   );
 }
 
-html,
-body {
-  height: 100%;
-}
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
 
-body {
-  margin: 0;
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  body {
+    margin: 0;
+    background: var(--mat-sys-surface);
+    color: var(--mat-sys-on-surface);
+    font-family: var(--font-sans);
+  }
+
+  /*
+   * Betaflight's headings are its amber. Page and section titles only — card
+   * titles stay on-surface, or a page of cards becomes a wall of yellow.
+   */
+  h1,
+  h2 {
+    color: var(--mat-sys-primary);
+  }
+
+  /*
+   * With no preflight, a bare link fell back to the browser's blue — and to
+   * a purple on the dark theme that read as a mistake. `<a matButton>` is
+   * unaffected: Material colours it unlayered, which beats this.
+   */
+  a {
+    color: var(--mat-sys-primary);
+  }
 }
 
 /**
@@ -50,4 +113,33 @@ body {
 
   --status-idle: light-dark(#5f6b78, #9fadbb);
   --status-idle-surface: light-dark(#eceff3, #232b33);
+}
+
+/*
+ * Icon sizes — three, replacing five ad-hoc values across components.
+ *
+ * Unlayered and two classes deep on purpose. MatIcon injects its own 24px rule
+ * at runtime, after this sheet, so a single class would lose on source order;
+ * and a Tailwind size utility, being in a layer, would lose to Material
+ * outright. This is the pattern for any override of a Material component.
+ *
+ * Icons inside Material buttons are left at Material's own size: the button
+ * styles them with a rule of equal weight injected later still.
+ */
+.mat-icon.icon-xs {
+  font-size: 0.875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.mat-icon.icon-sm {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.mat-icon.icon-md {
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
 }
