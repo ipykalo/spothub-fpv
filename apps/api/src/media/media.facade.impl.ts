@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import type { Env } from '../config';
+import { StorageGateway } from '../storage';
 import { AssetsRepository } from './abstract/assets.repository';
 import { MediaFacade } from './abstract/media.facade';
-import { StorageGateway } from './abstract/storage.gateway';
 
 /** Serves the media facade out of the module's own repository and storage. */
 @Injectable()

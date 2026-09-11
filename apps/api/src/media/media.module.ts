@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
 
+import { StorageModule } from '../storage';
 import { AssetsRepository } from './abstract/assets.repository';
 import { MediaFacade } from './abstract/media.facade';
-import { StorageGateway } from './abstract/storage.gateway';
 import { AssetsService } from './assets.service';
 import { BuildPhotosController } from './build-photos.controller';
 import { MediaFacadeImpl } from './media.facade.impl';
 import { PrismaAssetsRepository } from './prisma-assets.repository';
-import { S3StorageGateway } from './s3-storage.gateway';
 
 /**
  * Photos: presigned upload straight to object storage, EXIF stripped and a
@@ -19,11 +18,11 @@ import { S3StorageGateway } from './s3-storage.gateway';
  * cycle. `MediaFacade` is the only provider exported.
  */
 @Module({
+  imports: [StorageModule],
   controllers: [BuildPhotosController],
   providers: [
     AssetsService,
     { provide: AssetsRepository, useClass: PrismaAssetsRepository },
-    { provide: StorageGateway, useClass: S3StorageGateway },
     { provide: MediaFacade, useClass: MediaFacadeImpl },
   ],
   exports: [MediaFacade],

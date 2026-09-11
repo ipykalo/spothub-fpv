@@ -16,8 +16,8 @@ import {
 import sharp from 'sharp';
 
 import type { Env } from '../config';
+import { StorageGateway } from '../storage';
 import { AssetsRepository } from './abstract/assets.repository';
-import { StorageGateway } from './abstract/storage.gateway';
 import { type AssetEntity, AssetSubject } from './asset.entity';
 import { toAssetDto } from './assets.mapper';
 

@@ -1,0 +1,82 @@
+<ol class="m-0 grid list-none gap-1.5 p-0">
+  @for (flight of session().flights; track flight.id; let n = $index) {
+    <li
+      class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 rounded bg-surface-container px-3.5 py-2 text-sm min-[60rem]:grid-cols-[9rem_minmax(11rem,15rem)_1fr_auto]"
+    >
+      <span class="flex flex-col tabular-nums">
+        <span class="font-semibold">
+          <span class="text-muted">#{{ n + 1 }}</span>
+          {{ time(flight.startedAt) }}
+        </span>
+        <span class="text-xs text-muted">{{ duration(flight.durationS) }} in the air</span>
+      </span>
+
+      <span class="flex min-w-0 flex-col">
+        <sh-autocomplete
+          compact
+          subscriptSizing="dynamic"
+          emptyLabel="No build"
+          [options]="builds()"
+          [value]="flight.buildId"
+          [ariaLabel]="'Build flown on ' + time(flight.startedAt)"
+          (valueChange)="changeBuild(flight, $event)"
+        />
+        @if (flight.modelName; as model) {
+          <span class="truncate text-xs text-muted" [title]="flight.fileName">radio model: {{ model }}</span>
+        }
+      </span>
+
+      <span class="col-span-full flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums min-[60rem]:col-auto">
+        @if (flight.startVoltage !== null && flight.endVoltage !== null) {
+          <span class="inline-flex items-center gap-1" title="Pack voltage at take-off and landing">
+            <mat-icon class="icon-sm text-muted" aria-hidden="true">battery_charging_full</mat-icon>
+            {{ flight.startVoltage }} → {{ flight.endVoltage }} V
+            @if (flight.minVoltage !== null) {
+              <span class="text-muted">(min {{ flight.minVoltage }})</span>
+            }
+          </span>
+        }
+        @if (flight.mahUsed !== null) {
+          <span title="Capacity used">{{ flight.mahUsed }} mAh</span>
+        }
+        @if (flight.maxCurrentA !== null) {
+          <span class="text-muted" title="Peak current">{{ flight.maxCurrentA }} A peak</span>
+        }
+        @if (flight.minLinkQuality !== null) {
+          <span
+            class="inline-flex items-center gap-1"
+            [class.text-status-stop]="flight.minLinkQuality < 50"
+            title="Lowest link quality"
+          >
+            <mat-icon class="icon-sm text-muted" aria-hidden="true">settings_input_antenna</mat-icon>
+            LQ {{ flight.minLinkQuality }}%
+          </span>
+        }
+        @if (flight.hasGps) {
+          <span class="inline-flex items-center gap-1" title="Distance flown · height above take-off · top speed">
+            <mat-icon class="icon-sm text-muted" aria-hidden="true">route</mat-icon>
+            @if (flight.distanceM !== null) {
+              {{ distance(flight.distanceM) }}
+            }
+            @if (flight.maxAltitudeM !== null) {
+              · {{ flight.maxAltitudeM }} m up
+            }
+            @if (flight.maxSpeedKmh !== null) {
+              · {{ flight.maxSpeedKmh }} km/h
+            }
+          </span>
+        }
+      </span>
+
+      <button
+        matButton
+        type="button"
+        class="row-start-1 col-start-2 min-[60rem]:row-auto min-[60rem]:col-auto"
+        [disabled]="pendingRemoval() === flight.id"
+        (click)="removeRequested.emit(flight)"
+      >
+        {{ pendingRemoval() === flight.id ? 'Deleting…' : 'Delete' }}
+      </button>
+    </li>
+  }
+</ol>

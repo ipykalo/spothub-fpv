@@ -38,6 +38,10 @@ model User {
   builds        Build[]
   parts         Part[]
   assets        Asset[]
+  logImports    LogImport[]
+  logFiles      LogFile[]
+  sessions      Session[]
+  flights       Flight[]
 
   @@map("users")
 }
@@ -138,6 +142,7 @@ model Build {
   parts   BuildPart[]
   repairs Repair[]
   configs Config[]
+  flights Flight[]
 
   @@unique([ownerId, slug])
   @@index([ownerId, status])
@@ -454,4 +459,181 @@ model Config {
 
   @@index([buildId, capturedAt])
   @@map("configs")
+}
+
+// -------------------------------------------------------------------- jobs
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+/// Background work, queued in Postgres rather than in Redis.
+///
+/// One process, one worker, a handful of jobs a day: a table claimed with
+/// `FOR UPDATE SKIP LOCKED` does everything a broker would, and ships as a
+/// migration rather than as another container to run and back up. Not owned by
+/// a user — the owner travels in the payload with everything else a handler
+/// needs.
+model Job {
+  id          String    @id @default(uuid()) @db.Uuid
+  /// Which handler runs it, e.g. `flight-log.import`.
+  type        String
+  payload     Json      @default("{}")
+  status      JobStatus @default(QUEUED)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3) @map("max_attempts")
+  /// Not picked up before this. A failed attempt pushes it out as backoff.
+  runAfter    DateTime  @default(now()) @map("run_after")
+  /// When a worker claimed it. A RUNNING job with a stale lock belonged to a
+  /// process that died, and is claimed again.
+  lockedAt    DateTime? @map("locked_at")
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, runAfter])
+  @@map("jobs")
+}
+
+// ----------------------------------------------------------------- flights
+
+/// Which parser reads a log. EdgeTX CSV first; GPX and BBL join it later on
+/// the same pipeline.
+enum LogFormat {
+  EDGETX_CSV
+}
+
+enum LogFileStatus {
+  /// Reserved and signed; the bytes may not have arrived yet.
+  PENDING
+  PARSED
+  FAILED
+}
+
+enum LogImportStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+/// One batch: everything dropped in at once, processed by one job.
+model LogImport {
+  id          String          @id @default(uuid()) @db.Uuid
+  ownerId     String          @map("owner_id") @db.Uuid
+  /// The build every flight in the batch belongs to. Null means match each
+  /// log's model name against the build names, and leave the rest unassigned.
+  /// No foreign key: this records what was asked for, and the worker checks
+  /// the build still exists before using it.
+  buildId     String?         @map("build_id") @db.Uuid
+  status      LogImportStatus @default(QUEUED)
+  flightCount Int             @default(0) @map("flight_count")
+  error       String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  finishedAt  DateTime?       @map("finished_at")
+
+  owner User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  files LogFile[]
+
+  @@index([ownerId, createdAt])
+  @@map("log_imports")
+}
+
+/// One log file, kept verbatim in object storage, so a parser fix can re-run
+/// over it rather than asking for the SD card again.
+model LogFile {
+  id          String        @id @default(uuid()) @db.Uuid
+  ownerId     String        @map("owner_id") @db.Uuid
+  importId    String?       @map("import_id") @db.Uuid
+  format      LogFormat     @default(EDGETX_CSV)
+  status      LogFileStatus @default(PENDING)
+  storageKey  String        @unique @map("storage_key")
+  /// What the radio called it. Display only — never used to build the key.
+  fileName    String        @map("file_name")
+  sizeBytes   Int           @map("size_bytes")
+  /// SHA-256 of the bytes. The whole LOGS folder is dropped in every time, so
+  /// this is what makes the second drop import only what is new.
+  checksum    String
+  /// The radio model the log was recorded under, from the file name.
+  modelName   String?       @map("model_name")
+  flightCount Int           @default(0) @map("flight_count")
+  error       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  owner   User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  import  LogImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  flights Flight[]
+
+  @@unique([ownerId, checksum])
+  @@index([importId])
+  @@map("log_files")
+}
+
+/// One outing: flights less than 90 minutes apart.
+///
+/// Derived from the flights on every import, so it holds nothing of its own
+/// yet — the spot and the notes arrive with V2 Places.
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  ownerId   String   @map("owner_id") @db.Uuid
+  startedAt DateTime @map("started_at")
+  endedAt   DateTime @map("ended_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  flights Flight[]
+
+  @@index([ownerId, startedAt])
+  @@map("sessions")
+}
+
+/// One pack: a stretch of a log from arming to landing.
+///
+/// Times are the radio's wall clock, stored as though they were UTC. The radio
+/// records no time zone, and guessing one would shift every flight by the
+/// difference.
+model Flight {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String   @map("owner_id") @db.Uuid
+  sessionId   String   @map("session_id") @db.Uuid
+  buildId     String?  @map("build_id") @db.Uuid
+  logFileId   String   @map("log_file_id") @db.Uuid
+  startedAt   DateTime @map("started_at")
+  endedAt     DateTime @map("ended_at")
+  durationS   Int      @map("duration_s")
+  sampleCount Int      @map("sample_count")
+
+  // --- battery and link: these need no GPS
+  startVoltage   Float? @map("start_voltage")
+  minVoltage     Float? @map("min_voltage")
+  endVoltage     Float? @map("end_voltage")
+  mahUsed        Int?   @map("mah_used")
+  maxCurrentA    Float? @map("max_current_a")
+  minLinkQuality Int?   @map("min_link_quality")
+
+  // --- track: only when the quad carries GPS
+  hasGps           Boolean @default(false) @map("has_gps")
+  distanceM        Float?  @map("distance_m")
+  maxAltitudeM     Float?  @map("max_altitude_m")
+  maxSpeedKmh      Float?  @map("max_speed_kmh")
+  maxHomeDistanceM Float?  @map("max_home_distance_m")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  owner   User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// SetNull: deleting a quad must not delete the record of having flown it.
+  build   Build?  @relation(fields: [buildId], references: [id], onDelete: SetNull)
+  logFile LogFile @relation(fields: [logFileId], references: [id], onDelete: Cascade)
+
+  /// Re-running an import over the same file cannot duplicate a flight.
+  @@unique([logFileId, startedAt])
+  @@index([ownerId, startedAt])
+  @@index([sessionId])
+  @@index([buildId])
+  @@map("flights")
 }

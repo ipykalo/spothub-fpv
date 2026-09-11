@@ -1,0 +1,66 @@
+<header class="mb-5 flex flex-wrap items-baseline gap-4">
+  <h1 class="m-0 text-2xl">Flights</h1>
+
+  @if (store.flightTotal()) {
+    <span class="text-sm text-muted tabular-nums">
+      {{ store.flightTotal() }} flight{{ store.flightTotal() === 1 ? '' : 's' }} in
+      {{ store.sessions().length }} session{{ store.sessions().length === 1 ? '' : 's' }}
+    </span>
+  }
+
+  <span class="flex-auto"></span>
+  <sh-collapse-all />
+</header>
+
+@if (store.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (store.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+<div class="flex flex-col gap-8">
+  <sh-section heading="Import" storageKey="flights.import" addLabel="Import logs" [(adding)]="addingImport">
+    <!-- Kept up while an import runs, even if the form was cancelled. -->
+    @if (addingImport() || store.phase() !== 'idle') {
+      <sh-log-import-panel
+        [builds]="buildOptions()"
+        [phase]="store.phase()"
+        [files]="store.files()"
+        [batches]="store.batches()"
+        [message]="store.message()"
+        [importedFlights]="store.importedFlights()"
+        (importRequested)="onImport($event)"
+        (resetRequested)="resetImport()"
+      />
+    } @else {
+      <p class="m-0 max-w-176 text-sm text-muted">
+        Flights come from the radio's EdgeTX telemetry logs: pack voltage, current, capacity used and link quality for
+        every flight, and the track when the quad carries GPS. Times are as the radio's clock recorded them.
+      </p>
+    }
+  </sh-section>
+
+  @if (store.isEmpty()) {
+    <p class="m-0 py-8 text-center text-muted">
+      No flights yet. Import the LOGS folder from your radio's SD card to start the logbook.
+    </p>
+  }
+
+  @for (session of store.sessions(); track session.id) {
+    <sh-section icon="event" [heading]="heading(session)" [count]="session.flightCount" [open]="$index < openSessions">
+      <span shSectionActions class="text-sm text-muted tabular-nums">
+        {{ airtime(session.totalDurationS) }} in the air
+      </span>
+
+      <sh-session-flights
+        [session]="session"
+        [builds]="buildOptions()"
+        [pendingRemoval]="pendingRemoval()"
+        (buildChanged)="onBuildChanged($event)"
+        (removeRequested)="onRemove($event)"
+      />
+    </sh-section>
+  }
+</div>

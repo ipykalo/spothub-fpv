@@ -102,5 +102,12 @@ export const appRoutes: Route[] = [
       },
     ],
   },
+  {
+    // The logbook: imported flights, grouped into the outings they were flown in.
+    path: 'flights',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/flights/containers/flights.page').then((m) => m.FlightsPage),
+  },
   { path: '**', redirectTo: 'hangar' },
 ];

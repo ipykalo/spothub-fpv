@@ -8,11 +8,14 @@ import { BuildsModule } from '../builds';
 import { AllExceptionsFilter, JwtAuthGuard } from '../common';
 import { validateEnv } from '../config';
 import { ConfigsModule } from '../configs';
+import { FlightsModule } from '../flights';
 import { HealthModule } from '../health';
+import { JobsModule } from '../jobs';
 import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
+import { StorageModule } from '../storage';
 import { UsersModule } from '../users';
 
 /**
@@ -28,6 +31,8 @@ import { UsersModule } from '../users';
       validate: validateEnv,
     }),
     PrismaModule,
+    StorageModule,
+    JobsModule,
     UsersModule,
     AuthModule,
     BuildsModule,
@@ -36,6 +41,7 @@ import { UsersModule } from '../users';
     ConfigsModule,
     PartsModule,
     MediaModule,
+    FlightsModule,
     HealthModule,
   ],
   providers: [

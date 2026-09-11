@@ -1,0 +1,101 @@
+<div class="grid gap-4">
+  <sh-autocomplete
+    class="max-w-96"
+    label="Put the flights on"
+    emptyLabel="The build named like the radio model"
+    hint="Most radios name the model after the quad, so this usually needs no choice."
+    [options]="builds()"
+    [value]="buildId()"
+    (valueChange)="buildId.set($event)"
+  />
+
+  <div
+    class="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-outline-variant bg-surface-low px-6 py-8 text-center transition-colors data-dragging:border-primary data-dragging:bg-surface-high"
+    [attr.data-dragging]="dragging() || null"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+  >
+    <mat-icon class="text-muted" aria-hidden="true">sd_card</mat-icon>
+    <p class="m-0 font-semibold">Drop the LOGS folder from your radio's SD card</p>
+    <p class="m-0 max-w-120 text-sm text-muted">
+      The whole folder, every time. Logs already imported are recognised and skipped, so only what is new is sent.
+    </p>
+
+    <!-- Real buttons opening hidden inputs: a styled <label> is not reachable
+         from the keyboard, and matButton does not apply to one. -->
+    <input #folderInput type="file" webkitdirectory multiple hidden (change)="onFolderChosen($event)" />
+    <input #filesInput type="file" accept=".csv" multiple hidden (change)="onFilesChosen($event)" />
+    <div class="mt-2 flex flex-wrap justify-center gap-2">
+      <button matButton="tonal" type="button" [disabled]="busy()" (click)="folderInput.click()">
+        <mat-icon>folder_open</mat-icon>
+        Choose folder
+      </button>
+      <button matButton type="button" [disabled]="busy()" (click)="filesInput.click()">
+        <mat-icon>description</mat-icon>
+        Choose files
+      </button>
+    </div>
+    <p class="m-0 text-xs text-muted">EdgeTX .csv logs · GPX and Betaflight blackbox are coming</p>
+  </div>
+
+  @switch (phase()) {
+    @case ('preparing') {
+      <div class="grid gap-2" role="status">
+        <p class="m-0 text-sm">Reading {{ files().length }} log{{ files().length === 1 ? '' : 's' }}…</p>
+        <mat-progress-bar mode="indeterminate" />
+      </div>
+    }
+    @case ('uploading') {
+      <div class="grid gap-2" role="status">
+        <p class="m-0 text-sm">
+          Uploading {{ uploaded() }} of {{ toUpload() }} new log{{ toUpload() === 1 ? '' : 's' }}
+          @if (skipped()) {
+            <span class="text-muted">· {{ skipped() }} already imported</span>
+          }
+        </p>
+        <mat-progress-bar mode="determinate" [value]="progress()" />
+      </div>
+    }
+    @case ('processing') {
+      <div class="grid gap-2" role="status">
+        <p class="m-0 text-sm">Finding the flights in {{ uploaded() }} log{{ uploaded() === 1 ? '' : 's' }}…</p>
+        <mat-progress-bar mode="indeterminate" />
+      </div>
+    }
+    @case ('done') {
+      <div class="tone-go flex flex-wrap items-center gap-3 rounded bg-(--tone-surface) px-4 py-3" role="status">
+        <mat-icon class="text-(--tone)" aria-hidden="true">check_circle</mat-icon>
+        <p class="m-0 flex-auto text-sm">
+          @if (message(); as text) {
+            {{ text }}
+          } @else {
+            Imported {{ importedFlights() }} new flight{{ importedFlights() === 1 ? '' : 's' }}
+            @if (skipped()) {
+              <span class="text-muted">· {{ skipped() }} log{{ skipped() === 1 ? '' : 's' }} already in</span>
+            }
+          }
+        </p>
+        <button matButton type="button" (click)="resetRequested.emit()">Import more</button>
+      </div>
+    }
+    @case ('failed') {
+      <div class="tone-stop flex flex-wrap items-center gap-3 rounded bg-(--tone-surface) px-4 py-3" role="alert">
+        <mat-icon class="text-(--tone)" aria-hidden="true">error</mat-icon>
+        <p class="m-0 flex-auto text-sm">{{ message() ?? 'The import did not finish.' }}</p>
+        <button matButton type="button" (click)="resetRequested.emit()">Try again</button>
+      </div>
+    }
+  }
+
+  @if (problems().length) {
+    <ul class="m-0 grid max-h-48 list-none gap-1 overflow-auto p-0 text-sm">
+      @for (problem of problems(); track $index) {
+        <li class="flex gap-2">
+          <span class="font-mono text-xs">{{ problem.name }}</span>
+          <span class="text-muted">— {{ problem.error }}</span>
+        </li>
+      }
+    </ul>
+  }
+</div>

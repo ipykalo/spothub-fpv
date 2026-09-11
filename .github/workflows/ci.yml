@@ -45,6 +45,11 @@ jobs:
           npx tsc -p apps/api/tsconfig.app.json --noEmit
           npx tsc -p apps/client/tsconfig.app.json --noEmit
 
+      # Parser tests against real SD-card logs — the most valuable tests in
+      # the codebase, because a format quirk fails silently otherwise.
+      - name: Test
+        run: npx nx run api:test
+
       - name: Build
         run: npx nx run-many -t build --projects=api,client --configuration=production
 

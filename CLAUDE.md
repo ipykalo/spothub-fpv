@@ -24,10 +24,12 @@ whole public surface:
 
 ```
 apps/api/src/
-  app/  common/  config/  prisma/          infrastructure
-  auth/  users/                            sign-in and accounts
-  builds/  build-parts/  repairs/  configs/   the hangar
-  parts/                                    inventory (catalogue, units, sources)
+  app/  common/  config/  prisma/  storage/  jobs/   infrastructure
+  auth/  users/                              sign-in and accounts
+  builds/  build-parts/  repairs/  configs/  the hangar
+  parts/                                     inventory (catalogue, units, sources)
+  media/                                     build photos
+  flights/                                   log import, flights, sessions
   health/
 ```
 
@@ -78,8 +80,21 @@ contract: it marks the module's contract surface — the abstract repository and
 facade classes that are also the DI tokens — rather than being another pile of
 implementation files.
 
-`common/`, `config/`, `prisma/` and `app/` are infrastructure, not feature
-modules, and keep their own shape.
+`common/`, `config/`, `prisma/`, `storage/`, `jobs/` and `app/` are
+infrastructure, not feature modules, and keep their own shape.
+
+**Object storage and the job queue are infrastructure, not features.**
+`StorageGateway` (presign, get, put) began inside `media` and moved to
+`storage/` when flight logs needed the same presigned rails — a port private to
+one feature could only have been shared through that feature's facade, which
+would have made `media` everyone's storage service. `JobQueue` runs anything
+too slow for a request: the request enqueues and answers 202, and a worker in
+the API process claims rows from the `jobs` table with `FOR UPDATE SKIP
+LOCKED`, retrying with backoff and reclaiming a lock left by a process that
+died. A module registers its handlers in `onModuleInit`; the worker starts on
+application bootstrap, so no job can run before its handler exists. No Redis:
+at a handful of jobs a day a table does everything a broker would, and ships
+as a migration rather than another container to run and back up.
 
 **A module's `index.ts` is its entire public API.** Cross-module imports name
 the barrel (`../../repairs`), never a file inside it. `no-restricted-imports`
@@ -269,6 +284,12 @@ The rules that keep Tailwind and Angular Material from fighting:
   `NX_LOAD_DOT_ENV_FILES=false` on the dev scripts. Nothing is lost:
   `@nestjs/config` and the Prisma CLI both read `.env` themselves. Setting
   `port` in the serve target does not help — the env var wins.
+- **On Windows, run the tests from PowerShell or cmd, not Git Bash.** Git Bash
+  starts child processes in `d:\…` with a lowercase drive letter while
+  `node_modules` resolves under `D:\…`, so Vitest loads its runner twice and
+  every suite dies with "Cannot read properties of undefined (reading
+  'config')" before a single test runs. Nothing is wrong with the tests; CI on
+  Linux is unaffected.
 - **Lint must go through Nx.** ESLint flat config does not cascade, so
   `eslint apps libs` applies only the root config and silently skips every
   Angular and template rule. Use `nx run-many -t lint`, which is what
@@ -294,6 +315,7 @@ npm run db:seed        # demo inventory, one real part per category
 npm run db:seed:undo   # remove it again
 npm run lint           # type-aware, zero warnings tolerated
 npm run typecheck
+npm test               # API unit tests (Vitest) — from PowerShell on Windows
 npm run build
 ```
 
@@ -324,6 +346,32 @@ verifies and publishes images to GHCR. **Every V1 feature:**
 - Config diff viewer — side by side, virtual-scrolled, caveats stated up front
 - Build photos — presigned PUT straight to storage, EXIF stripped and a
   thumbnail made on commit, carousel with a full-size viewer, cover image
+
+**V3, first slice — flight log import (EdgeTX CSV).** Drop the radio's whole
+LOGS folder: the client hashes every file, asks which checksums the server
+already has, and uploads only the new ones, each straight to storage on a
+presigned PUT. `POST /flight-logs/imports` answers 202 and the
+`flight-log.import` job parses in the background; the client polls. A file that
+is not a readable log fails on its own; anything unexpected fails the attempt
+so the job retries, and a retry skips what was already parsed.
+
+- `edgetx-csv.parser.ts` is pure and tested. Columns are matched by name
+  without their unit, so every sensor is optional except the clock. A pause of
+  more than 30 s splits a file into flights; when Betaflight's flight mode is
+  logged, only armed rows count (`ACRO*` means disarmed), so bench time is not
+  flight time.
+- **Times are the radio's wall clock stored as UTC** — the radio records no
+  zone. Render them with `timeZone: 'UTC'` or every flight shifts.
+- Sessions group flights less than 90 minutes apart and keep their ids across
+  re-imports: `session-planner.ts` (pure, tested) reuses a group's existing
+  session, merges ones a new flight bridges, and splits one a deletion gaps.
+- Without a chosen build, a flight goes to the build named like the radio
+  model, case-insensitively — most radios name the model after the quad.
+- Real SD-card logs go in `apps/api/src/flights/__fixtures__/edgetx/`; the
+  spec parses every one. `npm test` runs the API suite.
+
+GPX and Betaflight BBL are the next formats on the same pipeline; battery
+health reads these flights next.
 
 The API was restructured into one module per bounded context — `builds` used to
 hold four, and `parts` held its catalogue, units, sources and URL preview in one
