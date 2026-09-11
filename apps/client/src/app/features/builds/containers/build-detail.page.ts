@@ -49,6 +49,8 @@ import { BuildPartsStore } from '../build-parts.store';
 import { BuildsApi } from '../builds.api';
 import { BuildsStore } from '../builds.store';
 import { PhotosStore } from '../photos.store';
+import { CollapseAll } from '../../../core/components/section/collapse-all';
+import { SectionGroup } from '../../../core/components/section/section-group';
 
 /**
  * Container: the build page. Owns the stores and the side effects; every
@@ -62,6 +64,7 @@ import { PhotosStore } from '../photos.store';
   selector: 'sh-build-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CollapseAll,
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
@@ -76,6 +79,7 @@ import { PhotosStore } from '../photos.store';
     ConfigList,
     ConfigPasteForm,
   ],
+  hostDirectives: [SectionGroup],
   templateUrl: './build-detail.page.html',
   styleUrl: './build-detail.page.scss',
 })

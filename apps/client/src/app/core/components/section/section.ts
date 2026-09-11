@@ -1,12 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   type OnInit,
+  inject,
   input,
   model,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+
+import { SectionGroup } from './section-group';
 
 const STORAGE_PREFIX = 'spothub.section.';
 
@@ -28,6 +32,9 @@ function nextBodyId(): string {
  * `addLabel` gives the section an "Add" button that toggles `adding`. The form
  * itself stays with the container that owns the save, and is rendered only
  * while `adding` is true — forms are asked for, never shown by default.
+ *
+ * Under a `SectionGroup` it registers itself, so the page's "Collapse all"
+ * can reach it.
  */
 @Component({
   selector: 'sh-section',
@@ -50,10 +57,21 @@ export class Section implements OnInit {
    */
   readonly storageKey = input<string | null>(null);
   /** Label for the header's Add button. No label, no button. */
-  readonly addLabel = input<string | null>(null);
   readonly adding = model(false);
+  readonly addLabel = input<string | null>(null);
 
   protected readonly bodyId = nextBodyId();
+
+  constructor() {
+    const group = inject(SectionGroup, { optional: true });
+
+    if (group) {
+      group.register(this);
+      inject(DestroyRef).onDestroy(() => {
+        group.unregister(this);
+      });
+    }
+  }
 
   ngOnInit(): void {
     const key = this.storageKey();
@@ -64,8 +82,8 @@ export class Section implements OnInit {
     }
   }
 
-  protected toggle(): void {
-    const open = !this.open();
+  /** Opens or folds the section, and remembers it when it has a storage key. */
+  setOpen(open: boolean): void {
     this.open.set(open);
 
     const key = this.storageKey();
@@ -75,6 +93,10 @@ export class Section implements OnInit {
     }
   }
 
+  protected toggle(): void {
+    this.setOpen(!this.open());
+  }
+
   protected toggleAdding(): void {
     const adding = !this.adding();
     this.adding.set(adding);
@@ -82,7 +104,7 @@ export class Section implements OnInit {
     // Asking to add to a folded section unfolds it, or the form would open
     // somewhere nobody can see it.
     if (adding && !this.open()) {
-      this.toggle();
+      this.setOpen(true);
     }
   }
 }

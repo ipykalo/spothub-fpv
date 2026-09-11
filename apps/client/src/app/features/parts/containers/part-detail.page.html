@@ -8,12 +8,15 @@
     <h1 class="mt-1.5 mb-0 text-2xl leading-tight wrap-anywhere">{{ title() }}</h1>
   </div>
 
-  @if (part(); as found) {
-    <a matButton="outlined" [routerLink]="['/parts', found.id, 'edit']">
-      <mat-icon>edit</mat-icon>
-      Edit
-    </a>
-  }
+  <div class="flex items-center gap-2">
+    <sh-collapse-all />
+    @if (part(); as found) {
+      <a matButton="outlined" [routerLink]="['/parts', found.id, 'edit']">
+        <mat-icon>edit</mat-icon>
+        Edit
+      </a>
+    }
+  </div>
 </header>
 
 @if (loading()) {

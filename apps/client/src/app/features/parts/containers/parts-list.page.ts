@@ -26,6 +26,8 @@ import { PART_CATEGORY_ICONS } from '../part-category';
 import { availableUnits, partName } from '../part-condition';
 import { PartCard } from '../presenters/part-card/part-card';
 import { PartsStore } from '../parts.store';
+import { CollapseAll } from '../../../core/components/section/collapse-all';
+import { SectionGroup } from '../../../core/components/section/section-group';
 
 type PartSortKey = 'name' | 'price' | 'free' | 'added';
 
@@ -65,6 +67,7 @@ const SORTS: readonly SortOption<PartSortKey>[] = [
   selector: 'sh-parts-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CollapseAll,
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
@@ -74,6 +77,7 @@ const SORTS: readonly SortOption<PartSortKey>[] = [
     PartCard,
     Section,
   ],
+  hostDirectives: [SectionGroup],
   templateUrl: './parts-list.page.html',
   styleUrl: './parts-list.page.scss',
 })
