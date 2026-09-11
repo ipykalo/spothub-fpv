@@ -1,9 +1,12 @@
-<header class="head">
-  <a class="back" [routerLink]="['/hangar', id()]">
-    <mat-icon>arrow_back</mat-icon>
+<header class="mb-5">
+  <a
+    class="inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline"
+    [routerLink]="['/hangar', id()]"
+  >
+    <mat-icon class="icon-sm">arrow_back</mat-icon>
     Build
   </a>
-  <h1>Compare firmware</h1>
+  <h1 class="mt-1.5 mb-0 text-2xl">Compare firmware</h1>
 </header>
 
 @if (configs.loading()) {
@@ -15,9 +18,13 @@
 }
 
 @if (configs.configs().length < 2) {
-  <p class="empty">Two captures are needed to compare. Save another from the build page after your next change.</p>
+  <p class="py-8 text-muted">
+    Two captures are needed to compare. Save another from the build page after your next change.
+  </p>
 } @else {
-  <div class="picker">
+  <div
+    class="mb-3 grid grid-cols-1 items-center gap-3 min-[45rem]:grid-cols-[minmax(12rem,20rem)_auto_minmax(12rem,20rem)] justify-start"
+  >
     <mat-form-field>
       <mat-label>Older</mat-label>
       <mat-select [ngModel]="leftId()" (ngModelChange)="leftId.set($event)">
@@ -27,7 +34,11 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-icon class="arrow" aria-hidden="true">arrow_forward</mat-icon>
+    <!-- A wrapper, because MatIcon sets its own display and a layered `hidden`
+         on the icon itself would lose to it. -->
+    <span class="mb-5 hidden min-[45rem]:inline-flex">
+      <mat-icon class="text-muted" aria-hidden="true">arrow_forward</mat-icon>
+    </span>
 
     <mat-form-field>
       <mat-label>Newer</mat-label>

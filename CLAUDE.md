@@ -150,6 +150,53 @@ features/builds/
 the `prefix` field of `apps/client/project.json`. The root component is
 `sh-root`.
 
+## Styling
+
+**Layout and our own elements are Tailwind utilities in the template; a
+component's `.scss` holds only what a utility cannot do.** Tailwind v4 runs
+through `@tailwindcss/postcss` (`apps/client/.postcssrc.json`), set up in
+`apps/client/src/styles/tailwind.css`. The look follows Betaflight: amber
+(`#ffbb00`) headings and actions on neutral grey, Open Sans self-hosted from
+`@fontsource-variable/open-sans`, light and dark themes toggled in the toolbar
+by `ThemeStore` (`core/theme/`).
+
+The rules that keep Tailwind and Angular Material from fighting:
+
+- **No preflight.** `tailwind.css` imports only `theme` and `utilities`;
+  preflight would reset Material's own elements.
+- **Cascade layers decide who wins, not specificity.** `styles.scss` declares
+  `@layer theme, base, components, utilities;` first. Element defaults (`h1`,
+  `h2`, `a`, `body`) sit in `@layer base`, so a utility beats them. Material's
+  styles are unlayered, so they beat every utility — which means **an override
+  of a Material component's internals cannot be a utility.** It stays in the
+  component's `.scss` (the card's severity stripe, the unit condition select's
+  font size, the icon buttons laid over a photo).
+- **Colours are Material's tokens, aliased.** `bg-surface`, `text-muted`,
+  `text-primary`, `border-outline-variant` and the rest are `@theme inline`
+  aliases for `--mat-sys-*`, so a utility and a Material component can never
+  disagree, and both flip with `color-scheme`. That is why nothing needs a
+  `dark:` variant — reach for one only for something Material has no token
+  for.
+- **Status colours are tones**: `tone-go|stop|work|ready|idle` set `--tone` and
+  `--tone-surface`, read by `text-(--tone)`, `bg-(--tone-surface)`,
+  `border-l-(--tone)`. They are safelisted in `tailwind.css` because templates
+  build the class at runtime (`tone-{{ style.tone }}`).
+- **Icon sizes are `icon-xs|sm|md`**, global and unlayered in `styles.scss`,
+  because MatIcon injects its own 24px rule at runtime. A `size-*` utility on
+  a `mat-icon` silently loses. Icons inside Material buttons keep Material's
+  size.
+- **A utility that sets `display` loses on a Material host element** (`hidden`
+  on a `mat-icon`, for one). Put it on a wrapper.
+- **The Material palette is generated, never hand-edited.** Regenerate
+  `styles/_theme-colors.scss` with the command in the comment above
+  `mat.theme()` in `styles.scss`. The neutral seeds must stay grey: left to
+  derive from the amber, every surface and field turns tan. Pass the
+  directory **with a trailing slash** — without it the schematic writes
+  `src/styles_theme-colors.scss` beside the folder.
+- **Old class names can collide with utilities.** `block`, `grid`, `hidden`,
+  `row`-style names that were once component classes now mean something
+  globally; do not reintroduce one as a private class name.
+
 ## Gotchas
 
 - **Prisma is pinned to `^6` on purpose.** `latest` resolves to an 8.0 release

@@ -1,41 +1,42 @@
 <mat-card appearance="outlined">
   <mat-card-content>
-    <dl class="facts">
+    <dl class="m-0 grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-6 gap-y-3.5">
       <div>
-        <dt>Category</dt>
-        <dd class="kind">
-          <mat-icon aria-hidden="true">{{ categoryIcons[part().category] }}</mat-icon>
+        <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Category</dt>
+        <dd class="m-0 text-base wrap-anywhere flex items-center gap-1.5">
+          <mat-icon class="icon-md text-muted" aria-hidden="true">{{ categoryIcons[part().category] }}</mat-icon>
           {{ categoryLabels[part().category] }}
         </dd>
       </div>
       <div>
-        <dt>Units</dt>
-        <dd>
+        <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Units</dt>
+        <dd class="m-0 text-base wrap-anywhere">
           {{ total() }} owned
           @if (fitted()) {
-            <span class="sub">· {{ fitted() }} fitted, {{ free() }} free</span>
+            <span class="text-sm text-muted">· {{ fitted() }} fitted, {{ free() }} free</span>
           } @else {
-            <span class="sub">· all in stock</span>
+            <span class="text-sm text-muted">· all in stock</span>
           }
         </dd>
       </div>
       <div>
-        <dt>Manufacturer</dt>
-        <dd>
+        <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Manufacturer</dt>
+        <dd class="m-0 text-base wrap-anywhere">
           @if (part().manufacturer; as maker) {
             {{ maker }}
           } @else {
-            <span class="none">Not recorded</span>
+            <span class="text-muted italic">Not recorded</span>
           }
         </dd>
       </div>
-      <div class="wide">
-        <dt>Model</dt>
-        <dd>
+      <div class="col-span-full">
+        <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Model</dt>
+        <!-- Long listing names wrap here rather than being clamped as on the card. -->
+        <dd class="m-0 text-base wrap-anywhere">
           @if (part().model; as model) {
             {{ model }}
           } @else {
-            <span class="none">Not recorded</span>
+            <span class="text-muted italic">Not recorded</span>
           }
         </dd>
       </div>
@@ -43,33 +44,39 @@
   </mat-card-content>
 </mat-card>
 
-<section class="block">
-  <h2>Specification</h2>
+<section class="mt-7">
+  <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">Specification</h2>
 
   @if (specEntries().length) {
-    <dl class="spec">
+    <dl
+      class="m-0 grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-x-6 gap-y-3 rounded bg-surface-container px-4.5 py-4"
+    >
       @for (entry of specEntries(); track entry.key) {
         <div>
-          <dt>{{ entry.key }}</dt>
-          <dd>{{ entry.value }}</dd>
+          <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">{{ entry.key }}</dt>
+          <dd class="m-0 text-base wrap-anywhere">{{ entry.value }}</dd>
         </div>
       }
     </dl>
   } @else {
-    <p class="none">Nothing recorded for this part.</p>
+    <p class="text-muted italic">Nothing recorded for this part.</p>
   }
 </section>
 
-<section class="block">
-  <h2>Units</h2>
-  <p class="hint">
+<section class="mt-7">
+  <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">Units</h2>
+  <p class="mt-0 mb-3 max-w-176 text-sm text-muted">
     Each row is one physical item. Condition is per unit, so a dead motor does not condemn its siblings.
   </p>
 
-  <ul class="units">
+  <ul class="mt-0 mb-3 grid list-none gap-1.5 p-0">
     @for (unit of part().units; track unit.id) {
-      <li class="tone-{{ conditionStyles[unit.condition].tone }}">
-        <span class="unit-name">{{ name(unit) }}</span>
+      <li
+        class="tone-{{
+          conditionStyles[unit.condition].tone
+        }} grid grid-cols-[1fr_auto] items-center gap-4 rounded border-l-3 border-l-(--tone) bg-surface-container px-3.5 py-1.5 text-sm min-[40rem]:grid-cols-[5rem_minmax(9rem,12rem)_1fr_auto]"
+      >
+        <span class="font-semibold tabular-nums">{{ name(unit) }}</span>
 
         <mat-select
           class="condition"
@@ -82,9 +89,9 @@
           }
         </mat-select>
 
-        <span class="where">
+        <span class="flex items-center gap-1 text-sm text-muted">
           @if (unit.fitted) {
-            <mat-icon aria-hidden="true">link</mat-icon>
+            <mat-icon class="icon-sm" aria-hidden="true">link</mat-icon>
             Fitted
           } @else {
             In stock
@@ -110,52 +117,57 @@
   </button>
 </section>
 
-<section class="block">
-  <h2>Sources</h2>
+<section class="mt-7">
+  <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">Sources</h2>
 
   @if (sources().length) {
-    <ul class="sources">
+    <ul class="m-0 grid list-none gap-1.5 p-0">
       @for (source of sources(); track source.id) {
-        <li [class.purchase]="source.isPurchase">
-          <span class="vendor">
+        <li
+          class="grid grid-cols-[1fr_auto] items-center gap-4 rounded bg-surface-container px-3.5 py-2 text-sm outline-primary min-[40rem]:grid-cols-[1fr_auto_auto_auto]"
+          [class.outline]="source.isPurchase"
+        >
+          <span class="flex min-w-0 items-center gap-1.5 truncate">
             @if (source.isPurchase) {
-              <mat-icon class="bought" aria-label="Bought here">check_circle</mat-icon>
+              <mat-icon class="icon-sm text-primary" aria-label="Bought here">check_circle</mat-icon>
             }
             {{ source.vendor ?? 'Unknown vendor' }}
           </span>
 
-          <span class="cost">
+          <span class="whitespace-nowrap tabular-nums">
             @if (source.price !== null) {
               <strong>{{ source.price }}</strong> {{ source.currency }}
             } @else {
-              <span class="none">No price</span>
+              <span class="text-muted italic">No price</span>
             }
           </span>
 
-          <span class="when">
+          <span class="whitespace-nowrap tabular-nums">
             @if (source.purchasedOn; as bought) {
               {{ bought }}
             } @else {
-              <span class="none">—</span>
+              <span class="text-muted italic">—</span>
             }
           </span>
 
           @if (source.url; as link) {
             <a [href]="link" target="_blank" rel="noopener noreferrer">Open listing</a>
           } @else {
-            <span class="none">no link</span>
+            <span class="text-muted italic">no link</span>
           }
         </li>
       }
     </ul>
   } @else {
-    <p class="none">No purchase or price capture recorded.</p>
+    <p class="text-muted italic">No purchase or price capture recorded.</p>
   }
 </section>
 
 @if (part().notesMd; as notes) {
-  <section class="block">
-    <h2>Notes</h2>
-    <pre class="notes">{{ notes }}</pre>
+  <section class="mt-7">
+    <h2 class="mt-0 mb-3 text-sm font-semibold tracking-wider uppercase">Notes</h2>
+    <pre
+      class="m-0 max-h-88 overflow-auto rounded bg-surface-container px-4.5 py-4 text-sm leading-[1.55] whitespace-pre-wrap wrap-anywhere [font-family:inherit]"
+      >{{ notes }}</pre>
   </section>
 }

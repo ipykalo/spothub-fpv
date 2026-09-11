@@ -1,5 +1,5 @@
-<div class="toolbar">
-  <h1>Hangar</h1>
+<div class="mb-6 flex flex-wrap items-center gap-4">
+  <h1 class="m-0 flex-auto text-2xl">Hangar</h1>
 
   <sh-build-status-filter [statuses]="statuses" [selected]="store.status()" (selectedChange)="onFilter($event)" />
 
@@ -18,12 +18,12 @@
 }
 
 @if (store.isEmpty()) {
-  <div class="empty">
+  <div class="px-4 py-12 text-center text-muted">
     <p>No builds yet.</p>
     <button matButton routerLink="/hangar/new">Add your first quad</button>
   </div>
 } @else {
-  <div class="grid">
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
     @for (build of store.builds(); track build.id) {
       <sh-build-card [build]="build" [deleting]="pendingDelete() === build.id" (delete)="remove($event)" />
     }

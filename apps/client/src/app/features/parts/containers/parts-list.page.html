@@ -1,8 +1,8 @@
-<div class="toolbar">
-  <h1>Parts</h1>
+<div class="mb-4 flex flex-wrap items-baseline gap-4">
+  <h1 class="m-0 text-2xl">Parts</h1>
 
   @if (store.total()) {
-    <span class="count">
+    <span class="text-sm text-muted tabular-nums">
       {{ store.total() }} kinds · {{ store.unitTotal() }} units
       @if (store.fittedTotal()) {
         · {{ store.fittedTotal() }} fitted
@@ -10,7 +10,7 @@
     </span>
   }
 
-  <span class="spacer"></span>
+  <span class="flex-auto"></span>
 
   <button matButton="filled" routerLink="/parts/new">
     <mat-icon>add</mat-icon>
@@ -29,19 +29,19 @@
 }
 
 @if (store.isEmpty()) {
-  <div class="empty">
+  <div class="px-4 py-12 text-center text-muted">
     <p>Nothing in the inventory yet.</p>
     <button matButton routerLink="/parts/new">Add your first part</button>
   </div>
 } @else {
   @for (group of store.groups(); track group.category) {
-    <section class="group">
-      <h2>
-        <mat-icon aria-hidden="true">{{ group.icon }}</mat-icon>
+    <section class="mt-7">
+      <h2 class="mt-0 mb-3 flex items-center gap-1.5 text-base font-semibold tracking-wider uppercase">
+        <mat-icon class="icon-md" aria-hidden="true">{{ group.icon }}</mat-icon>
         {{ group.label }}
       </h2>
 
-      <div class="grid">
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
         @for (part of group.parts; track part.id) {
           <sh-part-card [part]="part" [deleting]="pendingDelete() === part.id" (delete)="remove($event)" />
         }

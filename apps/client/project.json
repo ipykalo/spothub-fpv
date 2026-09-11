@@ -24,7 +24,9 @@
           }
         ],
         "styles": [
-          "apps/client/src/styles.scss"
+          "node_modules/@fontsource-variable/open-sans/index.css",
+          "apps/client/src/styles.scss",
+          "apps/client/src/styles/tailwind.css"
         ]
       },
       "configurations": {

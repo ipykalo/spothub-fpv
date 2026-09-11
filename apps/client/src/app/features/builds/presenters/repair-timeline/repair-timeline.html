@@ -1,35 +1,40 @@
 @if (repairs().length) {
-  <ol class="timeline">
+  <ol class="m-0 grid list-none gap-1.5 p-0">
     @for (repair of repairs(); track repair.id) {
-      <li class="tone-{{ causeStyles[repair.cause].tone }}">
-        <span class="cause">
-          <mat-icon aria-hidden="true">{{ causeStyles[repair.cause].icon }}</mat-icon>
+      <!-- Severity stripe, same language as the cards. -->
+      <li
+        class="tone-{{
+          causeStyles[repair.cause].tone
+        }} grid grid-cols-[1fr_auto] items-center gap-4 rounded border-l-3 border-l-(--tone) bg-surface-container px-3.5 py-2 text-sm min-[50rem]:grid-cols-[minmax(7rem,auto)_minmax(6rem,auto)_1fr_auto_auto]"
+      >
+        <span class="inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-(--tone) uppercase">
+          <mat-icon class="icon-sm" aria-hidden="true">{{ causeStyles[repair.cause].icon }}</mat-icon>
           {{ causeLabels[repair.cause] }}
         </span>
 
-        <span class="when">{{ repair.occurredOn }}</span>
+        <span class="whitespace-nowrap text-muted tabular-nums">{{ repair.occurredOn }}</span>
 
-        <span class="what">
+        <span class="flex min-w-0 flex-col gap-0.5 wrap-anywhere">
           @if (repair.descriptionMd; as text) {
             {{ text }}
           } @else {
-            <span class="none">No description</span>
+            <span class="text-muted italic">No description</span>
           }
 
           @if (repair.installCount) {
-            <span class="parts">
-              <mat-icon aria-hidden="true">build</mat-icon>
+            <span class="inline-flex items-center gap-1 text-xs text-muted">
+              <mat-icon class="icon-sm" aria-hidden="true">build</mat-icon>
               {{ repair.installCount }} part{{ repair.installCount === 1 ? '' : 's' }}
               replaced
             </span>
           }
         </span>
 
-        <span class="cost">
+        <span class="whitespace-nowrap tabular-nums">
           @if (repair.cost !== null) {
             <strong>{{ repair.cost }}</strong> {{ repair.currency }}
           } @else {
-            <span class="none">—</span>
+            <span class="text-muted italic">—</span>
           }
         </span>
 
@@ -45,5 +50,5 @@
     }
   </ol>
 } @else {
-  <p class="empty">Nothing has gone wrong with this build yet.</p>
+  <p class="m-0 py-5 text-muted">Nothing has gone wrong with this build yet.</p>
 }

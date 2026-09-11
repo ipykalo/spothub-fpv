@@ -2,19 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>client</title>
+    <title>SpotHub FPV</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
     <!--
-      Roboto is named by styles.scss and mat.theme(); Material Icons backs
-      <mat-icon>, whose default font set class is `material-icons`. Without
-      these the icon ligatures render as their literal text ("add", "logout").
+      Applies the saved theme before Angular loads. ThemeStore takes over once
+      the app boots, but without this a returning dark-mode visitor would get a
+      white flash on every load. The key must match THEME_STORAGE_KEY.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('spothub.theme');
+          var mode =
+            saved === 'light' || saved === 'dark'
+              ? saved
+              : matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+          document.documentElement.style.colorScheme = mode;
+          if (mode === 'dark') document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+
+    <!--
+      Open Sans is self-hosted (bundled from @fontsource). Material Icons still
+      comes from Google: it backs <mat-icon>, whose default font set class is
+      `material-icons`, and without it ligatures render as their literal text.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   </head>
   <body>

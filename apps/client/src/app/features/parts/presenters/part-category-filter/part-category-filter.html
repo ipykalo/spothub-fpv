@@ -3,8 +3,14 @@
 
   @for (category of categories(); track category) {
     <mat-chip-option [selected]="selected() === category" [value]="category">
-      <mat-icon aria-hidden="true">{{ categoryIcons[category] }}</mat-icon>
-      {{ categoryLabels[category] }}
+      <!--
+        Icon and label in one inline-flex row. Placed straight into the chip,
+        the icon sat on the text baseline and rode visibly above the label.
+      -->
+      <span class="inline-flex items-center gap-1">
+        <mat-icon class="icon-sm opacity-85" aria-hidden="true">{{ categoryIcons[category] }}</mat-icon>
+        {{ categoryLabels[category] }}
+      </span>
     </mat-chip-option>
   }
 </mat-chip-listbox>

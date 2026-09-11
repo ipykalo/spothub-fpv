@@ -1,10 +1,10 @@
-<mat-card appearance="outlined">
+<mat-card appearance="outlined" class="max-w-176">
   <mat-card-header>
     <mat-card-title>{{ isEdit() ? 'Edit build' : 'New build' }}</mat-card-title>
   </mat-card-header>
 
   <mat-card-content>
-    <form [formGroup]="form" (ngSubmit)="submit()">
+    <form class="grid gap-2" [formGroup]="form" (ngSubmit)="submit()">
       <mat-form-field>
         <mat-label>Name</mat-label>
         <input matInput formControlName="name" placeholder="Mark4 5-inch" />
@@ -13,7 +13,7 @@
         }
       </mat-form-field>
 
-      <div class="row">
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-2">
         <mat-form-field>
           <mat-label>Class</mat-label>
           <mat-select formControlName="buildClass">
@@ -59,7 +59,7 @@
         <p role="alert">{{ text }}</p>
       }
 
-      <div class="actions">
+      <div class="mt-4 flex gap-3">
         <button matButton="filled" type="submit" [disabled]="saving()">
           {{ saving() ? 'Saving…' : 'Save' }}
         </button>

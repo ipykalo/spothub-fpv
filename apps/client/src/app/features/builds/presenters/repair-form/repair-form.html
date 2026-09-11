@@ -1,4 +1,8 @@
-<form [formGroup]="form" (ngSubmit)="submit()">
+<form
+  class="grid grid-cols-2 items-start gap-2 min-[60rem]:grid-cols-[minmax(14rem,2.5fr)_minmax(8rem,1fr)_minmax(9rem,1fr)_minmax(7rem,1fr)_minmax(6rem,0.7fr)_auto]"
+  [formGroup]="form"
+  (ngSubmit)="submit()"
+>
   <mat-form-field>
     <mat-label>What happened</mat-label>
     <input matInput formControlName="descriptionMd" placeholder="Caught a branch, snapped the rear-left arm" />
@@ -29,12 +33,17 @@
     <input matInput formControlName="currency" maxlength="3" />
   </mat-form-field>
 
-  <button matButton="filled" type="submit" [disabled]="saving()">
+  <button
+    matButton="filled"
+    type="submit"
+    class="col-span-full mt-2 justify-self-start min-[60rem]:col-auto min-[60rem]:justify-self-auto"
+    [disabled]="saving()"
+  >
     <mat-icon>add</mat-icon>
     Log
   </button>
 </form>
 
 @if (error) {
-  <p role="alert">{{ error }}</p>
+  <p class="mt-1 mb-0 text-sm text-danger" role="alert">{{ error }}</p>
 }

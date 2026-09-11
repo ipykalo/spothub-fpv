@@ -1,4 +1,8 @@
-<form [formGroup]="form" (ngSubmit)="submit()">
+<form
+  class="grid grid-cols-2 items-start gap-2 min-[55rem]:grid-cols-[minmax(12rem,2fr)_minmax(7rem,1fr)_minmax(9rem,1fr)_minmax(8rem,1fr)_auto]"
+  [formGroup]="form"
+  (ngSubmit)="submit()"
+>
   <mat-form-field>
     <mat-label>Part</mat-label>
     <mat-select formControlName="unitId">
@@ -46,12 +50,17 @@
     </mat-form-field>
   }
 
-  <button matButton="filled" type="submit" [disabled]="saving() || !units().length">
+  <button
+    matButton="filled"
+    type="submit"
+    class="col-span-full mt-2 justify-self-start min-[55rem]:col-auto min-[55rem]:justify-self-auto"
+    [disabled]="saving() || !units().length"
+  >
     <mat-icon>add</mat-icon>
     Fit
   </button>
 </form>
 
 @if (error) {
-  <p role="alert">{{ error }}</p>
+  <p class="mt-1 mb-0 text-sm text-danger" role="alert">{{ error }}</p>
 }
