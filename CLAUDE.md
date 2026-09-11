@@ -139,12 +139,30 @@ markup. Presenters take `input()`s, emit `output()`s, inject nothing stateful
 and hold no application state — which is what lets them serve the V4 public
 build pages, where there is no store behind them.
 
+**One bounded context per client feature, mirroring the API split.** The
+hangar used to be one `features/builds/` folder holding five contexts —
+builds, build-parts, repairs, configs and photos — each already with its own
+`*.api.ts` / `*.store.ts` pair that never called another's. That was a
+discoverability problem, not a coupling bug: nothing enforced the split, so it
+took reading file prefixes to tell "everything about repairs" apart from
+"everything about builds". Split into five feature folders:
+
 ```
-features/builds/
-  builds.api.ts  builds.store.ts
-  containers/    builds-list.page.*   build-form.page.*
-  presenters/    build-card/  build-form/  photo-gallery/
+features/
+  builds/       builds.api/store, build-status, containers (list, form, detail), build-card + build-form presenters
+  build-parts/  build-parts.api/store, install-part-form + installed-parts-list presenters
+  repairs/      repairs.api/store, repair-cause, repair-form + repair-timeline presenters
+  configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
+  photos/       photos.api/store, photo-gallery presenter
+  parts/        catalogue, units, sources
 ```
+
+`build-detail.page.ts` stays in `builds/containers/` and imports the other
+four as a composition root — the same relationship the API's `build-parts`
+module has with `PartsFacade` / `RepairsFacade`. Nothing else changes: routes,
+API calls and behaviour are identical, and no facade or DI boundary is needed
+here, because a client store never reaches into another's HTTP calls the way
+an API repository could reach into another module's table.
 
 **The selector prefix is `sh-`**, set in `apps/client/eslint.config.mjs` and
 the `prefix` field of `apps/client/project.json`. The root component is

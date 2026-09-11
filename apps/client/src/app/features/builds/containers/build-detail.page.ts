@@ -31,26 +31,26 @@ import {
 } from '@spothub/shared';
 
 import { Section } from '../../../core/components/section/section';
-import { fittableUnits } from '../../parts/part-condition';
-import { PartsStore } from '../../parts/parts.store';
-import { BUILD_STATUS_STYLES } from '../build-status';
-import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
-import { InstallPartForm } from '../presenters/install-part-form/install-part-form';
-import { InstalledPartsList } from '../presenters/installed-parts-list/installed-parts-list';
-import { PhotoGallery } from '../presenters/photo-gallery/photo-gallery';
-import { RepairForm } from '../presenters/repair-form/repair-form';
-import { RepairTimeline } from '../presenters/repair-timeline/repair-timeline';
-import { RepairsStore } from '../repairs.store';
-import { ConfigList } from '../presenters/config-list/config-list';
-import { ConfigPasteForm } from '../presenters/config-paste-form/config-paste-form';
-import { ConfigsApi } from '../configs.api';
-import { ConfigsStore } from '../configs.store';
-import { BuildPartsStore } from '../build-parts.store';
-import { BuildsApi } from '../builds.api';
-import { BuildsStore } from '../builds.store';
-import { PhotosStore } from '../photos.store';
 import { CollapseAll } from '../../../core/components/section/collapse-all';
 import { SectionGroup } from '../../../core/components/section/section-group';
+import { InstallPartForm } from '../../build-parts/presenters/install-part-form/install-part-form';
+import { InstalledPartsList } from '../../build-parts/presenters/installed-parts-list/installed-parts-list';
+import { BuildPartsStore } from '../../build-parts/build-parts.store';
+import { ConfigList } from '../../configs/presenters/config-list/config-list';
+import { ConfigPasteForm } from '../../configs/presenters/config-paste-form/config-paste-form';
+import { ConfigsApi } from '../../configs/configs.api';
+import { ConfigsStore } from '../../configs/configs.store';
+import { PhotoGallery } from '../../photos/presenters/photo-gallery/photo-gallery';
+import { PhotosStore } from '../../photos/photos.store';
+import { fittableUnits } from '../../parts/part-condition';
+import { PartsStore } from '../../parts/parts.store';
+import { RepairForm } from '../../repairs/presenters/repair-form/repair-form';
+import { RepairTimeline } from '../../repairs/presenters/repair-timeline/repair-timeline';
+import { RepairsStore } from '../../repairs/repairs.store';
+import { BUILD_STATUS_STYLES } from '../build-status';
+import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
+import { BuildsApi } from '../builds.api';
+import { BuildsStore } from '../builds.store';
 
 /**
  * Container: the build page. Owns the stores and the side effects; every

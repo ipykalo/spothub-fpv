@@ -60,7 +60,7 @@ export const appRoutes: Route[] = [
         // build page is already long.
         path: ':id/compare',
         loadComponent: () =>
-          import('./features/builds/containers/config-compare.page').then(
+          import('./features/configs/containers/config-compare.page').then(
             (m) => m.ConfigComparePage,
           ),
       },
