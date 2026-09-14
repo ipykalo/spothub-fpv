@@ -1,12 +1,12 @@
 @if (flights().length === 0) {
-  <p class="m-0 py-6 text-center text-sm text-muted">No flights on this build yet.</p>
+  <p class="m-0 py-6 text-center text-sm text-muted">No flights yet.</p>
 } @else {
   <div class="viz grid grid-cols-1 gap-x-10 gap-y-12 lg:grid-cols-2">
     <!-- Pack voltage sag -->
     <figure class="m-0">
       <figcaption class="mb-3 text-base font-semibold">Pack voltage sag</figcaption>
       @if (voltageRows().length === 0) {
-        <p class="m-0 text-sm text-muted">No voltage readings yet — this build's flights have no telemetry.</p>
+        <p class="m-0 text-sm text-muted">No voltage readings yet — these flights have no telemetry.</p>
       } @else {
         <div class="mb-1 flex items-center gap-4 text-xs text-muted">
           <span class="inline-flex items-center gap-1.5"><span class="voltage-key voltage-key--start"></span>Start</span>
@@ -146,7 +146,7 @@
     <figure class="m-0">
       <figcaption class="mb-3 text-base font-semibold">Average throttle vs. peak current</figcaption>
       @if (throttleCurrentPoints().length === 0) {
-        <p class="m-0 text-sm text-muted">No current readings yet — this build's flights have no telemetry.</p>
+        <p class="m-0 text-sm text-muted">No current readings yet — these flights have no telemetry.</p>
       } @else {
         <svg
           [attr.viewBox]="'0 0 ' + width + ' ' + height"

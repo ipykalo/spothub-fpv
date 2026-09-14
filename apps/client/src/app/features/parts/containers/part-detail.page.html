@@ -35,4 +35,22 @@
     (unitAdded)="addUnit()"
     (unitRemoved)="removeUnit($event)"
   />
+
+  @if (isBattery()) {
+    <sh-section class="mt-8 block" heading="Flights" storageKey="part.flights" [count]="packFlights().length">
+      @if (!packFlights().length && packFilter() === null) {
+        <p class="m-0 mb-3 text-sm text-muted">
+          Set which pack each flight ran on in the <a routerLink="/flights">logbook</a>, and its wear shows here.
+        </p>
+      }
+
+      @if (packOptions().length > 1) {
+        <div class="mb-5">
+          <sh-filter-chips [options]="packOptions()" [(selected)]="packFilter" ariaLabel="Filter by pack" />
+        </div>
+      }
+
+      <sh-flight-trends [flights]="packFlights()" />
+    </sh-section>
+  }
 }

@@ -7,6 +7,8 @@ export interface FlightEntity {
   readonly sessionId: string;
   readonly buildId: string | null;
   readonly buildName: string | null;
+  readonly batteryUnitId: string | null;
+  readonly batteryName: string | null;
   readonly logFileId: string;
   readonly fileName: string;
   readonly modelName: string | null;
@@ -41,6 +43,12 @@ export interface SessionEntity {
   readonly startedAt: Date;
   readonly endedAt: Date;
   readonly flights: readonly FlightEntity[];
+}
+
+/** What flights were flown on. An absent key is left as it is; null clears it. */
+export interface FlightAssignment {
+  readonly buildId?: string | null | undefined;
+  readonly batteryUnitId?: string | null | undefined;
 }
 
 /** A parsed flight on its way into storage. */

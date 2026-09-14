@@ -9,7 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import type { FlightDto, SessionDto } from '@spothub/shared';
+import type { FlightDto, SessionDto, UpdateFlightDto } from '@spothub/shared';
 
 import type { ChoiceOption } from '../../../core/components/choice-option';
 import { FilterChips } from '../../../core/components/filter-chips/filter-chips';
@@ -25,7 +25,10 @@ import { Section } from '../../../core/components/section/section';
 import { SectionGroup } from '../../../core/components/section/section-group';
 import { BUILD_STATUS_STYLES } from '../../builds/build-status';
 import { BuildsStore } from '../../builds/builds.store';
+import { batteryOptions } from '../../parts/part-condition';
+import { PartsStore } from '../../parts/parts.store';
 import { FlightsStore } from '../flights.store';
+import { FlightBulkBar } from '../presenters/flight-bulk-bar/flight-bulk-bar';
 import {
   LogImportPanel,
   type LogImportRequest,
@@ -42,7 +45,7 @@ type FlightSortKey = 'date' | 'duration' | 'voltage' | 'link';
 const UNASSIGNED_BUILD = '__unassigned__';
 
 const FLIGHT_GRID: GridSpec<FlightDto, FlightSortKey> = {
-  text: (flight) => [flight.buildName, flight.modelName, flight.fileName],
+  text: (flight) => [flight.buildName, flight.batteryName, flight.modelName, flight.fileName],
   sortBy: {
     date: (flight) => flight.startedAt,
     duration: (flight) => flight.durationS,
@@ -93,6 +96,7 @@ const CLOCK_SET_AFTER = Date.UTC(2015, 0, 1);
   imports: [
     CollapseAll,
     FilterChips,
+    FlightBulkBar,
     GridToolbar,
     MatButtonModule,
     MatIconModule,
@@ -108,11 +112,19 @@ const CLOCK_SET_AFTER = Date.UTC(2015, 0, 1);
 export class FlightsPage {
   protected readonly store = inject(FlightsStore);
   private readonly builds = inject(BuildsStore);
+  private readonly parts = inject(PartsStore);
   private readonly snackBar = inject(MatSnackBar);
 
   protected readonly openSessions = OPEN_SESSIONS;
   protected readonly addingImport = signal(false);
   protected readonly pendingRemoval = signal<string | null>(null);
+  protected readonly bulkSaving = signal(false);
+
+  /** Ticked flights, across every outing. */
+  protected readonly selected = signal<ReadonlySet<string>>(new Set());
+
+  /** Every battery pack in the inventory, including broken and retired ones. */
+  protected readonly batteries = computed(() => batteryOptions(this.parts.parts()));
 
   protected readonly sorts = SORTS;
   protected readonly grid = new GridState<FlightSortKey, string>({
@@ -192,12 +204,30 @@ export class FlightsPage {
     this.sessions().reduce((sum, session) => sum + session.flights.length, 0),
   );
 
+  /**
+   * The ticked flights the search and filters still show. A bulk change lands
+   * on these only: a flight a search has hidden stays ticked but is never
+   * changed unseen, and a deleted flight drops out on its own.
+   */
+  protected readonly selectedShown = computed(() => {
+    const selected = this.selected();
+
+    return this.sessions()
+      .flatMap((session) => session.flights)
+      .filter((flight) => selected.has(flight.id))
+      .map((flight) => flight.id);
+  });
+
   constructor() {
     void this.store.load();
 
-    // The pickers need the builds; harmless if they are already loaded.
+    // The pickers need the builds and the packs; harmless if already loaded.
     if (this.builds.builds().length === 0) {
       void this.builds.load();
+    }
+
+    if (this.parts.parts().length === 0) {
+      void this.parts.load();
     }
   }
 
@@ -236,8 +266,61 @@ export class FlightsPage {
     flight: FlightDto;
     buildId: string | null;
   }): Promise<void> {
+    await this.assignOne(change.flight, { buildId: change.buildId });
+  }
+
+  protected async onBatteryChanged(change: {
+    flight: FlightDto;
+    batteryUnitId: string | null;
+  }): Promise<void> {
+    await this.assignOne(change.flight, { batteryUnitId: change.batteryUnitId });
+  }
+
+  protected onSelectionChanged(change: {
+    flightIds: readonly string[];
+    selected: boolean;
+  }): void {
+    this.selected.update((current) => {
+      const next = new Set(current);
+
+      for (const id of change.flightIds) {
+        if (change.selected) {
+          next.add(id);
+        } else {
+          next.delete(id);
+        }
+      }
+
+      return next;
+    });
+  }
+
+  protected clearSelection(): void {
+    this.selected.set(new Set());
+  }
+
+  protected async onBulkApply(change: UpdateFlightDto): Promise<void> {
+    const flightIds = this.selectedShown();
+    this.bulkSaving.set(true);
+
     try {
-      await this.store.assignBuild(change.flight.id, change.buildId);
+      await this.store.assign(flightIds, change);
+      this.clearSelection();
+
+      const count = flightIds.length;
+      this.snackBar.open(`Updated ${String(count)} flight${count === 1 ? '' : 's'}`, undefined, {
+        duration: 3000,
+      });
+    } catch {
+      this.snackBar.open('Could not change those flights', undefined, { duration: 4000 });
+    } finally {
+      this.bulkSaving.set(false);
+    }
+  }
+
+  private async assignOne(flight: FlightDto, change: UpdateFlightDto): Promise<void> {
+    try {
+      await this.store.assign([flight.id], change);
     } catch {
       this.snackBar.open('Could not change that flight', undefined, { duration: 4000 });
     }

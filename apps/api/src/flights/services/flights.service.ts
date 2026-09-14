@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { FlightDto, SessionDto, UpdateFlightDto } from '@spothub/shared';
+import type {
+  FlightDto,
+  SessionDto,
+  UpdateFlightDto,
+  UpdateFlightsDto,
+} from '@spothub/shared';
 
 import { FlightsRepository } from '../abstract/flights.repository';
+import type { FlightAssignment } from '../entities/flight.entity';
 import { SESSION_GAP_MS } from '../flights.constants';
 import { toFlightDto, toSessionDto } from '../flights.mapper';
 
@@ -15,22 +21,16 @@ export class FlightsService {
     return sessions.map(toSessionDto);
   }
 
-  /** Puts a flight on a build, or takes it off with null. */
+  /** Sets a flight's build or battery pack; null takes it off. */
   async update(ownerId: string, id: string, input: UpdateFlightDto): Promise<FlightDto> {
-    if (
-      input.buildId !== null &&
-      !(await this.flights.buildBelongsToOwner(ownerId, input.buildId))
-    ) {
-      throw new NotFoundException('Build not found');
-    }
+    const [flight] = await this.assign(ownerId, [id], input, 'Flight not found');
+    return flight;
+  }
 
-    const flight = await this.flights.updateBuild(ownerId, id, input.buildId);
-
-    if (!flight) {
-      throw new NotFoundException('Flight not found');
-    }
-
-    return toFlightDto(flight);
+  /** The same change across many flights: all of them, or none. */
+  async updateMany(ownerId: string, input: UpdateFlightsDto): Promise<FlightDto[]> {
+    const { flightIds, ...change } = input;
+    return this.assign(ownerId, flightIds, change, 'Some of those flights were not found');
   }
 
   /** The session it was in is regrouped: it may split, or disappear. */
@@ -40,5 +40,38 @@ export class FlightsService {
     if (!deleted) {
       throw new NotFoundException('Flight not found');
     }
+  }
+
+  /**
+   * A build or pack is checked before anything is written, so naming one that
+   * is not the owner's — or a unit that is not a battery — changes nothing.
+   */
+  private async assign(
+    ownerId: string,
+    flightIds: readonly string[],
+    change: FlightAssignment,
+    missing: string,
+  ): Promise<FlightDto[]> {
+    if (
+      typeof change.buildId === 'string' &&
+      !(await this.flights.buildBelongsToOwner(ownerId, change.buildId))
+    ) {
+      throw new NotFoundException('Build not found');
+    }
+
+    if (
+      typeof change.batteryUnitId === 'string' &&
+      !(await this.flights.batteryBelongsToOwner(ownerId, change.batteryUnitId))
+    ) {
+      throw new NotFoundException('Battery pack not found');
+    }
+
+    const flights = await this.flights.updateAssignment(ownerId, flightIds, change);
+
+    if (!flights) {
+      throw new NotFoundException(missing);
+    }
+
+    return flights.map(toFlightDto);
   }
 }

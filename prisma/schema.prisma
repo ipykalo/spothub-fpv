@@ -223,6 +223,8 @@ model PartUnit {
 
   part     Part        @relation(fields: [partId], references: [id], onDelete: Cascade)
   installs BuildPart[]
+  /// Flights flown on this unit, when it is a battery pack.
+  flights  Flight[]
 
   @@index([partId])
   @@map("part_units")
@@ -601,6 +603,9 @@ model Flight {
   ownerId     String   @map("owner_id") @db.Uuid
   sessionId   String   @map("session_id") @db.Uuid
   buildId     String?  @map("build_id") @db.Uuid
+  /// The battery pack flown. A log never says which pack was plugged in, so
+  /// this is only ever set by hand.
+  batteryUnitId String? @map("battery_unit_id") @db.Uuid
   logFileId   String   @map("log_file_id") @db.Uuid
   startedAt   DateTime @map("started_at")
   endedAt     DateTime @map("ended_at")
@@ -638,6 +643,8 @@ model Flight {
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   /// SetNull: deleting a quad must not delete the record of having flown it.
   build   Build?  @relation(fields: [buildId], references: [id], onDelete: SetNull)
+  /// SetNull for the same reason: deleting a pack keeps the flights.
+  batteryUnit PartUnit? @relation(fields: [batteryUnitId], references: [id], onDelete: SetNull)
   logFile LogFile @relation(fields: [logFileId], references: [id], onDelete: Cascade)
 
   /// Re-running an import over the same file cannot duplicate a flight.
@@ -645,5 +652,6 @@ model Flight {
   @@index([ownerId, startedAt])
   @@index([sessionId])
   @@index([buildId])
+  @@index([batteryUnitId])
   @@map("flights")
 }

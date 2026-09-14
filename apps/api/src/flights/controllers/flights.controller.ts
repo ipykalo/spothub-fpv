@@ -13,7 +13,9 @@ import {
   type FlightDto,
   type SessionDto,
   type UpdateFlightDto,
+  type UpdateFlightsDto,
   updateFlightSchema,
+  updateFlightsSchema,
 } from '@spothub/shared';
 
 import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../../common';
@@ -28,6 +30,15 @@ export class FlightsController {
   @Get('sessions')
   sessions(@CurrentUser() user: AuthenticatedUser): Promise<SessionDto[]> {
     return this.flights.sessions(user.id);
+  }
+
+  /** One build or battery pack, set on many flights at once. All or none. */
+  @Patch()
+  updateMany(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(updateFlightsSchema)) body: UpdateFlightsDto,
+  ): Promise<FlightDto[]> {
+    return this.flights.updateMany(user.id, body);
   }
 
   @Patch(':id')

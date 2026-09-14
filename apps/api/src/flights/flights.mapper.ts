@@ -9,6 +9,8 @@ export function toFlightDto(flight: FlightEntity): FlightDto {
     sessionId: flight.sessionId,
     buildId: flight.buildId,
     buildName: flight.buildName,
+    batteryUnitId: flight.batteryUnitId,
+    batteryName: flight.batteryName,
     modelName: flight.modelName,
     fileName: flight.fileName,
     startedAt: flight.startedAt.toISOString(),

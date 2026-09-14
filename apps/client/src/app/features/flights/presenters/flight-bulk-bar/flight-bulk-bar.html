@@ -1,0 +1,38 @@
+<div
+  class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-outline-variant bg-surface-high px-4 py-2.5 shadow-md"
+  role="region"
+  aria-label="Change the selected flights"
+>
+  <span class="text-sm font-semibold tabular-nums">
+    {{ count() }} flight{{ count() === 1 ? '' : 's' }} selected
+  </span>
+
+  <sh-autocomplete
+    class="w-56"
+    compact
+    subscriptSizing="dynamic"
+    placeholder="Build: leave as is"
+    ariaLabel="Build for the selected flights"
+    [options]="buildChoices()"
+    [(value)]="build"
+  />
+
+  @if (batteries().length) {
+    <sh-autocomplete
+      class="w-72"
+      compact
+      subscriptSizing="dynamic"
+      placeholder="Pack: leave as is"
+      ariaLabel="Battery pack for the selected flights"
+      [options]="batteryChoices()"
+      [(value)]="battery"
+    />
+  }
+
+  <span class="flex-auto"></span>
+
+  <button matButton type="button" [disabled]="saving()" (click)="cleared.emit()">Clear selection</button>
+  <button matButton="filled" type="button" [disabled]="!ready() || saving()" (click)="apply()">
+    {{ saving() ? 'Applying…' : 'Apply to ' + count() }}
+  </button>
+</div>

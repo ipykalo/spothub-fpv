@@ -1,10 +1,13 @@
 import {
   PART_CATEGORY_LABELS,
+  PART_CONDITION_LABELS,
+  PartCategory,
   PartCondition,
   type PartDto,
   type PartUnitDto,
 } from '@spothub/shared';
 
+import type { ChoiceOption } from '../../core/components/choice-option';
 import type { StatusStyle } from '../../core/ui/status-style';
 
 /**
@@ -124,4 +127,25 @@ export function fittableUnits(parts: readonly PartDto[]): readonly FittableUnit[
   }
 
   return result;
+}
+
+/**
+ * Every battery pack, ready for a picker — broken and retired ones included,
+ * so a flight flown on a pack that has since died still shows which one it
+ * was. A pack that is not serviceable says so in its hint.
+ */
+export function batteryOptions(parts: readonly PartDto[]): readonly ChoiceOption<string>[] {
+  return parts
+    .filter((part) => part.category === PartCategory.Battery)
+    .flatMap((part) =>
+      part.units.map((unit) => ({
+        value: unit.id,
+        label: `${partName(part)} ${unitName(part, unit)}`,
+        icon: PART_CONDITION_STYLES[unit.condition].icon,
+        hint:
+          unit.condition === PartCondition.Serviceable
+            ? undefined
+            : PART_CONDITION_LABELS[unit.condition],
+      })),
+    );
 }

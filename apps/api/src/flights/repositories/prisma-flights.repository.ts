@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma';
 import { FlightsRepository } from '../abstract/flights.repository';
 import type {
+  FlightAssignment,
   FlightEntity,
   NewFlightData,
   SessionEntity,
@@ -12,10 +13,26 @@ import { type PlannedFlight, planSessions } from '../session-planner';
 
 const FLIGHT_INCLUDE = {
   build: { select: { name: true } },
+  batteryUnit: {
+    select: {
+      id: true,
+      label: true,
+      part: {
+        select: {
+          manufacturer: true,
+          model: true,
+          // The order the parts module numbers units in, so "#2" here is the
+          // same pack as "#2" on the part's own page.
+          units: { select: { id: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
+        },
+      },
+    },
+  },
   logFile: { select: { fileName: true, modelName: true } },
 } satisfies Prisma.FlightInclude;
 
 type FlightRow = Prisma.FlightGetPayload<{ include: typeof FLIGHT_INCLUDE }>;
+type BatteryUnitRow = NonNullable<FlightRow['batteryUnit']>;
 
 /** Placeholder keys for flights not stored yet. A uuid never starts this way. */
 const NEW = 'new:';
@@ -90,26 +107,36 @@ export class PrismaFlightsRepository extends FlightsRepository {
     }));
   }
 
-  async updateBuild(
+  async updateAssignment(
     ownerId: string,
-    flightId: string,
-    buildId: string | null,
-  ): Promise<FlightEntity | null> {
-    const { count } = await this.prisma.flight.updateMany({
-      where: { id: flightId, ownerId },
-      data: { buildId },
+    flightIds: readonly string[],
+    change: FlightAssignment,
+  ): Promise<FlightEntity[] | null> {
+    const ids = [...new Set(flightIds)];
+
+    return this.prisma.$transaction(async (tx) => {
+      // All or none: a bulk change that names a flight which is not the
+      // owner's changes nothing, rather than quietly changing the rest.
+      const owned = await tx.flight.count({ where: { id: { in: ids }, ownerId } });
+
+      if (owned !== ids.length) {
+        return null;
+      }
+
+      // An undefined key is left out of the update, so it keeps its value.
+      await tx.flight.updateMany({
+        where: { id: { in: ids }, ownerId },
+        data: { buildId: change.buildId, batteryUnitId: change.batteryUnitId },
+      });
+
+      const rows = await tx.flight.findMany({
+        where: { id: { in: ids }, ownerId },
+        orderBy: { startedAt: 'asc' },
+        include: FLIGHT_INCLUDE,
+      });
+
+      return rows.map(toFlightEntity);
     });
-
-    if (count === 0) {
-      return null;
-    }
-
-    const flight = await this.prisma.flight.findFirst({
-      where: { id: flightId, ownerId },
-      include: FLIGHT_INCLUDE,
-    });
-
-    return flight ? toFlightEntity(flight) : null;
   }
 
   async deleteForOwner(
@@ -142,6 +169,15 @@ export class PrismaFlightsRepository extends FlightsRepository {
     });
 
     return build !== null;
+  }
+
+  async batteryBelongsToOwner(ownerId: string, unitId: string): Promise<boolean> {
+    const unit = await this.prisma.partUnit.findFirst({
+      where: { id: unitId, part: { ownerId, category: 'BATTERY' } },
+      select: { id: true },
+    });
+
+    return unit !== null;
   }
 
   async findBuildIdByName(ownerId: string, name: string): Promise<string | null> {
@@ -253,6 +289,21 @@ async function regroup(
   await tx.session.deleteMany({ where: { ownerId, flights: { none: {} } } });
 }
 
+/** Named as the parts page names a unit: the part, then its label or its number. */
+function batteryName(unit: BatteryUnitRow): string {
+  const part = [unit.part.manufacturer, unit.part.model].filter(Boolean).join(' ') || 'Battery';
+  return `${part} ${unitLabel(unit)}`;
+}
+
+function unitLabel(unit: BatteryUnitRow): string {
+  if (unit.label) {
+    return unit.label;
+  }
+
+  const index = unit.part.units.findIndex((candidate) => candidate.id === unit.id);
+  return `#${String(index + 1)}`;
+}
+
 function identity(logFileId: string, startedAt: Date): string {
   return `${logFileId}|${startedAt.toISOString()}`;
 }
@@ -299,6 +350,8 @@ function toFlightEntity(row: FlightRow): FlightEntity {
     sessionId: row.sessionId,
     buildId: row.buildId,
     buildName: row.build?.name ?? null,
+    batteryUnitId: row.batteryUnitId,
+    batteryName: row.batteryUnit ? batteryName(row.batteryUnit) : null,
     logFileId: row.logFileId,
     fileName: row.logFile.fileName,
     modelName: row.logFile.modelName,

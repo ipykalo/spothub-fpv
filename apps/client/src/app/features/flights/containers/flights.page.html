@@ -60,7 +60,7 @@
       [sorts]="sorts"
       [shown]="shown()"
       [total]="store.flightTotal()"
-      searchLabel="Search by build or radio model"
+      searchLabel="Search flights"
     >
       @if (buildFilterOptions().length > 1) {
         <sh-filter-chips
@@ -73,6 +73,19 @@
 
     @if (!sessions().length) {
       <p class="m-0 py-8 text-center text-muted">Nothing matches.</p>
+    }
+
+    @if (selectedShown().length) {
+      <!-- Sticky, so it stays in reach while ticking flights further down. -->
+      <sh-flight-bulk-bar
+        class="sticky top-4 z-10"
+        [count]="selectedShown().length"
+        [builds]="buildOptions()"
+        [batteries]="batteries()"
+        [saving]="bulkSaving()"
+        (applied)="onBulkApply($event)"
+        (cleared)="clearSelection()"
+      />
     }
   }
 
@@ -94,8 +107,12 @@
       <sh-session-flights
         [session]="session"
         [builds]="buildOptions()"
+        [batteries]="batteries()"
+        [selected]="selected()"
         [pendingRemoval]="pendingRemoval()"
         (buildChanged)="onBuildChanged($event)"
+        (batteryChanged)="onBatteryChanged($event)"
+        (selectionChanged)="onSelectionChanged($event)"
         (removeRequested)="onRemove($event)"
       />
     </sh-section>

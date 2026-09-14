@@ -1,38 +1,57 @@
-<!--
-  What the abbreviated figures below mean. Not a real table — the values
-  wrap and skip whatever a flight's log has no sensor for — so this reads as
-  a key rather than aligned column headers.
--->
-<p class="m-0 mb-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-  <span class="inline-flex items-center gap-1">
-    <mat-icon class="icon-xs" aria-hidden="true">battery_charging_full</mat-icon>
-    pack voltage (start → end · min) · mAh used · peak current
-  </span>
-  <span class="inline-flex items-center gap-1">
-    <mat-icon class="icon-xs" aria-hidden="true">settings_input_antenna</mat-icon>
-    link quality (LQ) · signal (dBm) · signal-to-noise (SNR)
-  </span>
-  <span>telemetry: quad-to-radio link quality</span>
-  <span>mW: radio's transmit power</span>
-  <span class="inline-flex items-center gap-1">
-    <mat-icon class="icon-xs" aria-hidden="true">speed</mat-icon>
-    throttle, average and highest
-  </span>
-  <span class="inline-flex items-center gap-1">
-    <mat-icon class="icon-xs" aria-hidden="true">settings_remote</mat-icon>
-    radio's own battery
-  </span>
-  <span class="inline-flex items-center gap-1">
-    <mat-icon class="icon-xs" aria-hidden="true">route</mat-icon>
-    distance · height above take-off · top speed (GPS logs only)
-  </span>
-</p>
+<div class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+  <mat-checkbox [checked]="allSelected()" [indeterminate]="someSelected()" (change)="selectAll($event.checked)">
+    <span class="text-xs text-muted">Select all</span>
+  </mat-checkbox>
+
+  <!--
+    What the abbreviated figures below mean. Not a real table — the values
+    wrap and skip whatever a flight's log has no sensor for — so this reads as
+    a key rather than aligned column headers.
+  -->
+  <p class="m-0 flex flex-1 flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+    <span class="inline-flex items-center gap-1">
+      <mat-icon class="icon-xs" aria-hidden="true">battery_charging_full</mat-icon>
+      pack voltage (start → end · min) · mAh used · peak current
+    </span>
+    <span class="inline-flex items-center gap-1">
+      <mat-icon class="icon-xs" aria-hidden="true">settings_input_antenna</mat-icon>
+      link quality (LQ) · signal (dBm) · signal-to-noise (SNR)
+    </span>
+    <span>telemetry: quad-to-radio link quality</span>
+    <span>mW: radio's transmit power</span>
+    <span class="inline-flex items-center gap-1">
+      <mat-icon class="icon-xs" aria-hidden="true">speed</mat-icon>
+      throttle, average and highest
+    </span>
+    <span class="inline-flex items-center gap-1">
+      <mat-icon class="icon-xs" aria-hidden="true">settings_remote</mat-icon>
+      radio's own battery
+    </span>
+    <span class="inline-flex items-center gap-1">
+      <mat-icon class="icon-xs" aria-hidden="true">route</mat-icon>
+      distance · height above take-off · top speed (GPS logs only)
+    </span>
+  </p>
+</div>
 
 <ol class="m-0 grid list-none gap-1.5 p-0">
   @for (flight of session().flights; track flight.id; let n = $index) {
+    @let ticked = selected().has(flight.id);
+    <!--
+      Narrow: tick, time and delete share the first row; the pickers and the
+      figures take full rows below. Wide: one row of five columns.
+    -->
     <li
-      class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 rounded bg-surface-container px-3.5 py-2 text-sm min-[60rem]:grid-cols-[9rem_minmax(9rem,11rem)_1fr_auto]"
+      class="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-2 rounded py-2 pr-3.5 pl-1 text-sm min-[60rem]:grid-cols-[auto_9rem_minmax(10rem,14rem)_1fr_auto]"
+      [class.bg-surface-container]="!ticked"
+      [class.bg-surface-high]="ticked"
     >
+      <mat-checkbox
+        [checked]="ticked"
+        [aria-label]="'Select flight ' + (n + 1) + ' at ' + time(flight.startedAt)"
+        (change)="select(flight, $event.checked)"
+      />
+
       <span class="flex flex-col tabular-nums">
         <span class="font-semibold">
           <span class="text-muted">#{{ n + 1 }}</span>
@@ -41,7 +60,7 @@
         <span class="text-xs text-muted">{{ duration(flight.durationS) }} in the air</span>
       </span>
 
-      <span class="flex min-w-0 flex-col">
+      <span class="col-span-full flex min-w-0 flex-col gap-1 min-[60rem]:col-auto">
         <sh-autocomplete
           compact
           subscriptSizing="dynamic"
@@ -51,6 +70,17 @@
           [ariaLabel]="'Build flown on ' + time(flight.startedAt)"
           (valueChange)="changeBuild(flight, $event)"
         />
+        @if (batteries().length) {
+          <sh-autocomplete
+            compact
+            subscriptSizing="dynamic"
+            emptyLabel="No pack"
+            [options]="batteries()"
+            [value]="flight.batteryUnitId"
+            [ariaLabel]="'Battery pack flown on ' + time(flight.startedAt)"
+            (valueChange)="changeBattery(flight, $event)"
+          />
+        }
         @if (flight.modelName; as model) {
           <span class="truncate text-xs text-muted" [title]="flight.fileName">radio model: {{ model }}</span>
         }
@@ -132,7 +162,7 @@
       <button
         matButton
         type="button"
-        class="row-start-1 col-start-2 min-[60rem]:row-auto min-[60rem]:col-auto"
+        class="row-start-1 col-start-3 min-[60rem]:row-auto min-[60rem]:col-auto"
         [disabled]="pendingRemoval() === flight.id"
         (click)="removeRequested.emit(flight)"
       >

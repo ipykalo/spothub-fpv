@@ -6,6 +6,7 @@ import {
   MAX_LOG_BYTES,
   MAX_LOGS_PER_IMPORT,
   type SessionDto,
+  type UpdateFlightDto,
 } from '@spothub/shared';
 import { firstValueFrom, lastValueFrom, tap } from 'rxjs';
 
@@ -181,15 +182,23 @@ export class FlightsStore {
     this.importMessage.set(null);
   }
 
-  async assignBuild(flightId: string, buildId: string | null): Promise<void> {
-    const updated = await firstValueFrom(this.api.updateFlight(flightId, { buildId }));
+  /**
+   * Sets a build or battery pack on some flights. One flight goes through its
+   * own route; several go as one bulk change, which the server applies to all
+   * of them or to none.
+   */
+  async assign(flightIds: readonly string[], change: UpdateFlightDto): Promise<void> {
+    const updated =
+      flightIds.length === 1
+        ? [await firstValueFrom(this.api.updateFlight(flightIds[0], change))]
+        : await firstValueFrom(this.api.updateFlights({ ...change, flightIds: [...flightIds] }));
+
+    const byId = new Map(updated.map((flight) => [flight.id, flight]));
 
     this.items.update((sessions) =>
       sessions.map((session) => ({
         ...session,
-        flights: session.flights.map((flight) =>
-          flight.id === updated.id ? updated : flight,
-        ),
+        flights: session.flights.map((flight) => byId.get(flight.id) ?? flight),
       })),
     );
   }

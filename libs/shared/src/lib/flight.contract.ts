@@ -119,6 +119,10 @@ export interface FlightDto {
   readonly buildId: string | null;
   /** The build's name, so a list does not need the builds loaded to read. */
   readonly buildName: string | null;
+  /** The battery pack flown: a unit of a battery part. */
+  readonly batteryUnitId: string | null;
+  /** The pack's name — part name and unit label or number — for the same reason. */
+  readonly batteryName: string | null;
   /** The radio model the log was recorded under. */
   readonly modelName: string | null;
   readonly fileName: string;
@@ -163,8 +167,34 @@ export interface SessionDto {
   readonly flights: readonly FlightDto[];
 }
 
-/** Reassigning a flight to a build, or clearing it with null. */
-export const updateFlightSchema = z.object({
-  buildId: z.union([z.uuid(), z.null()]),
+/** How many flights one bulk change may touch — a long season's logbook. */
+export const MAX_FLIGHTS_PER_UPDATE = 1000;
+
+/**
+ * What a flight was flown on. Each key is optional: absent leaves it as it
+ * is, null clears it, an id sets it.
+ */
+const flightAssignment = z.object({
+  buildId: z.union([z.uuid(), z.null()]).optional(),
+  batteryUnitId: z.union([z.uuid(), z.null()]).optional(),
 });
+
+const changesSomething = (change: z.infer<typeof flightAssignment>): boolean =>
+  change.buildId !== undefined || change.batteryUnitId !== undefined;
+
+const NOTHING_TO_CHANGE = 'Say which build or battery pack to set';
+
+/** Changing one flight's build or battery pack. */
+export const updateFlightSchema = flightAssignment.refine(changesSomething, NOTHING_TO_CHANGE);
 export type UpdateFlightDto = z.infer<typeof updateFlightSchema>;
+
+/** The same change, applied to many flights at once. */
+export const updateFlightsSchema = flightAssignment
+  .extend({
+    flightIds: z
+      .array(z.uuid())
+      .min(1, 'Choose at least one flight')
+      .max(MAX_FLIGHTS_PER_UPDATE, `Change at most ${MAX_FLIGHTS_PER_UPDATE} flights at once`),
+  })
+  .refine(changesSomething, NOTHING_TO_CHANGE);
+export type UpdateFlightsDto = z.infer<typeof updateFlightsSchema>;

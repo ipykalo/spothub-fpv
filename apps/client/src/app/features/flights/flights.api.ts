@@ -14,6 +14,7 @@ import type {
   RequestLogUploadDto,
   SessionDto,
   UpdateFlightDto,
+  UpdateFlightsDto,
 } from '@spothub/shared';
 import { type Observable, filter, map } from 'rxjs';
 
@@ -77,6 +78,11 @@ export class FlightsApi {
 
   updateFlight(id: string, body: UpdateFlightDto): Observable<FlightDto> {
     return this.http.patch<FlightDto>(`${this.base}/flights/${id}`, body);
+  }
+
+  /** One build or battery pack on many flights; the server applies all or none. */
+  updateFlights(body: UpdateFlightsDto): Observable<FlightDto[]> {
+    return this.http.patch<FlightDto[]>(`${this.base}/flights`, body);
   }
 
   removeFlight(id: string): Observable<null> {

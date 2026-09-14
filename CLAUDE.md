@@ -371,6 +371,13 @@ so the job retries, and a retry skips what was already parsed.
   sends them, so a flight-long zero is stored as null; and the date was
   **2000-01-01** — a radio whose clock is unset. The flights page flags any
   session before 2015 as "radio clock not set".
+- **EdgeTX writes its header once, but a row's columns change** when a sensor
+  comes online or its link goes stale mid-log — the flight controller's
+  telemetry arriving a few seconds late inserts columns into every later row,
+  and the header is never rewritten. A fixed header index then reads the wrong
+  cell (current came through as link quality: "LQ −1006%"). Link stats, sticks
+  and channels are read counting back from each row's own end; the columns
+  before them are trusted only on a row whose layout still matches the header.
 - **Times are the radio's wall clock stored as UTC** — the radio records no
   zone. Render them with `timeZone: 'UTC'` or every flight shifts.
 - Sessions group flights less than 90 minutes apart and keep their ids across
@@ -378,6 +385,11 @@ so the job retries, and a retry skips what was already parsed.
   session, merges ones a new flight bridges, and splits one a deletion gaps.
 - Without a chosen build, a flight goes to the build named like the radio
   model, case-insensitively — most radios name the model after the quad.
+- **A flight's battery pack is set by hand** — a log never says which pack was
+  plugged in. It is a unit of a `BATTERY` part (`flights.battery_unit_id`, SET
+  NULL), set on one flight or on many at once through `PATCH /flights`, which
+  changes every named flight or none of them. A battery part's page charts its
+  packs' flights, one pack at a time, which is where a pack's wear shows.
 - **A log counts as imported while a flight from it is still in the
   logbook** (or if it never held one). Delete every flight a log gave and the
   next drop imports it again; delete only some and the rest keep it imported,
@@ -387,8 +399,7 @@ so the job retries, and a retry skips what was already parsed.
 - Real SD-card logs go in `apps/api/src/flights/__fixtures__/edgetx/`; the
   spec parses every one. `npm test` runs the API suite.
 
-GPX and Betaflight BBL are the next formats on the same pipeline; battery
-health reads these flights next.
+GPX and Betaflight BBL are the next formats on the same pipeline.
 
 The API was restructured into one module per bounded context — `builds` used to
 hold four, and `parts` held its catalogue, units, sources and URL preview in one
