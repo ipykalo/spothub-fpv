@@ -21,7 +21,13 @@
 }
 
 <div class="flex flex-col gap-8">
-  <sh-section heading="Import" storageKey="flights.import" addLabel="Import logs" [(adding)]="addingImport">
+  <sh-section
+    heading="Import"
+    storageKey="flights.import"
+    addLabel="Import logs"
+    [adding]="addingImport()"
+    (addingChange)="onAddingChanged($event)"
+  >
     <!-- Kept up while an import runs, even if the form was cancelled. -->
     @if (addingImport() || store.phase() !== 'idle') {
       <sh-log-import-panel
@@ -47,10 +53,31 @@
     <p class="m-0 py-8 text-center text-muted">
       No flights yet. Import the LOGS folder from your radio's SD card to start the logbook.
     </p>
+  } @else {
+    <sh-grid-toolbar
+      [(query)]="grid.query"
+      [(sort)]="grid.sort"
+      [sorts]="sorts"
+      [shown]="shown()"
+      [total]="store.flightTotal()"
+      searchLabel="Search by build or radio model"
+    >
+      @if (buildFilterOptions().length > 1) {
+        <sh-filter-chips
+          [options]="buildFilterOptions()"
+          [(selected)]="grid.filter"
+          ariaLabel="Filter by build"
+        />
+      }
+    </sh-grid-toolbar>
+
+    @if (!sessions().length) {
+      <p class="m-0 py-8 text-center text-muted">Nothing matches.</p>
+    }
   }
 
-  @for (session of store.sessions(); track session.id) {
-    <sh-section icon="event" [heading]="heading(session)" [count]="session.flightCount" [open]="$index < openSessions">
+  @for (session of sessions(); track session.id) {
+    <sh-section icon="event" [heading]="heading(session)" [count]="session.flights.length" [open]="$index < openSessions">
       <span shSectionActions class="inline-flex flex-wrap items-center gap-x-4 text-sm text-muted tabular-nums">
         @if (clockUnset(session)) {
           <span
