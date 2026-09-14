@@ -320,6 +320,7 @@ npm run db:seed:undo   # remove it again
 npm run lint           # type-aware, zero warnings tolerated
 npm run typecheck
 npm test               # API unit tests (Vitest) — from PowerShell on Windows
+npm run test:e2e       # API end-to-end, needs db:up first
 npm run build
 ```
 
@@ -331,6 +332,19 @@ delete a part whose units are fitted to a build.
 Lint uses `strictTypeChecked` + `stylisticTypeChecked`. If a rule fires, fix
 the code rather than disabling the rule; the few existing inline disables each
 carry a comment explaining why.
+
+**`npm test` is unit tests; `npm run test:e2e` is a separate suite.** The
+former (`apps/api/src/**/*.spec.ts`) covers pure parsers and planners with no
+I/O. The latter (`apps/api/e2e/`) boots the real `AppModule` through
+`@nestjs/testing` and drives it with real HTTP requests, against a real
+Postgres and MinIO — no mocked repositories, because repositories, services,
+the import job and cross-tenant ownership had no coverage at all until this
+suite. `scripts/run-e2e-tests.mjs` derives a separate database and bucket
+(`<name>_test`, `<bucket>-test`) from `.env` so a run never touches your own
+logbook, and CI gives it its own Postgres and MinIO service containers. The
+one production seam it swaps is `BlackboxDecoder`, for a stub that reads
+already-decoded fixtures, so no test needs the native decoder or Docker. Full
+rationale and how a test is put together: `apps/api/e2e/README.md`.
 
 ## State
 
