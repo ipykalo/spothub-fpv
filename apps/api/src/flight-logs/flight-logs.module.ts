@@ -11,6 +11,7 @@ import { FlightLogsService } from './flight-logs.service';
 import { BlackboxReader } from './formats/blackbox/blackbox.reader';
 import { ProcessBlackboxDecoder } from './formats/blackbox/process-blackbox-decoder';
 import { EdgeTxReader } from './formats/edgetx/edgetx.reader';
+import { GpxReader } from './formats/gpx/gpx.reader';
 import { LogReaders } from './formats/log-readers';
 import { PrismaFlightLogsRepository } from './prisma-flight-logs.repository';
 
@@ -31,6 +32,7 @@ import { PrismaFlightLogsRepository } from './prisma-flight-logs.repository';
     LogReaders,
     EdgeTxReader,
     BlackboxReader,
+    GpxReader,
     { provide: FlightLogsRepository, useClass: PrismaFlightLogsRepository },
     { provide: BlackboxDecoder, useClass: ProcessBlackboxDecoder },
   ],

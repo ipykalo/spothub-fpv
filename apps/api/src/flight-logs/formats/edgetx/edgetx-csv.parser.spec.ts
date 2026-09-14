@@ -513,3 +513,48 @@ describe('real Air65 logs whose rows drift from the header', () => {
     expect(flight.minVoltage).toBeNull();
   });
 });
+
+/**
+ * A synthetic log with a GPS module on board (see `__fixtures__/README.md`),
+ * pinned for the track it sums and for its speed column, logged in knots.
+ */
+describe('a log from a quad with GPS', () => {
+  it('sums the track, and reads speed in the unit its column was logged in', () => {
+    const name = 'Air65-2026-09-14-183210.csv';
+    const { flights, modelName } = parseEdgeTxCsv(
+      readFileSync(join(__dirname, '__fixtures__', name), 'utf8'),
+      name,
+    );
+
+    expect(modelName).toBe('Air65');
+    expect(flights).toHaveLength(1);
+
+    const [flight] = flights;
+    expect(flight.startedAt.toISOString()).toBe('2026-09-14T18:32:10.000Z');
+    expect(flight.durationS).toBe(123);
+    expect(flight.sampleCount).toBe(615);
+    expect(flight.hasGps).toBe(true);
+    expect(flight.distanceM).toBe(301);
+    expect(flight.maxHomeDistanceM).toBe(80);
+    expect(flight.maxAltitudeM).toBe(3);
+    // GSpd(kts) peaks at 16.0, which read as km/h was the speed this showed.
+    expect(flight.maxSpeedKmh).toBe(29.6);
+  });
+
+  it('converts knots, metres a second and miles an hour to km/h', () => {
+    const maxSpeed = (unit: string): number | null => {
+      const rows = Array.from(
+        { length: 15 },
+        (_, i) => `2026-09-12,14:00:${String(i).padStart(2, '0')}.000,${(51.5 + i * 0.0001).toFixed(6)} -0.1,10`,
+      );
+      const [flight] = parseEdgeTxCsv([`Date,Time,GPS,GSpd(${unit})`, ...rows].join('\n'), 'x.csv').flights;
+
+      return flight.maxSpeedKmh;
+    };
+
+    expect(maxSpeed('kts')).toBe(18.5);
+    expect(maxSpeed('m/s')).toBe(36);
+    expect(maxSpeed('mph')).toBe(16.1);
+    expect(maxSpeed('kmh')).toBe(10);
+  });
+});

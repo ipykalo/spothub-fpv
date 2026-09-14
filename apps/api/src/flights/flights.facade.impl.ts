@@ -15,6 +15,10 @@ export class FlightsFacadeImpl extends FlightsFacade {
     return this.flights.addFlights(ownerId, flights, SESSION_GAP_MS);
   }
 
+  addTracks(ownerId: string, tracks: readonly NewFlightData[]): Promise<number> {
+    return this.flights.addTracks(ownerId, tracks, SESSION_GAP_MS);
+  }
+
   buildBelongsToOwner(ownerId: string, buildId: string): Promise<boolean> {
     return this.flights.buildBelongsToOwner(ownerId, buildId);
   }

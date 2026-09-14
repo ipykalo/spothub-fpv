@@ -17,6 +17,7 @@
  * can be tested against real SD-card logs in isolation.
  */
 
+import { type Fix, type TrackFigures, summariseTrack } from '../gps-track';
 import {
   LogParseError,
   MIN_FLIGHT_MS,
@@ -29,9 +30,6 @@ import {
   round,
   values,
 } from '../parsed-log';
-
-/** Consecutive GPS fixes implying more than this are a glitch, not movement. */
-const MAX_PLAUSIBLE_SPEED_MS = 100;
 
 /** Fewer satellites than this and a position is not worth trusting. */
 const MIN_SATELLITES = 4;
@@ -92,6 +90,8 @@ interface Columns {
   readonly gps: number;
   readonly altitude: number;
   readonly speed: number;
+  /** What the speed column is multiplied by to read in km/h — see `speedToKmh`. */
+  readonly speedToKmh: number;
   readonly satellites: number;
 }
 
@@ -134,14 +134,13 @@ export function parseEdgeTxCsv(text: string, fileName: string): ParsedLog {
 function readHeader(header: string): Columns {
   // Some editors and exports open a file with a byte-order mark.
   const byteOrderMark = String.fromCharCode(0xfeff);
-  const names = (header.startsWith(byteOrderMark) ? header.slice(1) : header)
-    .split(',')
-    .map((name) =>
-      name
-        .replace(/\(.*\)\s*$/, '')
-        .trim()
-        .toLowerCase(),
-    );
+  const headings = (header.startsWith(byteOrderMark) ? header.slice(1) : header).split(',');
+  const names = headings.map((name) =>
+    name
+      .replace(/\(.*\)\s*$/, '')
+      .trim()
+      .toLowerCase(),
+  );
 
   const find = (...candidates: string[]): number => {
     for (const candidate of candidates) {
@@ -154,6 +153,8 @@ function readHeader(header: string): Columns {
 
     return -1;
   };
+
+  const speed = find('gspd');
 
   const columns: Columns = {
     width: names.length,
@@ -177,7 +178,8 @@ function readHeader(header: string): Columns {
     flightMode: find('fm'),
     gps: find('gps'),
     altitude: find('alt', 'galt'),
-    speed: find('gspd'),
+    speed,
+    speedToKmh: speed === -1 ? 1 : speedToKmh(headings[speed]),
     satellites: find('sats'),
   };
 
@@ -235,6 +237,7 @@ function readRow(cells: readonly string[], columns: Columns): Sample | null {
     columns.linkQuality !== -1 && linkQualityIndex !== columns.linkQuality;
 
   const [lat, lon] = position(cell(cells, driftedBeforeLinkQuality ? -1 : columns.gps));
+  const speed = numeric(cell(cells, columns.speed));
 
   return {
     t,
@@ -264,7 +267,7 @@ function readRow(cells: readonly string[], columns: Columns): Sample | null {
     lat,
     lon,
     altitude: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.altitude)),
-    speedKmh: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.speed)),
+    speedKmh: driftedBeforeLinkQuality || speed === null ? null : speed * columns.speedToKmh,
     satellites: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.satellites)),
   };
 }
@@ -486,19 +489,8 @@ function summarise(run: readonly Sample[]): ParsedFlight {
   };
 }
 
-interface Fix {
-  readonly t: number;
-  readonly lat: number;
-  readonly lon: number;
-  readonly altitude: number | null;
-}
-
-function gpsSummary(
-  run: readonly Sample[],
-): Pick<
-  ParsedFlight,
-  'hasGps' | 'distanceM' | 'maxAltitudeM' | 'maxSpeedKmh' | 'maxHomeDistanceM'
-> {
+/** The fixes worth trusting, summed by the same arithmetic every log's track gets. */
+function gpsSummary(run: readonly Sample[]): TrackFigures {
   const fixes: Fix[] = [];
 
   for (const sample of run) {
@@ -516,65 +508,34 @@ function gpsSummary(
     }
   }
 
-  const home = fixes.at(0);
-
-  if (!home || fixes.length < 2) {
-    return {
-      hasGps: false,
-      distanceM: null,
-      maxAltitudeM: null,
-      maxSpeedKmh: null,
-      maxHomeDistanceM: null,
-    };
-  }
-
-  let distance = 0;
-  let farthest = 0;
-
-  for (let index = 1; index < fixes.length; index += 1) {
-    const from = fixes[index - 1];
-    const to = fixes[index];
-    const step = haversineM(from, to);
-    const seconds = Math.max((to.t - from.t) / 1000, 0.001);
-
-    // A fix that jumps faster than any quad flies is the receiver guessing.
-    if (step / seconds <= MAX_PLAUSIBLE_SPEED_MS) {
-      distance += step;
-    }
-
-    farthest = Math.max(farthest, haversineM(home, to));
-  }
-
-  const altitudes = fixes
-    .map((fix) => fix.altitude)
-    .filter((altitude): altitude is number => altitude !== null);
-  const speeds = values(run, (sample) => sample.speedKmh);
-
-  return {
-    hasGps: true,
-    distanceM: Math.round(distance),
-    // Relative to where it took off: GPS altitude is above sea level, and
-    // "flew 480 m up" is not what anyone means.
-    maxAltitudeM:
-      home.altitude !== null && altitudes.length > 0
-        ? round((maxOf(altitudes) ?? home.altitude) - home.altitude, 1)
-        : null,
-    maxSpeedKmh: round(maxOf(speeds), 1),
-    maxHomeDistanceM: Math.round(farthest),
-  };
+  // The GPS module's own speed readings: the radio logs them, so nothing is
+  // measured from the positions.
+  return summariseTrack(
+    fixes,
+    values(run, (sample) => sample.speedKmh),
+  );
 }
 
-/** Great-circle distance in metres. Plenty accurate at the scale of a field. */
-function haversineM(a: Fix, b: Fix): number {
-  const radius = 6_371_000;
-  const toRad = (degrees: number): number => (degrees * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+/**
+ * What a GPS speed reading is multiplied by to be km/h, from the unit in its
+ * heading. ExpressLRS logs `GSpd(km/h)`, but FrSky and other telemetry log
+ * knots — read as km/h, every top speed came out at about half.
+ */
+function speedToKmh(heading: string): number {
+  const unit = (/\(([^)]*)\)\s*$/.exec(heading)?.[1] ?? '').trim().toLowerCase();
 
-  return 2 * radius * Math.asin(Math.sqrt(h));
+  switch (unit) {
+    case 'kts':
+    case 'kt':
+    case 'knots':
+      return 1.852;
+    case 'm/s':
+      return 3.6;
+    case 'mph':
+      return 1.609344;
+    default:
+      return 1;
+  }
 }
 
 /**

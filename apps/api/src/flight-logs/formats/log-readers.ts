@@ -4,6 +4,7 @@ import { LogFormat } from '@spothub/shared';
 import type { LogReader } from '../abstract/log-reader';
 import { BlackboxReader } from './blackbox/blackbox.reader';
 import { EdgeTxReader } from './edgetx/edgetx.reader';
+import { GpxReader } from './gpx/gpx.reader';
 
 /**
  * Every log format the import understands, keyed by `LogFormat`.
@@ -15,10 +16,11 @@ import { EdgeTxReader } from './edgetx/edgetx.reader';
 export class LogReaders {
   private readonly byFormat: Readonly<Record<LogFormat, LogReader>>;
 
-  constructor(edgetx: EdgeTxReader, blackbox: BlackboxReader) {
+  constructor(edgetx: EdgeTxReader, blackbox: BlackboxReader, gpx: GpxReader) {
     this.byFormat = {
       [LogFormat.EdgetxCsv]: edgetx,
       [LogFormat.BetaflightBbl]: blackbox,
+      [LogFormat.Gpx]: gpx,
     };
   }
 

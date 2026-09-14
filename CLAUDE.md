@@ -451,9 +451,32 @@ repository and branching on format.
   logbook; `flights.page` composes both stores and reloads `FlightsStore` once
   an import is over.
 
-GPX is the next format, as a reader under `formats/gpx/`. When it lands, a
-track that overlaps a flight already imported from EdgeTX is added to that
-flight by time, not stored as a second flight.
+**GPX tracks** from a phone, goggles or GPS logger complete the formats. A GPX
+file has positions, heights and true UTC times, and nothing else, so it adds
+a track to a flight rather than being one.
+
+- **A track joins the radio-log flight it lines up with.** `track-matcher.ts`
+  (pure, tested) tries the track's times as recorded, then shifted by whole
+  quarter hours, nearest first: a radio's clock is usually local time, and
+  every real zone offset is a quarter-hour multiple. A flight is chosen only
+  when exactly one flight's take-off and landing are both within 30 s at the
+  first shift where any is; blackbox flights never match, their times being
+  invented. A flight that already has GPS from its radio log keeps it; one
+  without takes the track's figures. A track that lines up with nothing is
+  stored as a GPS-only flight.
+- **A joined track is linked, not stored.** `flights.track_log_file_id` (SET
+  NULL) points at the GPX file, and "still imported" counts those links as it
+  counts flights — without that, a GPX that only joined a flight would look
+  new on every folder drop.
+- GPX has no speed, so speed is measured from positions over windows of at
+  least a second. `formats/gps-track.ts` sums distance, height, speed and
+  home distance for both GPX and EdgeTX, which passes its GPS module's own
+  speed readings instead.
+- **EdgeTX logs speed in the unit its sensor sends** — `GSpd(km/h)` from
+  ExpressLRS, `GSpd(kts)` from FrSky — and the parser converts from the unit
+  in the heading. It once read knots as km/h and halved every top speed.
+- The GPS fixtures are synthetic (a supplied EdgeTX log with GPS, and a GPX
+  generated from it two hours earlier, as UTC); see their `README.md`s.
 
 The API was restructured into one module per bounded context — `builds` used to
 hold four, and `parts` held its catalogue, units, sources and URL preview in one

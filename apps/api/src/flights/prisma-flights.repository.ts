@@ -10,6 +10,7 @@ import type {
   SessionEntity,
 } from './flight.entity';
 import { type PlannedFlight, planSessions } from './session-planner';
+import { TRACK_SEARCH_WINDOW_MS, matchTrack } from './track-matcher';
 
 const FLIGHT_INCLUDE = {
   build: { select: { name: true } },
@@ -56,34 +57,61 @@ export class PrismaFlightsRepository extends FlightsRepository {
       return 0;
     }
 
+    return this.prisma.$transaction((tx) => storeNew(tx, ownerId, flights, sessionGapMs), {
+      timeout: TRANSACTION_TIMEOUT_MS,
+    });
+  }
+
+  async addTracks(
+    ownerId: string,
+    tracks: readonly NewFlightData[],
+    sessionGapMs: number,
+  ): Promise<number> {
+    if (tracks.length === 0) {
+      return 0;
+    }
+
     return this.prisma.$transaction(
       async (tx) => {
-        const logFileIds = [...new Set(flights.map((flight) => flight.logFileId))];
+        const unmatched: NewFlightData[] = [];
+        let joined = 0;
 
-        // Re-running an import must not duplicate a flight: same log, same
-        // take-off is the same flight.
-        const stored = await tx.flight.findMany({
-          where: { ownerId, logFileId: { in: logFileIds } },
-          select: { logFileId: true, startedAt: true },
-        });
-        const seen = new Set(stored.map((row) => identity(row.logFileId, row.startedAt)));
+        for (const track of tracks) {
+          const candidates = await tx.flight.findMany({
+            where: {
+              ownerId,
+              // A blackbox flight's times only order its day, so nothing lines up with them.
+              timeRecorded: true,
+              // A retry must not join a track to the flight it was stored as last time.
+              logFileId: { not: track.logFileId },
+              startedAt: {
+                gte: new Date(track.startedAt.getTime() - TRACK_SEARCH_WINDOW_MS),
+                lte: new Date(track.startedAt.getTime() + TRACK_SEARCH_WINDOW_MS),
+              },
+            },
+            select: { id: true, startedAt: true, endedAt: true, hasGps: true, trackLogFileId: true },
+          });
 
-        const fresh = flights.filter((flight) => {
-          const key = identity(flight.logFileId, flight.startedAt);
+          const match = matchTrack(track, candidates);
+          const flight = candidates.find((candidate) => candidate.id === match?.flightId);
 
-          if (seen.has(key)) {
-            return false;
+          if (!flight) {
+            unmatched.push(track);
+            continue;
           }
 
-          seen.add(key);
-          return true;
-        });
-
-        if (fresh.length > 0) {
-          await regroup(tx, ownerId, fresh, sessionGapMs);
+          await tx.flight.updateMany({
+            where: { id: flight.id, ownerId },
+            data: {
+              // The radio log's own GPS stays; a track only fills a flight that had none.
+              ...(flight.hasGps ? {} : trackFigures(track)),
+              ...(flight.trackLogFileId === null ? { trackLogFileId: track.logFileId } : {}),
+            },
+          });
+          joined += 1;
         }
 
-        return fresh.length;
+        return joined + (await storeNew(tx, ownerId, unmatched, sessionGapMs));
       },
       { timeout: TRANSACTION_TIMEOUT_MS },
     );
@@ -191,6 +219,59 @@ export class PrismaFlightsRepository extends FlightsRepository {
     // Two builds that read the same would make any choice a guess.
     return wanted.length > 0 && matches.length === 1 ? matches[0].id : null;
   }
+}
+
+/**
+ * Stores the flights not stored yet and regroups the sessions around them.
+ * Answers how many were new.
+ */
+async function storeNew(
+  tx: Prisma.TransactionClient,
+  ownerId: string,
+  flights: readonly NewFlightData[],
+  sessionGapMs: number,
+): Promise<number> {
+  if (flights.length === 0) {
+    return 0;
+  }
+
+  const logFileIds = [...new Set(flights.map((flight) => flight.logFileId))];
+
+  // Re-running an import must not duplicate a flight: same log, same
+  // take-off is the same flight.
+  const stored = await tx.flight.findMany({
+    where: { ownerId, logFileId: { in: logFileIds } },
+    select: { logFileId: true, startedAt: true },
+  });
+  const seen = new Set(stored.map((row) => identity(row.logFileId, row.startedAt)));
+
+  const fresh = flights.filter((flight) => {
+    const key = identity(flight.logFileId, flight.startedAt);
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+
+  if (fresh.length > 0) {
+    await regroup(tx, ownerId, fresh, sessionGapMs);
+  }
+
+  return fresh.length;
+}
+
+/** What a GPS track gives a flight that had no GPS of its own. */
+function trackFigures(track: NewFlightData): Prisma.FlightUpdateManyMutationInput {
+  return {
+    hasGps: track.hasGps,
+    distanceM: track.distanceM,
+    maxAltitudeM: track.maxAltitudeM,
+    maxSpeedKmh: track.maxSpeedKmh,
+    maxHomeDistanceM: track.maxHomeDistanceM,
+  };
 }
 
 /**

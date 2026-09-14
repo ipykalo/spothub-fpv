@@ -25,7 +25,7 @@
     <!-- Real buttons opening hidden inputs: a styled <label> is not reachable
          from the keyboard, and matButton does not apply to one. -->
     <input #folderInput type="file" webkitdirectory multiple hidden (change)="onFolderChosen($event)" />
-    <input #filesInput type="file" accept=".csv,.bbl,.bfl" multiple hidden (change)="onFilesChosen($event)" />
+    <input #filesInput type="file" accept=".csv,.bbl,.bfl,.gpx" multiple hidden (change)="onFilesChosen($event)" />
     <div class="mt-2 flex flex-wrap justify-center gap-2">
       <button matButton="tonal" type="button" [disabled]="busy()" (click)="folderInput.click()">
         <mat-icon>folder_open</mat-icon>
@@ -36,7 +36,7 @@
         Choose files
       </button>
     </div>
-    <p class="m-0 text-xs text-muted">EdgeTX .csv logs · Betaflight .bbl blackbox logs · GPX is coming</p>
+    <p class="m-0 text-xs text-muted">EdgeTX .csv logs · Betaflight .bbl blackbox logs · .gpx tracks</p>
   </div>
 
   @if (pending()) {
@@ -89,7 +89,7 @@
           @if (message(); as text) {
             {{ text }}
           } @else {
-            Imported {{ importedFlights() }} new flight{{ importedFlights() === 1 ? '' : 's' }}
+            Imported {{ importedFlights() }} flight{{ importedFlights() === 1 ? '' : 's' }}
             @if (skipped()) {
               <span class="text-muted">· {{ skipped() }} log{{ skipped() === 1 ? '' : 's' }} already in</span>
             }

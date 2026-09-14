@@ -40,6 +40,8 @@ export const LogFormat = {
   EdgetxCsv: 'EDGETX_CSV',
   /** A flight controller's blackbox recording. */
   BetaflightBbl: 'BETAFLIGHT_BBL',
+  /** A GPS track from a phone, goggles or a GPS logger. */
+  Gpx: 'GPX',
 } as const;
 export type LogFormat = (typeof LogFormat)[keyof typeof LogFormat];
 
@@ -58,6 +60,10 @@ export function logFormatOf(fileName: string): LogFormat | null {
 
   if ((base.endsWith('.bbl') || base.endsWith('.bfl')) && base !== 'btfl_all.bbl') {
     return LogFormat.BetaflightBbl;
+  }
+
+  if (base.endsWith('.gpx')) {
+    return LogFormat.Gpx;
   }
 
   return null;
@@ -80,8 +86,7 @@ export interface KnownLogsResultDto {
 /**
  * Asking for somewhere to upload one log to.
  *
- * EdgeTX CSV and Betaflight blackbox, recognised by extension; GPX joins them
- * later on the same pipeline.
+ * EdgeTX CSV, Betaflight blackbox and GPX tracks, recognised by extension.
  */
 export const requestLogUploadSchema = z.object({
   fileName: z
@@ -91,7 +96,7 @@ export const requestLogUploadSchema = z.object({
     .max(255)
     .refine(
       (name) => logFormatOf(name) !== null,
-      'Only EdgeTX .csv logs and Betaflight .bbl blackbox logs can be imported',
+      'Only EdgeTX .csv logs, Betaflight .bbl blackbox logs and .gpx tracks can be imported',
     ),
   sizeBytes: z.coerce
     .number()

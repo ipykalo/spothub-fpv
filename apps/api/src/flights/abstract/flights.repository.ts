@@ -33,6 +33,20 @@ export abstract class FlightsRepository {
    * them in flying order — or null, changing nothing, when any of them is not
    * the owner's.
    */
+  /**
+   * Adds each GPS track to the one flight it lines up with, allowing for the
+   * flight's clock being in another time zone (`matchTrack`), and stores the
+   * tracks that line up with none as flights. A flight's own GPS is kept; only
+   * a flight without any takes the track's figures. The track's file is linked
+   * to the flight either way, so it counts as imported. Answers how many
+   * flights the tracks went into, new or existing.
+   */
+  abstract addTracks(
+    ownerId: string,
+    tracks: readonly NewFlightData[],
+    sessionGapMs: number,
+  ): Promise<number>;
+
   abstract updateAssignment(
     ownerId: string,
     flightIds: readonly string[],

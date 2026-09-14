@@ -502,11 +502,12 @@ model Job {
 
 // ----------------------------------------------------------------- flights
 
-/// Which parser reads a log: the radio's EdgeTX CSV, or a flight controller's
-/// Betaflight blackbox. GPX joins them later on the same pipeline.
+/// Which parser reads a log: the radio's EdgeTX CSV, a flight controller's
+/// Betaflight blackbox, or a GPX track from any GPS.
 enum LogFormat {
   EDGETX_CSV
   BETAFLIGHT_BBL
+  GPX
 }
 
 enum LogFileStatus {
@@ -569,9 +570,11 @@ model LogFile {
   error       String?
   createdAt   DateTime      @default(now()) @map("created_at")
 
-  owner   User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  import  LogImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
-  flights Flight[]
+  owner          User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  import         LogImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  flights        Flight[]   @relation("FlightLog")
+  /// Flights a GPX track from this file was added to, rather than stored as.
+  trackedFlights Flight[]   @relation("FlightTrack")
 
   @@unique([ownerId, checksum])
   @@index([importId])
@@ -603,21 +606,25 @@ model Session {
 /// records no time zone, and guessing one would shift every flight by the
 /// difference.
 model Flight {
-  id          String   @id @default(uuid()) @db.Uuid
-  ownerId     String   @map("owner_id") @db.Uuid
-  sessionId   String   @map("session_id") @db.Uuid
-  buildId     String?  @map("build_id") @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  ownerId        String   @map("owner_id") @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  buildId        String?  @map("build_id") @db.Uuid
   /// The battery pack flown. A log never says which pack was plugged in, so
   /// this is only ever set by hand.
-  batteryUnitId String? @map("battery_unit_id") @db.Uuid
-  logFileId   String   @map("log_file_id") @db.Uuid
-  startedAt   DateTime @map("started_at")
-  endedAt     DateTime @map("ended_at")
-  durationS   Int      @map("duration_s")
-  sampleCount Int      @map("sample_count")
+  batteryUnitId  String?  @map("battery_unit_id") @db.Uuid
+  logFileId      String   @map("log_file_id") @db.Uuid
+  /// The GPX file whose track was added to this flight, when one was: a
+  /// track that overlaps a flight from a radio log joins it instead of being
+  /// stored as a second flight. SetNull, so deleting that log keeps the flight.
+  trackLogFileId String?  @map("track_log_file_id") @db.Uuid
+  startedAt      DateTime @map("started_at")
+  endedAt        DateTime @map("ended_at")
+  durationS      Int      @map("duration_s")
+  sampleCount    Int      @map("sample_count")
   /// False for a blackbox log: it records no time of day, only the day it was
   /// said to be flown, so its times order its flights and nothing more.
-  timeRecorded Boolean @default(true) @map("time_recorded")
+  timeRecorded   Boolean  @default(true) @map("time_recorded")
 
   // --- battery and link: these need no GPS
   startVoltage   Float? @map("start_voltage")
@@ -646,13 +653,14 @@ model Flight {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  owner   User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  owner        User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  session      Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   /// SetNull: deleting a quad must not delete the record of having flown it.
-  build   Build?  @relation(fields: [buildId], references: [id], onDelete: SetNull)
+  build        Build?    @relation(fields: [buildId], references: [id], onDelete: SetNull)
   /// SetNull for the same reason: deleting a pack keeps the flights.
-  batteryUnit PartUnit? @relation(fields: [batteryUnitId], references: [id], onDelete: SetNull)
-  logFile LogFile @relation(fields: [logFileId], references: [id], onDelete: Cascade)
+  batteryUnit  PartUnit? @relation(fields: [batteryUnitId], references: [id], onDelete: SetNull)
+  logFile      LogFile   @relation("FlightLog", fields: [logFileId], references: [id], onDelete: Cascade)
+  trackLogFile LogFile?  @relation("FlightTrack", fields: [trackLogFileId], references: [id], onDelete: SetNull)
 
   /// Re-running an import over the same file cannot duplicate a flight.
   @@unique([logFileId, startedAt])
@@ -660,5 +668,6 @@ model Flight {
   @@index([sessionId])
   @@index([buildId])
   @@index([batteryUnitId])
+  @@index([trackLogFileId])
   @@map("flights")
 }

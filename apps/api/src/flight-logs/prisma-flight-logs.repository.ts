@@ -32,10 +32,13 @@ type LogImportWithFiles = LogImport & { files: LogFile[] };
  * someone clearing out an import and redoing it expects. Delete only some and
  * the rest keep it imported, so the ones deleted as "not really a flight" stay
  * deleted the next time the whole folder is dropped.
+ *
+ * A GPX file counts through the flights its tracks were added to as well: a
+ * track that joined a radio-log flight is not a flight of its own.
  */
 const STILL_IMPORTED = {
   status: LogFileStatus.PARSED,
-  OR: [{ flightCount: 0 }, { flights: { some: {} } }],
+  OR: [{ flightCount: 0 }, { flights: { some: {} } }, { trackedFlights: { some: {} } }],
 } satisfies Prisma.LogFileWhereInput;
 
 /** The only place log files and imports meet Prisma. */

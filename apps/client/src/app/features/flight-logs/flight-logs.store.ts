@@ -85,7 +85,7 @@ export class FlightLogsStore {
   /**
    * Imports whatever was dropped: a whole LOGS folder, or a handful of files.
    *
-   * Anything that is not an EdgeTX `.csv` or a blackbox `.bbl` is ignored, a
+   * Anything that is not an EdgeTX `.csv`, a blackbox `.bbl` or a `.gpx` track is ignored, a
    * file already imported is skipped without being uploaded, and the same
    * file dropped twice counts once — so dropping the whole folder again after
    * the next session only sends what is new. `flownOn` is the day any
@@ -113,7 +113,7 @@ export class FlightLogsStore {
     if (logs.length === 0) {
       this.finish(
         'failed',
-        'Nothing to import — no EdgeTX .csv or Betaflight .bbl logs in what was dropped.',
+        'Nothing to import — no EdgeTX .csv, Betaflight .bbl or .gpx files in what was dropped.',
       );
       return;
     }

@@ -66,7 +66,7 @@ export class FlightLogsService {
 
     if (format === null) {
       throw new BadRequestException(
-        'Only EdgeTX .csv logs and Betaflight .bbl blackbox logs can be imported',
+        'Only EdgeTX .csv logs, Betaflight .bbl blackbox logs and .gpx tracks can be imported',
       );
     }
 

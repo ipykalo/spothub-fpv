@@ -24,3 +24,11 @@ the parser only needs enough rows to show a flight.
 Both were logged by a radio with no clock set, hence 2000-01-01. Besides the
 generic checks, the spec pins their figures one by one: a parser reading the
 wrong columns once passed the generic checks on logs like these.
+
+- `Air65-2026-09-14-183210.csv` — **synthetic**, not from a radio: the same
+  64-field layout with a GPS module added, flying a two-minute loop over
+  central London (`GPS`, `GAlt(m)`, `GSpd(kts)`, `Hdg(@)`). It was supplied as
+  `Air65-2026-09-14-183210-SYNTHETIC-GPS.csv` and renamed so the model reads
+  as `Air65`. It is what the GPS summary is pinned against, and the log the
+  GPX fixture in `../gpx/__fixtures__/` was generated from. Its speed column is
+  in knots, which the parser once read as km/h.

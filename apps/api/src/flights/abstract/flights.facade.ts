@@ -14,6 +14,15 @@ export abstract class FlightsFacade {
    */
   abstract addFlights(ownerId: string, flights: readonly NewFlightData[]): Promise<number>;
 
+  /**
+   * Adds GPS tracks to the flights they overlap — allowing for a radio clock
+   * set to another time zone — and stores each track that overlaps none as a
+   * flight of its own. A flight that already has GPS keeps it; the track's
+   * file is linked to it either way. Answers how many flights the tracks went
+   * into, new or existing.
+   */
+  abstract addTracks(ownerId: string, tracks: readonly NewFlightData[]): Promise<number>;
+
   abstract buildBelongsToOwner(ownerId: string, buildId: string): Promise<boolean>;
 
   /**

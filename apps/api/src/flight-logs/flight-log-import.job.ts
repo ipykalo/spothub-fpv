@@ -122,7 +122,7 @@ export class FlightLogImportJob implements OnModuleInit {
     );
   }
 
-  /** Reads, verifies and parses one file. Answers how many flights were new. */
+  /** Reads, verifies and parses one file. Answers how many flights it added or added to. */
   private async importFile(
     ownerId: string,
     file: LogFileEntity,
@@ -153,10 +153,12 @@ export class FlightLogImportJob implements OnModuleInit {
     const buildId =
       chosenBuild ?? (await this.buildForModel(ownerId, parsed.modelName, buildByModel));
 
-    const added = await this.flights.addFlights(
-      ownerId,
-      parsed.flights.map((flight) => ({ ...flight, logFileId: file.id, buildId })),
-    );
+    const entries = parsed.flights.map((flight) => ({ ...flight, logFileId: file.id, buildId }));
+    // A GPS track joins the flight it overlaps; any other log's flights are its own.
+    const added =
+      parsed.tracksOnly === true
+        ? await this.flights.addTracks(ownerId, entries)
+        : await this.flights.addFlights(ownerId, entries);
 
     await this.logs.recordFileResult(ownerId, file.id, {
       status: LogFileStatus.Parsed,

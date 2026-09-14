@@ -25,6 +25,12 @@ export interface ParsedLog {
   readonly discarded: number;
   /** Rows or frames that carried a readable timestamp. */
   readonly rowCount: number;
+  /**
+   * True for a log of GPS tracks alone — a GPX file. Each track joins the
+   * flight it overlaps instead of being stored beside it; only a track that
+   * overlaps none becomes a flight of its own.
+   */
+  readonly tracksOnly?: boolean;
 }
 
 /** The file is not a log of its format at all, as opposed to one with no flights. */
