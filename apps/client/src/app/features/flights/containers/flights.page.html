@@ -29,14 +29,14 @@
     (addingChange)="onAddingChanged($event)"
   >
     <!-- Kept up while an import runs, even if the form was cancelled. -->
-    @if (addingImport() || store.phase() !== 'idle') {
+    @if (addingImport() || imports.phase() !== 'idle') {
       <sh-log-import-panel
         [builds]="buildOptions()"
-        [phase]="store.phase()"
-        [files]="store.files()"
-        [batches]="store.batches()"
-        [message]="store.message()"
-        [importedFlights]="store.importedFlights()"
+        [phase]="imports.phase()"
+        [files]="imports.files()"
+        [batches]="imports.batches()"
+        [message]="imports.message()"
+        [importedFlights]="imports.importedFlights()"
         (importRequested)="onImport($event)"
         (resetRequested)="resetImport()"
       />

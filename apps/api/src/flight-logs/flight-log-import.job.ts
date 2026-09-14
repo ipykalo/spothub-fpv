@@ -1,23 +1,23 @@
 import { createHash } from 'node:crypto';
 
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { LogFileStatus, LogFormat, LogImportStatus, MAX_LOG_BYTES } from '@spothub/shared';
+import { LogFileStatus, LogImportStatus, MAX_LOG_BYTES } from '@spothub/shared';
 import { z } from 'zod';
 
+import { FlightsFacade } from '../flights';
 import { JobQueue } from '../jobs';
 import { StorageGateway } from '../storage';
-import { BlackboxDecoder } from './abstract/blackbox-decoder';
 import { FlightLogsRepository } from './abstract/flight-logs.repository';
-import { FlightsRepository } from './abstract/flights.repository';
-import { blackboxOrigin, craftNameFrom, parseBlackboxLogs } from './blackbox-csv.parser';
-import { parseEdgeTxCsv } from './edgetx-csv.parser';
-import type { LogFileEntity } from './entities/flight-log.entity';
-import { FLIGHT_LOG_IMPORT_JOB, SESSION_GAP_MS } from './flights.constants';
-import { LogParseError, type ParsedLog } from './parsed-log';
+import type { LogFileEntity } from './flight-log.entity';
+import { LogReaders } from './formats/log-readers';
+import { LogParseError } from './formats/parsed-log';
+
+/** The job that parses one batch of uploaded logs. */
+export const FLIGHT_LOG_IMPORT_JOB = 'flight-log.import';
 
 const payloadSchema = z.object({ importId: z.uuid(), ownerId: z.uuid() });
 
-/** A log that cannot be imported as uploaded. Fails that file, not the batch. */
+/** An upload that cannot be imported as it arrived. Fails that file, not the batch. */
 class RejectedLog extends Error {}
 
 /**
@@ -28,17 +28,20 @@ class RejectedLog extends Error {}
  * a readable log fails on its own and the rest carry on; anything unexpected —
  * the database or storage going away — fails the whole attempt, so the job is
  * retried rather than half the batch being written off.
+ *
+ * Knows no log format: each file goes to the reader for the format it was
+ * reserved as, and its flights go to the logbook through `FlightsFacade`.
  */
 @Injectable()
-export class FlightLogWorker implements OnModuleInit {
-  private readonly logger = new Logger(FlightLogWorker.name);
+export class FlightLogImportJob implements OnModuleInit {
+  private readonly logger = new Logger(FlightLogImportJob.name);
 
   constructor(
     private readonly jobs: JobQueue,
     private readonly logs: FlightLogsRepository,
-    private readonly flights: FlightsRepository,
+    private readonly flights: FlightsFacade,
     private readonly storage: StorageGateway,
-    private readonly decoder: BlackboxDecoder,
+    private readonly readers: LogReaders,
   ) {}
 
   onModuleInit(): void {
@@ -144,14 +147,15 @@ export class FlightLogWorker implements OnModuleInit {
       throw new RejectedLog('What arrived is not the file that was announced');
     }
 
-    const parsed = await this.parse(file, stored.body, flownOn);
+    const parsed = await this.readers
+      .for(file.format)
+      .read(stored.body, { fileName: file.fileName, flownOn });
     const buildId =
       chosenBuild ?? (await this.buildForModel(ownerId, parsed.modelName, buildByModel));
 
     const added = await this.flights.addFlights(
       ownerId,
       parsed.flights.map((flight) => ({ ...flight, logFileId: file.id, buildId })),
-      SESSION_GAP_MS,
     );
 
     await this.logs.recordFileResult(ownerId, file.id, {
@@ -162,30 +166,6 @@ export class FlightLogWorker implements OnModuleInit {
     });
 
     return added;
-  }
-
-  /**
-   * The radio's CSV is read as text; a blackbox goes through Betaflight's
-   * decoder first, and is placed on the day the batch says it was flown.
-   */
-  private async parse(
-    file: LogFileEntity,
-    body: Buffer,
-    flownOn: string | null,
-  ): Promise<ParsedLog> {
-    if (file.format === LogFormat.EdgetxCsv) {
-      return parseEdgeTxCsv(body.toString('utf8'), file.fileName);
-    }
-
-    if (flownOn === null) {
-      throw new RejectedLog('Pick the day these blackbox logs were flown, then import them again');
-    }
-
-    return parseBlackboxLogs(
-      await this.decoder.decode(body),
-      craftNameFrom(body),
-      blackboxOrigin(flownOn, file.fileName),
-    );
   }
 
   /**

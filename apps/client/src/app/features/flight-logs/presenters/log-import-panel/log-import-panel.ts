@@ -20,7 +20,7 @@ import {
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import type { ChoiceOption } from '../../../../core/components/choice-option';
-import type { ImportFile, ImportPhase } from '../../flights.store';
+import type { ImportFile, ImportPhase } from '../../flight-logs.store';
 
 /** What the panel hands up: the files, and where their flights should go. */
 export interface LogImportRequest {

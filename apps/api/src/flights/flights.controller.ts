@@ -18,8 +18,8 @@ import {
   updateFlightsSchema,
 } from '@spothub/shared';
 
-import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../../common';
-import { FlightsService } from '../services/flights.service';
+import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
+import { FlightsService } from './flights.service';
 
 /** Flights once they are in. Guarded by the global JwtAuthGuard. */
 @Controller('flights')

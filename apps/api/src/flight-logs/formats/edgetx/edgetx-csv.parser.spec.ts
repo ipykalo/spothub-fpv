@@ -3,8 +3,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { LogParseError, MIN_FLIGHT_MS, type ParsedLog } from '../parsed-log';
 import { modelNameFrom, parseEdgeTxCsv } from './edgetx-csv.parser';
-import { LogParseError, MIN_FLIGHT_MS, type ParsedLog } from './parsed-log';
 
 /** The header an ELRS receiver on a Betaflight quad produces, GPS included. */
 const HEADER =
@@ -423,12 +423,12 @@ describe('modelNameFrom', () => {
 });
 
 /**
- * Every real log in `__fixtures__/edgetx/` must read cleanly. Nothing here
+ * Every real log in `__fixtures__/` must read cleanly. Nothing here
  * knows what each one contains, so the checks are the invariants any real
  * flight has to satisfy.
  */
 describe('real EdgeTX logs', () => {
-  const folder = join(__dirname, '__fixtures__', 'edgetx');
+  const folder = join(__dirname, '__fixtures__');
   const files = readdirSync(folder).filter((name) => name.toLowerCase().endsWith('.csv'));
 
   it.skipIf(files.length > 0)('has none yet — add some from the radio', () => {
@@ -473,7 +473,7 @@ describe('real EdgeTX logs', () => {
  */
 describe('real Air65 logs whose rows drift from the header', () => {
   const read = (name: string): ParsedLog =>
-    parseEdgeTxCsv(readFileSync(join(__dirname, '__fixtures__', 'edgetx', name), 'utf8'), name);
+    parseEdgeTxCsv(readFileSync(join(__dirname, '__fixtures__', name), 'utf8'), name);
 
   it('reads link quality after flight-controller telemetry adds columns mid-log', () => {
     // A 56-field header, a 12-row glitch at 46, then 64 fields from well

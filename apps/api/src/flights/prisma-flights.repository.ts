@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
-import { PrismaService } from '../../prisma';
-import { FlightsRepository } from '../abstract/flights.repository';
+import { PrismaService } from '../prisma';
+import { FlightsRepository } from './abstract/flights.repository';
 import type {
   FlightAssignment,
   FlightEntity,
   NewFlightData,
   SessionEntity,
-} from '../entities/flight.entity';
-import { type PlannedFlight, planSessions } from '../session-planner';
+} from './flight.entity';
+import { type PlannedFlight, planSessions } from './session-planner';
 
 const FLIGHT_INCLUDE = {
   build: { select: { name: true } },

@@ -6,10 +6,10 @@ import type {
   UpdateFlightsDto,
 } from '@spothub/shared';
 
-import { FlightsRepository } from '../abstract/flights.repository';
-import type { FlightAssignment } from '../entities/flight.entity';
-import { SESSION_GAP_MS } from '../flights.constants';
-import { toFlightDto, toSessionDto } from '../flights.mapper';
+import { FlightsRepository } from './abstract/flights.repository';
+import type { FlightAssignment } from './flight.entity';
+import { SESSION_GAP_MS } from './flights.constants';
+import { toFlightDto, toSessionDto } from './flights.mapper';
 
 /** Business rules for flights once they are in. */
 @Injectable()

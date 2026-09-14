@@ -14,53 +14,29 @@ import type { FlightDto, SessionDto, UpdateFlightDto } from '@spothub/shared';
 import type { ChoiceOption } from '../../../core/components/choice-option';
 import { FilterChips } from '../../../core/components/filter-chips/filter-chips';
 import { GridToolbar } from '../../../core/components/grid-toolbar/grid-toolbar';
-import {
-  type GridSpec,
-  GridState,
-  type SortOption,
-  gridView,
-} from '../../../core/components/grid-toolbar/grid-view';
+import { GridState, gridView } from '../../../core/components/grid-toolbar/grid-view';
 import { CollapseAll } from '../../../core/components/section/collapse-all';
 import { Section } from '../../../core/components/section/section';
 import { SectionGroup } from '../../../core/components/section/section-group';
 import { BUILD_STATUS_STYLES } from '../../builds/build-status';
 import { BuildsStore } from '../../builds/builds.store';
+import { FlightLogsStore } from '../../flight-logs/flight-logs.store';
+import {
+  LogImportPanel,
+  type LogImportRequest,
+} from '../../flight-logs/presenters/log-import-panel/log-import-panel';
 import { batteryOptions } from '../../parts/part-condition';
 import { PartsStore } from '../../parts/parts.store';
 import { FlightsStore } from '../flights.store';
 import { FlightBulkBar } from '../presenters/flight-bulk-bar/flight-bulk-bar';
-import {
-  LogImportPanel,
-  type LogImportRequest,
-} from '../presenters/log-import-panel/log-import-panel';
 import { SessionFlights } from '../presenters/session-flights/session-flights';
-
-type FlightSortKey = 'date' | 'duration' | 'voltage' | 'link';
-
-/**
- * A filter value distinct from any real build id, so "flights on no build"
- * is its own chip rather than colliding with `sh-filter-chips`' own `null` —
- * which that component already reserves to mean "All".
- */
-const UNASSIGNED_BUILD = '__unassigned__';
-
-const FLIGHT_GRID: GridSpec<FlightDto, FlightSortKey> = {
-  text: (flight) => [flight.buildName, flight.batteryName, flight.modelName, flight.fileName],
-  sortBy: {
-    date: (flight) => flight.startedAt,
-    duration: (flight) => flight.durationS,
-    voltage: (flight) => flight.minVoltage,
-    link: (flight) => flight.minLinkQuality,
-  },
-};
-
-const SORTS: readonly SortOption<FlightSortKey>[] = [
-  { key: 'date', label: 'Date' },
-  { key: 'duration', label: 'Duration', direction: 'desc' },
-  // Ascending by default: the worst reading first is what triage wants.
-  { key: 'voltage', label: 'Min voltage' },
-  { key: 'link', label: 'Link quality' },
-];
+import {
+  FLIGHT_GRID,
+  FLIGHT_SORTS,
+  type FlightSortKey,
+  flownBuildOptions,
+  flownOnBuild,
+} from './flight-grid';
 
 /** Sessions are headed by the radio's clock, which is stored as UTC. */
 const DAY = new Intl.DateTimeFormat(undefined, {
@@ -87,8 +63,9 @@ const OPEN_SESSIONS = 3;
 const CLOCK_SET_AFTER = Date.UTC(2015, 0, 1);
 
 /**
- * Container: the logbook. Owns the stores and the side effects; the import
- * panel and each session's flights are presenters.
+ * Container: the logbook, with the log import above it. Composes the flights
+ * and flight-logs stores and owns the side effects; the import panel and each
+ * session's flights are presenters.
  */
 @Component({
   selector: 'sh-flights-page',
@@ -111,6 +88,7 @@ const CLOCK_SET_AFTER = Date.UTC(2015, 0, 1);
 })
 export class FlightsPage {
   protected readonly store = inject(FlightsStore);
+  protected readonly imports = inject(FlightLogsStore);
   private readonly builds = inject(BuildsStore);
   private readonly parts = inject(PartsStore);
   private readonly snackBar = inject(MatSnackBar);
@@ -126,7 +104,7 @@ export class FlightsPage {
   /** Every battery pack in the inventory, including broken and retired ones. */
   protected readonly batteries = computed(() => batteryOptions(this.parts.parts()));
 
-  protected readonly sorts = SORTS;
+  protected readonly sorts = FLIGHT_SORTS;
   protected readonly grid = new GridState<FlightSortKey, string>({
     key: 'date',
     direction: 'asc',
@@ -141,33 +119,9 @@ export class FlightsPage {
     })),
   );
 
-  /**
-   * Only the builds actually flown, from the flights themselves — a build
-   * with no logbook entries yet is not a useful filter chip — plus an
-   * "Unassigned" chip when at least one flight has no build at all. Reads
-   * `buildName` straight off each flight, so this needs the builds store no
-   * more than the flights already loaded do.
-   */
-  protected readonly buildFilterOptions = computed<readonly ChoiceOption<string>[]>(() => {
-    const named = new Map<string, string>();
-    let unassigned = false;
-
-    for (const session of this.store.sessions()) {
-      for (const flight of session.flights) {
-        if (flight.buildId === null) {
-          unassigned = true;
-        } else if (!named.has(flight.buildId)) {
-          named.set(flight.buildId, flight.buildName ?? flight.buildId);
-        }
-      }
-    }
-
-    const options = [...named.entries()]
-      .sort(([, a], [, b]) => a.localeCompare(b))
-      .map(([value, label]) => ({ value, label }));
-
-    return unassigned ? [...options, { value: UNASSIGNED_BUILD, label: 'No build' }] : options;
-  });
+  protected readonly buildFilterOptions = computed(() =>
+    flownBuildOptions(this.store.sessions()),
+  );
 
   /**
    * Every session with its flights searched, filtered and sorted; a session
@@ -187,14 +141,8 @@ export class FlightsPage {
       .sessions()
       .map((session) => ({
         ...session,
-        flights: gridView(
-          session.flights,
-          FLIGHT_GRID,
-          query,
-          sort,
-          (flight) =>
-            active === null ||
-            (active === UNASSIGNED_BUILD ? flight.buildId === null : flight.buildId === active),
+        flights: gridView(session.flights, FLIGHT_GRID, query, sort, (flight) =>
+          flownOnBuild(flight, active),
         ),
       }))
       .filter((session) => session.flights.length > 0);
@@ -232,11 +180,16 @@ export class FlightsPage {
   }
 
   protected async onImport(request: LogImportRequest): Promise<void> {
-    await this.store.importLogs(request.files, request.buildId, request.flownOn);
+    try {
+      await this.imports.importLogs(request.files, request.buildId, request.flownOn);
+    } finally {
+      // Even a failed import may have stored flights from its other logs.
+      await this.store.load();
+    }
 
-    const added = this.store.importedFlights();
+    const added = this.imports.importedFlights();
 
-    if (this.store.phase() === 'done' && added > 0) {
+    if (this.imports.phase() === 'done' && added > 0) {
       this.snackBar.open(`Imported ${added} flight${added === 1 ? '' : 's'}`, undefined, {
         duration: 3000,
       });
@@ -244,21 +197,21 @@ export class FlightsPage {
   }
 
   protected resetImport(): void {
-    this.store.resetImport();
+    this.imports.reset();
   }
 
   /**
    * The section's own "Cancel" button only closes the add form; it does not
    * know about the store. Without this, cancelling after an import has
    * finished left the panel showing forever — `addingImport` was false, but
-   * the drop zone's own visibility also keys off `store.phase()`, which
+   * the drop zone's own visibility also keys off the import phase, which
    * "Cancel" never touched.
    */
   protected onAddingChanged(adding: boolean): void {
     this.addingImport.set(adding);
 
-    if (!adding && this.store.phase() !== 'idle') {
-      this.store.resetImport();
+    if (!adding && this.imports.phase() !== 'idle') {
+      this.imports.reset();
     }
   }
 

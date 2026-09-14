@@ -7,9 +7,9 @@ import { promisify } from 'node:util';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { Env } from '../config';
-import { BlackboxDecoder } from './abstract/blackbox-decoder';
-import { LogParseError } from './parsed-log';
+import type { Env } from '../../../config';
+import { BlackboxDecoder } from '../../abstract/blackbox-decoder';
+import { LogParseError } from '../parsed-log';
 
 const run = promisify(execFile);
 

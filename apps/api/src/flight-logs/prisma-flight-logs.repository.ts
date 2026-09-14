@@ -7,15 +7,15 @@ import {
   type Prisma,
 } from '@prisma/client';
 
-import { PrismaService } from '../../prisma';
-import { FlightLogsRepository } from '../abstract/flight-logs.repository';
+import { PrismaService } from '../prisma';
+import { FlightLogsRepository } from './abstract/flight-logs.repository';
 import type {
   LogFileEntity,
   LogFileResult,
   LogImportEntity,
   LogImportResult,
   ReserveLogFileData,
-} from '../entities/flight-log.entity';
+} from './flight-log.entity';
 
 const WITH_FILES = {
   files: { orderBy: { fileName: 'asc' } },

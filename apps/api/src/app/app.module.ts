@@ -8,6 +8,7 @@ import { BuildsModule } from '../builds';
 import { AllExceptionsFilter, JwtAuthGuard } from '../common';
 import { validateEnv } from '../config';
 import { ConfigsModule } from '../configs';
+import { FlightLogsModule } from '../flight-logs';
 import { FlightsModule } from '../flights';
 import { HealthModule } from '../health';
 import { JobsModule } from '../jobs';
@@ -42,6 +43,7 @@ import { UsersModule } from '../users';
     PartsModule,
     MediaModule,
     FlightsModule,
+    FlightLogsModule,
     HealthModule,
   ],
   providers: [

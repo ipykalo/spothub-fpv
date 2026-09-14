@@ -20,8 +20,8 @@ import {
   requestLogUploadSchema,
 } from '@spothub/shared';
 
-import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../../common';
-import { FlightLogsService } from '../services/flight-logs.service';
+import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
+import { FlightLogsService } from './flight-logs.service';
 
 /**
  * Getting logs in. Guarded by the global JwtAuthGuard.

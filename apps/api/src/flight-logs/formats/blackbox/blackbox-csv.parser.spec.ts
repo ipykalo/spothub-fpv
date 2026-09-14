@@ -4,8 +4,8 @@ import { gunzipSync } from 'node:zlib';
 
 import { describe, expect, it } from 'vitest';
 
+import { LogParseError } from '../parsed-log';
 import { blackboxOrigin, craftNameFrom, parseBlackboxLogs } from './blackbox-csv.parser';
-import { LogParseError } from './parsed-log';
 
 /** The columns the parser reads, named and spaced the way blackbox_decode writes them. */
 const HEADER =
@@ -146,11 +146,11 @@ describe('craftNameFrom', () => {
 
 /**
  * Real logs, decoded by blackbox_decode and cut to the columns the parser
- * reads (see __fixtures__/bbl/README.md). Every figure was checked against a
+ * reads (see __fixtures__/README.md). Every figure was checked against a
  * separate reading of the same frames.
  */
 describe('real blackbox logs', () => {
-  const folder = join(__dirname, '__fixtures__', 'bbl', 'decoded');
+  const folder = join(__dirname, '__fixtures__', 'decoded');
 
   /** Every decoded log of one .bbl, in order: `air65-btfl_007.01.csv.gz`, `.02`, … */
   const decoded = (source: string): string[] =>

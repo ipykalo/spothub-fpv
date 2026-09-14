@@ -3,7 +3,7 @@ import type {
   FlightEntity,
   NewFlightData,
   SessionEntity,
-} from '../entities/flight.entity';
+} from '../flight.entity';
 
 /**
  * Persistence contract for flights and the sessions that group them.

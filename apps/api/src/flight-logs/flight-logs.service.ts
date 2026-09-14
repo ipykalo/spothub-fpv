@@ -17,24 +17,21 @@ import {
   logFormatOf,
 } from '@spothub/shared';
 
-import type { Env } from '../../config';
-import { JobQueue } from '../../jobs';
-import { StorageGateway } from '../../storage';
-import { FlightLogsRepository } from '../abstract/flight-logs.repository';
-import { FlightsRepository } from '../abstract/flights.repository';
-import {
-  FLIGHT_LOG_IMPORT_JOB,
-  LOG_CONTENT_TYPES,
-  LOG_EXTENSIONS,
-} from '../flights.constants';
-import { toLogImportDto } from '../flights.mapper';
+import type { Env } from '../config';
+import { FlightsFacade } from '../flights';
+import { JobQueue } from '../jobs';
+import { StorageGateway } from '../storage';
+import { FlightLogsRepository } from './abstract/flight-logs.repository';
+import { FLIGHT_LOG_IMPORT_JOB } from './flight-log-import.job';
+import { toLogImportDto } from './flight-logs.mapper';
+import { LogReaders } from './formats/log-readers';
 
 /**
  * Getting logs in. Knows nothing about HTTP, Prisma or S3.
  *
  * The bytes never arrive in a request. The client learns which files are new,
  * PUTs those straight to storage on presigned URLs, and then starts an import,
- * which is queued and answered at once — the parsing happens in the worker.
+ * which is queued and answered at once — the parsing happens in the job.
  */
 @Injectable()
 export class FlightLogsService {
@@ -42,9 +39,10 @@ export class FlightLogsService {
 
   constructor(
     private readonly logs: FlightLogsRepository,
-    private readonly flights: FlightsRepository,
+    private readonly flights: FlightsFacade,
     private readonly storage: StorageGateway,
     private readonly jobs: JobQueue,
+    private readonly readers: LogReaders,
     config: ConfigService<Env, true>,
   ) {
     this.uploadTtl = config.get('S3_UPLOAD_URL_TTL', { infer: true });
@@ -72,11 +70,13 @@ export class FlightLogsService {
       );
     }
 
+    const reader = this.readers.for(format);
+
     // The key is ours, never the radio's or the flight controller's file name.
     const file = await this.logs.reserveFile({
       ownerId,
       format,
-      storageKey: `${ownerId}/logs/${randomUUID()}${LOG_EXTENSIONS[format]}`,
+      storageKey: `${ownerId}/logs/${randomUUID()}${reader.extension}`,
       fileName: input.fileName,
       sizeBytes: input.sizeBytes,
       checksum: input.checksum,
@@ -86,17 +86,16 @@ export class FlightLogsService {
       throw new ConflictException('That log has already been imported');
     }
 
-    const contentType = LOG_CONTENT_TYPES[file.format];
     const uploadUrl = await this.storage.presignPut(
       file.storageKey,
-      contentType,
+      reader.contentType,
       this.uploadTtl,
     );
 
     return {
       logFileId: file.id,
       uploadUrl,
-      contentType,
+      contentType: reader.contentType,
       expiresInSeconds: this.uploadTtl,
     };
   }

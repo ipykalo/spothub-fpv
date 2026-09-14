@@ -4,7 +4,7 @@ import type {
   LogImportEntity,
   LogImportResult,
   ReserveLogFileData,
-} from '../entities/flight-log.entity';
+} from '../flight-log.entity';
 
 /**
  * Persistence contract for log files and the batches that import them.

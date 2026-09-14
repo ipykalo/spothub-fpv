@@ -1,7 +1,7 @@
 /**
- * The flights module's public API.
- *
- * Nothing but the module class: no other module needs to reach flights yet.
- * The battery-health ticket will add a facade here when it does.
+ * The flights module's public API: the module, the facade `flight-logs`
+ * stores flights through, and the shape of a flight on its way in.
  */
+export { FlightsFacade } from './abstract/flights.facade';
+export type { FlightFigures, NewFlightData } from './flight.entity';
 export { FlightsModule } from './flights.module';

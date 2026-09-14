@@ -1,7 +1,6 @@
-import type { FlightDto, LogImportDto, SessionDto } from '@spothub/shared';
+import type { FlightDto, SessionDto } from '@spothub/shared';
 
-import type { FlightEntity, SessionEntity } from './entities/flight.entity';
-import type { LogImportEntity } from './entities/flight-log.entity';
+import type { FlightEntity, SessionEntity } from './flight.entity';
 
 export function toFlightDto(flight: FlightEntity): FlightDto {
   return {
@@ -48,24 +47,5 @@ export function toSessionDto(session: SessionEntity): SessionDto {
     flightCount: session.flights.length,
     totalDurationS: session.flights.reduce((sum, flight) => sum + flight.durationS, 0),
     flights: session.flights.map(toFlightDto),
-  };
-}
-
-export function toLogImportDto(batch: LogImportEntity): LogImportDto {
-  return {
-    id: batch.id,
-    status: batch.status,
-    buildId: batch.buildId,
-    flightCount: batch.flightCount,
-    error: batch.error,
-    createdAt: batch.createdAt.toISOString(),
-    finishedAt: batch.finishedAt?.toISOString() ?? null,
-    files: batch.files.map((file) => ({
-      id: file.id,
-      fileName: file.fileName,
-      status: file.status,
-      flightCount: file.flightCount,
-      error: file.error,
-    })),
   };
 }

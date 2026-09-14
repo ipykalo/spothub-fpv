@@ -4,45 +4,18 @@
  * Pure, like the parsers themselves.
  */
 
+// A type-only import, erased at compile time: the parsers stay pure and their
+// specs load nothing from Nest.
+import type { FlightFigures } from '../../flights';
+
 /** A pause longer than this ends one flight and starts another. */
 export const SPLIT_GAP_MS = 30_000;
 
 /** Shorter than this is a radio switched on or an arm check, not a flight. */
 export const MIN_FLIGHT_MS = 10_000;
 
-export interface ParsedFlight {
-  readonly startedAt: Date;
-  readonly endedAt: Date;
-  /**
-   * False when the log records no time of day — a blackbox log, placed on the
-   * day it was said to be flown. Its times then only order its flights.
-   */
-  readonly timeRecorded: boolean;
-  readonly durationS: number;
-  readonly sampleCount: number;
-  readonly startVoltage: number | null;
-  readonly minVoltage: number | null;
-  readonly endVoltage: number | null;
-  readonly mahUsed: number | null;
-  readonly maxCurrentA: number | null;
-  readonly minLinkQuality: number | null;
-  /** The weakest signal the receiver heard, in dBm, on its better antenna. */
-  readonly minRssiDbm: number | null;
-  readonly minSnrDb: number | null;
-  /** The telemetry link back from the quad, as the radio measured it. */
-  readonly minDownlinkQuality: number | null;
-  readonly maxTxPowerMw: number | null;
-  /** Where the throttle stick sat, 0–100 %: the stick, not the motors. */
-  readonly avgThrottlePct: number | null;
-  readonly maxThrottlePct: number | null;
-  /** The radio's own battery. */
-  readonly minRadioVoltage: number | null;
-  readonly hasGps: boolean;
-  readonly distanceM: number | null;
-  readonly maxAltitudeM: number | null;
-  readonly maxSpeedKmh: number | null;
-  readonly maxHomeDistanceM: number | null;
-}
+/** A flight as a log describes it — the figures the logbook stores. */
+export type ParsedFlight = FlightFigures;
 
 export interface ParsedLog {
   /** What the log calls the quad: the radio model, or a blackbox's craft name. */

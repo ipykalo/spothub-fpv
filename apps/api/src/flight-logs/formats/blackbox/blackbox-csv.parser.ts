@@ -29,7 +29,7 @@ import {
   minOf,
   round,
   values,
-} from './parsed-log';
+} from '../parsed-log';
 
 /** Frames further apart than this are a gap in logging, not flight to count current over. */
 const MAX_FRAME_GAP_S = 0.5;

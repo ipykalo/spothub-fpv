@@ -1,38 +1,32 @@
 import { Module } from '@nestjs/common';
 
-import { JobsModule } from '../jobs';
-import { StorageModule } from '../storage';
-import { BlackboxDecoder } from './abstract/blackbox-decoder';
-import { FlightLogsRepository } from './abstract/flight-logs.repository';
+import { FlightsFacade } from './abstract/flights.facade';
 import { FlightsRepository } from './abstract/flights.repository';
-import { FlightLogsController } from './controllers/flight-logs.controller';
-import { FlightsController } from './controllers/flights.controller';
-import { FlightLogWorker } from './flight-log.worker';
-import { ProcessBlackboxDecoder } from './process-blackbox-decoder';
-import { PrismaFlightLogsRepository } from './repositories/prisma-flight-logs.repository';
-import { PrismaFlightsRepository } from './repositories/prisma-flights.repository';
-import { FlightLogsService } from './services/flight-logs.service';
-import { FlightsService } from './services/flights.service';
+import { FlightsController } from './flights.controller';
+import { FlightsFacadeImpl } from './flights.facade.impl';
+import { FlightsService } from './flights.service';
+import { PrismaFlightsRepository } from './prisma-flights.repository';
 
 /**
- * Flights: log import, the flights it finds, and the sessions that group them.
+ * Flights: the logbook — the flights, the sessions that group them, and the
+ * build and battery pack each was flown on.
  *
  * Sessions live here rather than in a module of their own because, until V2
  * gives them a spot and notes, they are nothing but a grouping of flights —
- * the way units and sources live inside `parts`. Depends on no feature
- * module: a build is reached by a join inside this module's own repository,
- * as media reaches one for photos. Only infrastructure is imported.
+ * the way units and sources live inside `parts`. Builds and packs are reached
+ * by a join inside this module's own repository, as media reaches builds for
+ * photos, so it depends on no feature module.
+ *
+ * Getting logs in is `flight-logs`, which reaches this module only through
+ * `FlightsFacade`.
  */
 @Module({
-  imports: [JobsModule, StorageModule],
-  controllers: [FlightLogsController, FlightsController],
+  controllers: [FlightsController],
   providers: [
-    FlightLogsService,
     FlightsService,
-    FlightLogWorker,
-    { provide: FlightLogsRepository, useClass: PrismaFlightLogsRepository },
     { provide: FlightsRepository, useClass: PrismaFlightsRepository },
-    { provide: BlackboxDecoder, useClass: ProcessBlackboxDecoder },
+    { provide: FlightsFacade, useClass: FlightsFacadeImpl },
   ],
+  exports: [FlightsFacade],
 })
 export class FlightsModule {}

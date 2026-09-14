@@ -28,7 +28,7 @@ import {
   minOf,
   round,
   values,
-} from './parsed-log';
+} from '../parsed-log';
 
 /** Consecutive GPS fixes implying more than this are a glitch, not movement. */
 const MAX_PLAUSIBLE_SPEED_MS = 100;

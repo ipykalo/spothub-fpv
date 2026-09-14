@@ -29,7 +29,8 @@ apps/api/src/
   builds/  build-parts/  repairs/  configs/  the hangar
   parts/                                     inventory (catalogue, units, sources)
   media/                                     build photos
-  flights/                                   log import, flights, sessions
+  flights/                                   the logbook: flights, sessions
+  flight-logs/                               log import, a reader per format
   health/
 ```
 
@@ -108,8 +109,9 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are three: `UsersFacade` (consumed by auth),
-`PartsFacade` and `RepairsFacade` (both consumed by build-parts). A facade
+that module's `exports`. There are four: `UsersFacade` (consumed by auth),
+`PartsFacade` and `RepairsFacade` (both consumed by build-parts), and
+`FlightsFacade` (consumed by flight-logs). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -170,6 +172,8 @@ features/
   configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
   photos/       photos.api/store, photo-gallery presenter
   parts/        catalogue, units, sources
+  flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends presenters
+  flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -398,8 +402,8 @@ so the job retries, and a retry skips what was already parsed.
   so a flight deleted as "not really a flight" stays deleted. The first cut
   keyed this on `status = PARSED` alone, and a log whose flights had all been
   deleted could never be brought back.
-- Real SD-card logs go in `apps/api/src/flights/__fixtures__/edgetx/`; the
-  spec parses every one. `npm test` runs the API suite.
+- Real SD-card logs go in `apps/api/src/flight-logs/formats/edgetx/__fixtures__/`;
+  the spec parses every one. `npm test` runs the API suite.
 
 **Betaflight blackbox logs** come in on the same pipeline, and carry what a
 quad with telemetry off never sends the radio: pack voltage and current.
@@ -410,7 +414,7 @@ quad with telemetry off never sends the radio: pack voltage and current.
   through Docker — build that image with `npm run decoder:build`, since Windows
   has no C compiler. The npm `blackbox-log` parser refuses Betaflight 4.5 logs
   outright. `blackbox-csv.parser.ts` is pure and tested on decoded CSV from
-  real logs (`__fixtures__/bbl/`).
+  real logs (`flight-logs/formats/blackbox/__fixtures__/`).
 - **One `.bbl` is one power-on, with a log per arm.** Logs less than 30 s apart
   join into one flight, as EdgeTX rows do, so a crash and a re-arm do not split
   a pack's flying. Charge is counted from current over time: the decoder's
@@ -425,9 +429,31 @@ quad with telemetry off never sends the radio: pack voltage and current.
 - Builds match a craft name or radio model ignoring case and spaces, so the
   flight controller's "Cinelog  20" finds the build Cinelog20.
 
-GPX is the next format. When it lands, a track that overlaps a flight already
-imported from EdgeTX is added to that flight by time, not stored as a second
-flight.
+**Import and the logbook are two modules.** `flight-logs` owns uploads, the
+import job and the log formats; `flights` owns flights and sessions, and
+`flight-logs` reaches it only through `FlightsFacade` — sessions regroup on
+every flight write, and only `flights` knows how. They were one module until
+the second format arrived, with the import job injecting the flights
+repository and branching on format.
+
+- **Each format is a `LogReader`** under `flight-logs/formats/<format>/`: its
+  content type, its storage extension, and how its bytes become flights, with
+  the pure parser and its fixtures beside it. `LogReaders` holds them as a
+  `Record<LogFormat, LogReader>`, so a format added to the shared enum without
+  a reader fails to compile, and neither the upload nor the job branches on
+  format.
+- The parsers import `FlightFigures` from `flights` as a type only, which the
+  compiler erases. Keep them that way: **Vitest cannot resolve
+  `@spothub/shared`**, so a pure file under test must not import it — which is
+  why `SESSION_GAP_MS` sits in `flights.constants.ts`, not in
+  `session-planner.ts`.
+- The client splits the same way. `FlightLogsStore` never reloads the
+  logbook; `flights.page` composes both stores and reloads `FlightsStore` once
+  an import is over.
+
+GPX is the next format, as a reader under `formats/gpx/`. When it lands, a
+track that overlaps a flight already imported from EdgeTX is added to that
+flight by time, not stored as a second flight.
 
 The API was restructured into one module per bounded context — `builds` used to
 hold four, and `parts` held its catalogue, units, sources and URL preview in one
