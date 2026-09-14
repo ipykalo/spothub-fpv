@@ -7,6 +7,7 @@ import {
   LogParseError,
   MIN_FLIGHT_MS,
   modelNameFrom,
+  type ParsedLog,
   parseEdgeTxCsv,
 } from './edgetx-csv.parser';
 
@@ -466,4 +467,54 @@ describe('real EdgeTX logs', () => {
       }
     });
   }
+});
+
+/**
+ * Two specific logs, pinned figure by figure — because the checks above
+ * passed on a parser that was quietly reading the wrong columns. EdgeTX
+ * changes how many fields a row has when a telemetry link comes up or goes
+ * stale, and never rewrites its header. Every figure here was checked against
+ * a separate reading of the same columns.
+ */
+describe('real Air65 logs whose rows drift from the header', () => {
+  const read = (name: string): ParsedLog =>
+    parseEdgeTxCsv(readFileSync(join(__dirname, '__fixtures__', 'edgetx', name), 'utf8'), name);
+
+  it('reads link quality after flight-controller telemetry adds columns mid-log', () => {
+    // A 56-field header, a 12-row glitch at 46, then 64 fields from well
+    // before arming onwards.
+    const { flights } = read('Air65-2000-01-01-000103.csv');
+
+    expect(flights).toHaveLength(1);
+
+    const [flight] = flights;
+    expect(flight.startedAt.toISOString()).toBe('2000-01-01T00:02:04.910Z');
+    expect(flight.durationS).toBe(95);
+    expect(flight.sampleCount).toBe(470);
+    // Read by header position, this lands on the current column: 0.5.
+    expect(flight.minLinkQuality).toBe(95);
+    expect(flight.minDownlinkQuality).toBe(92);
+    expect(flight.minRssiDbm).toBe(-68);
+    expect(flight.maxTxPowerMw).toBe(25);
+    expect(flight.maxThrottlePct).toBe(39);
+    expect(flight.minRadioVoltage).toBe(7.6);
+  });
+
+  it('ignores the columns a stale telemetry link drops, rather than what slides into them', () => {
+    // A 64-field header, and 179 of the flight's rows at 56 or 46.
+    const { flights } = read('Air65-2000-01-01-002714.csv');
+
+    expect(flights).toHaveLength(1);
+
+    const [flight] = flights;
+    expect(flight.startedAt.toISOString()).toBe('2000-01-01T00:27:34.730Z');
+    expect(flight.durationS).toBe(87);
+    expect(flight.sampleCount).toBe(332);
+    // Read by header position, this is 0.
+    expect(flight.minLinkQuality).toBe(97);
+    expect(flight.minDownlinkQuality).toBe(100);
+    expect(flight.maxTxPowerMw).toBe(500);
+    // And the antenna cell, slid into the voltage column, reads as a 1 V pack.
+    expect(flight.minVoltage).toBeNull();
+  });
 });
