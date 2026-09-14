@@ -1,0 +1,227 @@
+@if (flights().length === 0) {
+  <p class="m-0 py-6 text-center text-sm text-muted">No flights on this build yet.</p>
+} @else {
+  <div class="viz grid grid-cols-1 gap-x-10 gap-y-12 lg:grid-cols-2">
+    <!-- Pack voltage sag -->
+    <figure class="m-0">
+      <figcaption class="mb-3 text-base font-semibold">Pack voltage sag</figcaption>
+      @if (voltageRows().length === 0) {
+        <p class="m-0 text-sm text-muted">No voltage readings yet — this build's flights have no telemetry.</p>
+      } @else {
+        <div class="mb-1 flex items-center gap-4 text-xs text-muted">
+          <span class="inline-flex items-center gap-1.5"><span class="voltage-key voltage-key--start"></span>Start</span>
+          <span class="inline-flex items-center gap-1.5"><span class="voltage-key voltage-key--min"></span>Minimum</span>
+        </div>
+        <svg
+          [attr.viewBox]="'0 0 ' + width + ' ' + height"
+          role="img"
+          aria-label="Pack voltage, start versus minimum, per flight over time"
+        >
+          <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
+            @for (tick of voltageYTicks(); track tick.label) {
+              <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+            }
+            @for (tick of xTicks(); track tick.label) {
+              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">{{ tick.label }}</text>
+            }
+            @for (row of voltageRows(); track row.hover.title) {
+              <line class="voltage-stem" [attr.x1]="row.x" [attr.x2]="row.x" [attr.y1]="row.startY" [attr.y2]="row.minY" />
+              <circle class="voltage-dot voltage-dot--start" [attr.cx]="row.x" [attr.cy]="row.startY" r="4" />
+              <circle class="voltage-dot voltage-dot--min" [attr.cx]="row.x" [attr.cy]="row.minY" r="4" />
+              <rect
+                class="hit"
+                [attr.x]="row.x - 12"
+                [attr.y]="row.hitY"
+                width="24"
+                [attr.height]="row.hitHeight"
+                tabindex="0"
+                role="button"
+                [attr.aria-label]="row.hover.title + ': ' + row.hover.lines.join(', ')"
+                (pointerenter)="hoveredVoltage.set(row.hover)"
+                (pointerleave)="hoveredVoltage.set(null)"
+                (focus)="hoveredVoltage.set(row.hover)"
+                (blur)="hoveredVoltage.set(null)"
+              />
+            }
+          </g>
+        </svg>
+        <p class="readout" [class.readout--empty]="!hoveredVoltage()">
+          @if (hoveredVoltage(); as point) {
+            <strong>{{ point.title }}</strong> — {{ point.lines.join(' · ') }}
+          } @else {
+            Hover or focus a flight for its voltage figures.
+          }
+        </p>
+      }
+    </figure>
+
+    <!-- Link quality -->
+    <figure class="m-0">
+      <figcaption class="mb-3 text-base font-semibold">Receiver link quality (weakest point per flight)</figcaption>
+      @if (linkQualityPoints().length === 0) {
+        <p class="m-0 text-sm text-muted">No link-quality readings yet.</p>
+      } @else {
+        <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" role="img" aria-label="Weakest link quality per flight over time">
+          <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
+            @for (tick of linkQualityYTicks; track tick.label) {
+              <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+            }
+            @for (tick of xTicks(); track tick.label) {
+              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">{{ tick.label }}</text>
+            }
+            <path class="link-area" [attr.d]="linkQualityArea()" />
+            <path class="link-line" [attr.d]="linkQualityPath()" />
+            @for (point of linkQualityPoints(); track point.hover.title) {
+              <circle class="link-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="4" />
+              <circle
+                class="hit"
+                [attr.cx]="point.x"
+                [attr.cy]="point.y"
+                r="12"
+                tabindex="0"
+                role="button"
+                [attr.aria-label]="point.hover.title + ': ' + point.hover.lines.join(', ')"
+                (pointerenter)="hoveredLinkQuality.set(point.hover)"
+                (pointerleave)="hoveredLinkQuality.set(null)"
+                (focus)="hoveredLinkQuality.set(point.hover)"
+                (blur)="hoveredLinkQuality.set(null)"
+              />
+            }
+          </g>
+        </svg>
+        <p class="readout" [class.readout--empty]="!hoveredLinkQuality()">
+          @if (hoveredLinkQuality(); as point) {
+            <strong>{{ point.title }}</strong> — {{ point.lines.join(' · ') }}
+          } @else {
+            Hover or focus a flight for its link quality.
+          }
+        </p>
+      }
+    </figure>
+
+    <!-- Cumulative airtime -->
+    <figure class="m-0">
+      <figcaption class="mb-3 text-base font-semibold">Cumulative airtime</figcaption>
+      <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" role="img" aria-label="Cumulative airtime on this build over time">
+        <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
+          @for (tick of airtimeYTicks(); track tick.label) {
+            <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+            <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+          }
+          @for (tick of xTicks(); track tick.label) {
+            <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">{{ tick.label }}</text>
+          }
+          <path class="airtime-area" [attr.d]="airtimeArea()" />
+          <path class="airtime-line" [attr.d]="airtimePath()" />
+          @for (point of airtimePoints(); track point.hover.title) {
+            <circle class="airtime-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="4" />
+            <circle
+              class="hit"
+              [attr.cx]="point.x"
+              [attr.cy]="point.y"
+              r="12"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="point.hover.title + ': ' + point.hover.lines.join(', ')"
+              (pointerenter)="hoveredAirtime.set(point.hover)"
+              (pointerleave)="hoveredAirtime.set(null)"
+              (focus)="hoveredAirtime.set(point.hover)"
+              (blur)="hoveredAirtime.set(null)"
+            />
+          }
+        </g>
+      </svg>
+      <p class="readout" [class.readout--empty]="!hoveredAirtime()">
+        @if (hoveredAirtime(); as point) {
+          <strong>{{ point.title }}</strong> — {{ point.lines.join(' · ') }}
+        } @else {
+          Hover or focus a flight for its running total.
+        }
+      </p>
+    </figure>
+
+    <!-- Throttle vs peak current -->
+    <figure class="m-0">
+      <figcaption class="mb-3 text-base font-semibold">Average throttle vs. peak current</figcaption>
+      @if (throttleCurrentPoints().length === 0) {
+        <p class="m-0 text-sm text-muted">No current readings yet — this build's flights have no telemetry.</p>
+      } @else {
+        <svg
+          [attr.viewBox]="'0 0 ' + width + ' ' + height"
+          role="img"
+          aria-label="Average throttle against peak current per flight"
+        >
+          <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
+            @for (tick of currentYTicks(); track tick.label) {
+              <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+            }
+            @for (tick of throttleXTicks; track tick.label) {
+              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">{{ tick.label }}</text>
+            }
+            @for (point of throttleCurrentPoints(); track point.hover.title) {
+              <circle class="scatter-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="4" />
+              <circle
+                class="hit"
+                [attr.cx]="point.x"
+                [attr.cy]="point.y"
+                r="12"
+                tabindex="0"
+                role="button"
+                [attr.aria-label]="point.hover.title + ': ' + point.hover.lines.join(', ')"
+                (pointerenter)="hoveredThrottle.set(point.hover)"
+                (pointerleave)="hoveredThrottle.set(null)"
+                (focus)="hoveredThrottle.set(point.hover)"
+                (blur)="hoveredThrottle.set(null)"
+              />
+            }
+          </g>
+        </svg>
+        <p class="readout" [class.readout--empty]="!hoveredThrottle()">
+          @if (hoveredThrottle(); as point) {
+            <strong>{{ point.title }}</strong> — {{ point.lines.join(' · ') }}
+          } @else {
+            Hover or focus a flight to compare its throttle and current.
+          }
+        </p>
+      }
+    </figure>
+  </div>
+
+  <button type="button" class="mt-4 text-sm text-primary underline" (click)="showTable.set(!showTable())">
+    {{ showTable() ? 'Hide' : 'View' }} as a table
+  </button>
+
+  @if (showTable()) {
+    <div class="mt-2 overflow-x-auto">
+      <table class="w-full text-sm tabular-nums">
+        <thead>
+          <tr class="text-left text-muted">
+            <th class="py-1 pr-4 font-medium">Date</th>
+            <th class="py-1 pr-4 font-medium">Duration</th>
+            <th class="py-1 pr-4 font-medium">Start V</th>
+            <th class="py-1 pr-4 font-medium">Min V</th>
+            <th class="py-1 pr-4 font-medium">Min LQ</th>
+            <th class="py-1 pr-4 font-medium">Avg throttle</th>
+            <th class="py-1 pr-4 font-medium">Peak current</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (flight of tableRows(); track flight.id) {
+            <tr class="border-t border-outline-variant">
+              <td class="py-1 pr-4">{{ shortDate(flight.startedAt) }}</td>
+              <td class="py-1 pr-4">{{ airtime(flight.durationS) }}</td>
+              <td class="py-1 pr-4">{{ flight.startVoltage !== null ? flight.startVoltage.toFixed(1) + ' V' : '—' }}</td>
+              <td class="py-1 pr-4">{{ flight.minVoltage !== null ? flight.minVoltage.toFixed(1) + ' V' : '—' }}</td>
+              <td class="py-1 pr-4">{{ flight.minLinkQuality !== null ? flight.minLinkQuality + ' %' : '—' }}</td>
+              <td class="py-1 pr-4">{{ flight.avgThrottlePct !== null ? flight.avgThrottlePct + ' %' : '—' }}</td>
+              <td class="py-1 pr-4">{{ flight.maxCurrentA !== null ? flight.maxCurrentA.toFixed(1) + ' A' : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+}

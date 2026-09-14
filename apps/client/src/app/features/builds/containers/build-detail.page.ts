@@ -40,6 +40,8 @@ import { ConfigList } from '../../configs/presenters/config-list/config-list';
 import { ConfigPasteForm } from '../../configs/presenters/config-paste-form/config-paste-form';
 import { ConfigsApi } from '../../configs/configs.api';
 import { ConfigsStore } from '../../configs/configs.store';
+import { FlightTrends } from '../../flights/presenters/flight-trends/flight-trends';
+import { FlightsStore } from '../../flights/flights.store';
 import { PhotoGallery } from '../../photos/presenters/photo-gallery/photo-gallery';
 import { PhotosStore } from '../../photos/photos.store';
 import { fittableUnits } from '../../parts/part-condition';
@@ -78,6 +80,7 @@ import { BuildsStore } from '../builds.store';
     RepairTimeline,
     ConfigList,
     ConfigPasteForm,
+    FlightTrends,
   ],
   hostDirectives: [SectionGroup],
   templateUrl: './build-detail.page.html',
@@ -92,6 +95,7 @@ export class BuildDetailPage {
   protected readonly configs = inject(ConfigsStore);
   protected readonly parts = inject(PartsStore);
   protected readonly photos = inject(PhotosStore);
+  protected readonly flights = inject(FlightsStore);
   private readonly builds = inject(BuildsStore);
   private readonly api = inject(BuildsApi);
   private readonly configsApi = inject(ConfigsApi);
@@ -121,6 +125,15 @@ export class BuildDetailPage {
    */
   protected readonly fittable = computed(() => fittableUnits(this.parts.parts()));
 
+  /** This build's flights, out of every session in the logbook. */
+  protected readonly buildFlights = computed(() => {
+    const id = this.id();
+    return this.flights
+      .sessions()
+      .flatMap((session) => session.flights)
+      .filter((flight) => flight.buildId === id);
+  });
+
   protected readonly statusLabels = BUILD_STATUS_LABELS;
   protected readonly classLabels = BUILD_CLASS_LABELS;
   protected readonly visibilityLabels = VISIBILITY_LABELS;
@@ -146,6 +159,11 @@ export class BuildDetailPage {
         // The install picker needs the inventory; harmless if already loaded.
         if (this.parts.parts().length === 0) {
           void this.parts.load();
+        }
+
+        // The trend charts need the logbook; harmless if already loaded.
+        if (this.flights.sessions().length === 0) {
+          void this.flights.load();
         }
       });
     });

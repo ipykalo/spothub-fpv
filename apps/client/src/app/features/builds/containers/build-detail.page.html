@@ -219,4 +219,8 @@
       (removeRequested)="removeConfig($event)"
     />
   </sh-section>
+
+  <sh-section heading="Flight trends" storageKey="build.flights" [count]="buildFlights().length">
+    <sh-flight-trends [flights]="buildFlights()" />
+  </sh-section>
 </div>
