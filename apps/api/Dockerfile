@@ -8,6 +8,22 @@ RUN npm ci --ignore-scripts
 COPY . .
 RUN npx prisma generate && npx nx build api --configuration=production
 
+# Betaflight's blackbox_decode, which the worker runs to turn .bbl logs into
+# CSV. Built from source at a pinned commit: the project publishes no Linux
+# binaries. It is GPL-3.0, and runs as a separate program, never linked in.
+# Also builds alone, for a machine with no C compiler:
+#   docker build --target blackbox-decode -t spothub-blackbox-decode -f apps/api/Dockerfile .
+FROM alpine:3.20 AS blackbox-decode
+ARG BLACKBOX_TOOLS_REV=f832acf9cd9dbe5ad8220de1a5f4eb4021523d72
+RUN apk add --no-cache build-base git \
+ && git init /src \
+ && git -C /src fetch --depth 1 https://github.com/betaflight/blackbox-tools.git "$BLACKBOX_TOOLS_REV" \
+ && git -C /src checkout FETCH_HEAD \
+ && make -C /src obj/blackbox_decode \
+ && install -m 755 /src/obj/blackbox_decode /usr/local/bin/blackbox_decode \
+ && rm -rf /src
+ENTRYPOINT ["blackbox_decode"]
+
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
@@ -31,6 +47,9 @@ COPY --from=build --chown=app:app /app/node_modules/.prisma ./node_modules/.pris
 COPY --from=build --chown=app:app /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
 COPY --from=build --chown=app:app /app/prisma ./prisma
+
+# musl-built, like this Alpine image, so it runs here as it did where it was built.
+COPY --from=blackbox-decode /usr/local/bin/blackbox_decode /usr/local/bin/blackbox_decode
 
 USER app
 EXPOSE 3000

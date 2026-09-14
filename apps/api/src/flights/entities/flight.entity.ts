@@ -1,4 +1,4 @@
-import type { ParsedFlight } from '../edgetx-csv.parser';
+import type { ParsedFlight } from '../parsed-log';
 
 /** One flight, as the domain understands it — no ORM types. */
 export interface FlightEntity {
@@ -14,6 +14,7 @@ export interface FlightEntity {
   readonly modelName: string | null;
   readonly startedAt: Date;
   readonly endedAt: Date;
+  readonly timeRecorded: boolean;
   readonly durationS: number;
   readonly sampleCount: number;
   readonly startVoltage: number | null;

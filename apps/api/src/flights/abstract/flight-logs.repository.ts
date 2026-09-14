@@ -33,11 +33,13 @@ export abstract class FlightLogsRepository {
 
   /**
    * Opens a batch over these files. Null unless every one is the owner's and
-   * still waiting to be imported.
+   * still waiting to be imported. `flownOn` is a YYYY-MM-DD day, for the
+   * batch's blackbox logs.
    */
   abstract createImport(
     ownerId: string,
     buildId: string | null,
+    flownOn: string | null,
     fileIds: readonly string[],
   ): Promise<LogImportEntity | null>;
 

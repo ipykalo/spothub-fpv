@@ -17,7 +17,7 @@
     (drop)="onDrop($event)"
   >
     <mat-icon class="text-muted" aria-hidden="true">sd_card</mat-icon>
-    <p class="m-0 font-semibold">Drop the LOGS folder from your radio's SD card</p>
+    <p class="m-0 font-semibold">Drop your radio's LOGS folder, or a quad's blackbox logs</p>
     <p class="m-0 max-w-120 text-sm text-muted">
       The whole folder, every time. Logs already imported are recognised and skipped, so only what is new is sent.
     </p>
@@ -25,7 +25,7 @@
     <!-- Real buttons opening hidden inputs: a styled <label> is not reachable
          from the keyboard, and matButton does not apply to one. -->
     <input #folderInput type="file" webkitdirectory multiple hidden (change)="onFolderChosen($event)" />
-    <input #filesInput type="file" accept=".csv" multiple hidden (change)="onFilesChosen($event)" />
+    <input #filesInput type="file" accept=".csv,.bbl,.bfl" multiple hidden (change)="onFilesChosen($event)" />
     <div class="mt-2 flex flex-wrap justify-center gap-2">
       <button matButton="tonal" type="button" [disabled]="busy()" (click)="folderInput.click()">
         <mat-icon>folder_open</mat-icon>
@@ -36,8 +36,27 @@
         Choose files
       </button>
     </div>
-    <p class="m-0 text-xs text-muted">EdgeTX .csv logs · GPX and Betaflight blackbox are coming</p>
+    <p class="m-0 text-xs text-muted">EdgeTX .csv logs · Betaflight .bbl blackbox logs · GPX is coming</p>
   </div>
+
+  @if (pending()) {
+    <!-- A flight controller records no date, so the day is asked for before anything uploads. -->
+    <div
+      class="tone-work flex flex-wrap items-center gap-x-4 gap-y-2 rounded bg-(--tone-surface) px-4 py-3"
+      role="group"
+      aria-label="Which day the blackbox logs were flown"
+    >
+      <p class="m-0 w-full text-sm">{{ pendingPrompt() }}</p>
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>Flown on</mat-label>
+        <input matInput type="date" [value]="flownOn()" [max]="today" (input)="onDayChosen($event)" />
+      </mat-form-field>
+      <button matButton="filled" type="button" [disabled]="!flownOn() || busy()" (click)="importPending()">
+        Import
+      </button>
+      <button matButton type="button" (click)="cancelPending()">Cancel</button>
+    </div>
+  }
 
   @switch (phase()) {
     @case ('preparing') {

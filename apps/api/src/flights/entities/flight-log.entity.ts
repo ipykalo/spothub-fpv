@@ -1,10 +1,11 @@
-import type { LogFileStatus, LogImportStatus } from '@spothub/shared';
+import type { LogFileStatus, LogFormat, LogImportStatus } from '@spothub/shared';
 
 /** One log file, as the domain understands it. */
 export interface LogFileEntity {
   readonly id: string;
   readonly ownerId: string;
   readonly importId: string | null;
+  readonly format: LogFormat;
   readonly status: LogFileStatus;
   readonly storageKey: string;
   readonly fileName: string;
@@ -21,6 +22,8 @@ export interface LogImportEntity {
   readonly id: string;
   readonly ownerId: string;
   readonly buildId: string | null;
+  /** The day its blackbox logs were flown, as YYYY-MM-DD, or null when not given. */
+  readonly flownOn: string | null;
   readonly status: LogImportStatus;
   readonly flightCount: number;
   readonly error: string | null;
@@ -32,6 +35,7 @@ export interface LogImportEntity {
 /** Reserving an upload for one file. */
 export interface ReserveLogFileData {
   readonly ownerId: string;
+  readonly format: LogFormat;
   readonly storageKey: string;
   readonly fileName: string;
   readonly sizeBytes: number;

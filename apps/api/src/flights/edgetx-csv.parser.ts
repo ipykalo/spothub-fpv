@@ -17,11 +17,18 @@
  * can be tested against real SD-card logs in isolation.
  */
 
-/** A pause in the rows longer than this ends one flight and starts another. */
-export const SPLIT_GAP_MS = 30_000;
-
-/** Shorter than this is a radio switched on or an arm check, not a flight. */
-export const MIN_FLIGHT_MS = 10_000;
+import {
+  LogParseError,
+  MIN_FLIGHT_MS,
+  type ParsedFlight,
+  type ParsedLog,
+  SPLIT_GAP_MS,
+  maxOf,
+  meanOf,
+  minOf,
+  round,
+  values,
+} from './parsed-log';
 
 /** Consecutive GPS fixes implying more than this are a glitch, not movement. */
 const MAX_PLAUSIBLE_SPEED_MS = 100;
@@ -40,48 +47,6 @@ const STICK_RANGE = 1024;
  * on AUX1, which is channel 5, and most other setups put it there too.
  */
 const ARM_CHANNEL_ON_US = 1500;
-
-export interface ParsedFlight {
-  readonly startedAt: Date;
-  readonly endedAt: Date;
-  readonly durationS: number;
-  readonly sampleCount: number;
-  readonly startVoltage: number | null;
-  readonly minVoltage: number | null;
-  readonly endVoltage: number | null;
-  readonly mahUsed: number | null;
-  readonly maxCurrentA: number | null;
-  readonly minLinkQuality: number | null;
-  /** The weakest signal the receiver heard, in dBm, on its better antenna. */
-  readonly minRssiDbm: number | null;
-  readonly minSnrDb: number | null;
-  /** The telemetry link back from the quad, as the radio measured it. */
-  readonly minDownlinkQuality: number | null;
-  readonly maxTxPowerMw: number | null;
-  /** Where the throttle stick sat, 0–100 %: the stick, not the motors. */
-  readonly avgThrottlePct: number | null;
-  readonly maxThrottlePct: number | null;
-  /** The radio's own battery. */
-  readonly minRadioVoltage: number | null;
-  readonly hasGps: boolean;
-  readonly distanceM: number | null;
-  readonly maxAltitudeM: number | null;
-  readonly maxSpeedKmh: number | null;
-  readonly maxHomeDistanceM: number | null;
-}
-
-export interface ParsedLog {
-  /** The radio model the log was recorded under, from the file name. */
-  readonly modelName: string | null;
-  readonly flights: readonly ParsedFlight[];
-  /** Stretches too short to be a flight, dropped rather than stored. */
-  readonly discarded: number;
-  /** Rows that carried a readable timestamp. */
-  readonly rowCount: number;
-}
-
-/** The file is not an EdgeTX log at all, as opposed to one with no flights. */
-export class LogParseError extends Error {}
 
 interface Sample {
   readonly t: number;
@@ -515,6 +480,8 @@ function summarise(run: readonly Sample[]): ParsedFlight {
     avgThrottlePct: round(meanOf(throttle), 0),
     maxThrottlePct: round(maxOf(throttle), 0),
     minRadioVoltage: round(minOf(radioVoltages), 2),
+    // The radio's clock, even when it was never set: it still orders the day.
+    timeRecorded: true,
     ...track,
   };
 }
@@ -608,46 +575,6 @@ function haversineM(a: Fix, b: Fix): number {
     Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
 
   return 2 * radius * Math.asin(Math.sqrt(h));
-}
-
-function values(
-  run: readonly Sample[],
-  pick: (sample: Sample) => number | null,
-): number[] {
-  const result: number[] = [];
-
-  for (const sample of run) {
-    const value = pick(sample);
-
-    if (value !== null) {
-      result.push(value);
-    }
-  }
-
-  return result;
-}
-
-function minOf(list: readonly number[]): number | undefined {
-  return list.length > 0 ? Math.min(...list) : undefined;
-}
-
-function maxOf(list: readonly number[]): number | undefined {
-  return list.length > 0 ? Math.max(...list) : undefined;
-}
-
-function meanOf(list: readonly number[]): number | undefined {
-  return list.length > 0
-    ? list.reduce((sum, value) => sum + value, 0) / list.length
-    : undefined;
-}
-
-function round(value: number | undefined, digits: number): number | null {
-  if (value === undefined) {
-    return null;
-  }
-
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
 }
 
 /**

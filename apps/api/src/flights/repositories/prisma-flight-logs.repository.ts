@@ -85,6 +85,7 @@ export class PrismaFlightLogsRepository extends FlightLogsRepository {
           data: {
             status: LogFileStatus.PENDING,
             importId: null,
+            format: data.format,
             fileName: data.fileName,
             sizeBytes: data.sizeBytes,
             flightCount: 0,
@@ -99,6 +100,7 @@ export class PrismaFlightLogsRepository extends FlightLogsRepository {
   async createImport(
     ownerId: string,
     buildId: string | null,
+    flownOn: string | null,
     fileIds: readonly string[],
   ): Promise<LogImportEntity | null> {
     const ids = [...new Set(fileIds)];
@@ -117,7 +119,14 @@ export class PrismaFlightLogsRepository extends FlightLogsRepository {
         return null;
       }
 
-      const batch = await tx.logImport.create({ data: { ownerId, buildId } });
+      const batch = await tx.logImport.create({
+        data: {
+          ownerId,
+          buildId,
+          // A date column: midnight UTC is the day itself, whatever the server's zone.
+          flownOn: flownOn === null ? null : new Date(`${flownOn}T00:00:00.000Z`),
+        },
+      });
 
       await tx.logFile.updateMany({
         where: { id: { in: ids }, ownerId },
@@ -187,6 +196,7 @@ function toFileEntity(row: LogFile): LogFileEntity {
     id: row.id,
     ownerId: row.ownerId,
     importId: row.importId,
+    format: row.format,
     status: row.status,
     storageKey: row.storageKey,
     fileName: row.fileName,
@@ -204,6 +214,7 @@ function toImportEntity(row: LogImportWithFiles): LogImportEntity {
     id: row.id,
     ownerId: row.ownerId,
     buildId: row.buildId,
+    flownOn: row.flownOn?.toISOString().slice(0, 10) ?? null,
     status: row.status,
     flightCount: row.flightCount,
     error: row.error,

@@ -42,9 +42,11 @@
       />
     } @else {
       <p class="m-0 max-w-176 text-sm text-muted">
-        Flights come from the radio's EdgeTX telemetry logs. Every log gives link quality and signal, throttle and the
-        radio's battery; pack voltage, current and capacity used come when the quad sends telemetry, and the track when
-        it carries GPS. Times are as the radio's clock recorded them.
+        Flights come from the radio's EdgeTX telemetry logs and the flight controller's Betaflight blackbox logs. A
+        radio log gives link quality and signal, throttle and the radio's battery; pack voltage, current and capacity
+        used come when the quad sends telemetry, and the track when it carries GPS. Its times are as the radio's clock
+        recorded them. A blackbox log gives pack voltage, current, capacity used and throttle, but records no time of
+        day, so its flights keep their order under the day you pick.
       </p>
     }
   </sh-section>

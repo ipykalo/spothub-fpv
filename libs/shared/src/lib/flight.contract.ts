@@ -35,6 +35,34 @@ export const LogImportStatus = {
 } as const;
 export type LogImportStatus = (typeof LogImportStatus)[keyof typeof LogImportStatus];
 
+export const LogFormat = {
+  /** The radio's own telemetry log. */
+  EdgetxCsv: 'EDGETX_CSV',
+  /** A flight controller's blackbox recording. */
+  BetaflightBbl: 'BETAFLIGHT_BBL',
+} as const;
+export type LogFormat = (typeof LogFormat)[keyof typeof LogFormat];
+
+/**
+ * Which parser reads a file, from its name — or null when it is not a log we
+ * import. A flight controller's USB drive also offers `btfl_all.bbl`, the
+ * whole flash in one file; it repeats every `btfl_NNN.bbl` beside it, so it is
+ * left out rather than importing each flight twice.
+ */
+export function logFormatOf(fileName: string): LogFormat | null {
+  const base = (fileName.split(/[\\/]/).at(-1) ?? fileName).toLowerCase();
+
+  if (base.endsWith('.csv')) {
+    return LogFormat.EdgetxCsv;
+  }
+
+  if ((base.endsWith('.bbl') || base.endsWith('.bfl')) && base !== 'btfl_all.bbl') {
+    return LogFormat.BetaflightBbl;
+  }
+
+  return null;
+}
+
 const checksum = z
   .string()
   .regex(/^[a-f0-9]{64}$/, 'A checksum is 64 lowercase hex characters (SHA-256)');
@@ -52,8 +80,8 @@ export interface KnownLogsResultDto {
 /**
  * Asking for somewhere to upload one log to.
  *
- * Only EdgeTX CSV so far, recognised by extension: GPX and BBL join later as
- * further formats on the same pipeline.
+ * EdgeTX CSV and Betaflight blackbox, recognised by extension; GPX joins them
+ * later on the same pipeline.
  */
 export const requestLogUploadSchema = z.object({
   fileName: z
@@ -61,7 +89,10 @@ export const requestLogUploadSchema = z.object({
     .trim()
     .min(1, 'A file needs a name')
     .max(255)
-    .regex(/\.csv$/i, 'Only EdgeTX .csv logs can be imported so far'),
+    .refine(
+      (name) => logFormatOf(name) !== null,
+      'Only EdgeTX .csv logs and Betaflight .bbl blackbox logs can be imported',
+    ),
   sizeBytes: z.coerce
     .number()
     .int()
@@ -91,6 +122,11 @@ export const createLogImportSchema = z.object({
    * the build names instead, and leaves the rest unassigned.
    */
   buildId: z.union([z.uuid(), z.null()]).default(null),
+  /**
+   * The day the batch's blackbox logs were flown, as YYYY-MM-DD. A flight
+   * controller records no date; EdgeTX logs ignore this and keep the radio's.
+   */
+  flownOn: z.union([z.iso.date(), z.null()]).default(null),
 });
 export type CreateLogImportDto = z.output<typeof createLogImportSchema>;
 
@@ -129,6 +165,11 @@ export interface FlightDto {
   /** The radio's wall clock, as recorded. Render in UTC to show it unchanged. */
   readonly startedAt: string;
   readonly endedAt: string;
+  /**
+   * False for a blackbox log: it records only the day it was said to be
+   * flown, so its times order the day's flights and are not shown.
+   */
+  readonly timeRecorded: boolean;
   readonly durationS: number;
   readonly sampleCount: number;
   readonly startVoltage: number | null;
@@ -162,6 +203,8 @@ export interface SessionDto {
   readonly id: string;
   readonly startedAt: string;
   readonly endedAt: string;
+  /** False unless every flight in it recorded its time of day. */
+  readonly timeRecorded: boolean;
   readonly flightCount: number;
   readonly totalDurationS: number;
   readonly flights: readonly FlightDto[];

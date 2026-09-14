@@ -232,7 +232,7 @@ export class FlightsPage {
   }
 
   protected async onImport(request: LogImportRequest): Promise<void> {
-    await this.store.importLogs(request.files, request.buildId);
+    await this.store.importLogs(request.files, request.buildId, request.flownOn);
 
     const added = this.store.importedFlights();
 
@@ -342,6 +342,11 @@ export class FlightsPage {
   protected heading(session: SessionDto): string {
     const start = new Date(session.startedAt);
     const end = new Date(session.endedAt);
+
+    // A blackbox outing has a day but no times; the ones stored only order it.
+    if (!session.timeRecorded) {
+      return `${DAY.format(start)} · time not recorded`;
+    }
 
     return `${DAY.format(start)} · ${CLOCK.format(start)}–${CLOCK.format(end)}`;
   }

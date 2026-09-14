@@ -7,13 +7,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type {
-  CreateLogImportDto,
-  KnownLogsDto,
-  KnownLogsResultDto,
-  LogImportDto,
-  LogUploadTicketDto,
-  RequestLogUploadDto,
+import {
+  type CreateLogImportDto,
+  type KnownLogsDto,
+  type KnownLogsResultDto,
+  type LogImportDto,
+  type LogUploadTicketDto,
+  type RequestLogUploadDto,
+  logFormatOf,
 } from '@spothub/shared';
 
 import type { Env } from '../../config';
@@ -21,7 +22,11 @@ import { JobQueue } from '../../jobs';
 import { StorageGateway } from '../../storage';
 import { FlightLogsRepository } from '../abstract/flight-logs.repository';
 import { FlightsRepository } from '../abstract/flights.repository';
-import { FLIGHT_LOG_IMPORT_JOB, LOG_CONTENT_TYPE } from '../flights.constants';
+import {
+  FLIGHT_LOG_IMPORT_JOB,
+  LOG_CONTENT_TYPES,
+  LOG_EXTENSIONS,
+} from '../flights.constants';
 import { toLogImportDto } from '../flights.mapper';
 
 /**
@@ -59,10 +64,19 @@ export class FlightLogsService {
     ownerId: string,
     input: RequestLogUploadDto,
   ): Promise<LogUploadTicketDto> {
-    // The key is ours, never the radio's file name.
+    const format = logFormatOf(input.fileName);
+
+    if (format === null) {
+      throw new BadRequestException(
+        'Only EdgeTX .csv logs and Betaflight .bbl blackbox logs can be imported',
+      );
+    }
+
+    // The key is ours, never the radio's or the flight controller's file name.
     const file = await this.logs.reserveFile({
       ownerId,
-      storageKey: `${ownerId}/logs/${randomUUID()}.csv`,
+      format,
+      storageKey: `${ownerId}/logs/${randomUUID()}${LOG_EXTENSIONS[format]}`,
       fileName: input.fileName,
       sizeBytes: input.sizeBytes,
       checksum: input.checksum,
@@ -72,16 +86,17 @@ export class FlightLogsService {
       throw new ConflictException('That log has already been imported');
     }
 
+    const contentType = LOG_CONTENT_TYPES[file.format];
     const uploadUrl = await this.storage.presignPut(
       file.storageKey,
-      LOG_CONTENT_TYPE,
+      contentType,
       this.uploadTtl,
     );
 
     return {
       logFileId: file.id,
       uploadUrl,
-      contentType: LOG_CONTENT_TYPE,
+      contentType,
       expiresInSeconds: this.uploadTtl,
     };
   }
@@ -95,7 +110,12 @@ export class FlightLogsService {
       throw new NotFoundException('Build not found');
     }
 
-    const batch = await this.logs.createImport(ownerId, input.buildId, input.logFileIds);
+    const batch = await this.logs.createImport(
+      ownerId,
+      input.buildId,
+      input.flownOn,
+      input.logFileIds,
+    );
 
     if (!batch) {
       throw new BadRequestException('Some of those logs are not waiting to be imported');

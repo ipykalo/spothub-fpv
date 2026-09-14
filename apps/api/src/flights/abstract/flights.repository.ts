@@ -50,6 +50,9 @@ export abstract class FlightsRepository {
   /** True when the unit is the owner's and a unit of a battery part. */
   abstract batteryBelongsToOwner(ownerId: string, unitId: string): Promise<boolean>;
 
-  /** The owner's build with exactly this name, ignoring case — or null. */
+  /**
+   * The owner's build with this name, ignoring case and spaces — or null when
+   * none matches, or more than one does.
+   */
   abstract findBuildIdByName(ownerId: string, name: string): Promise<string | null>;
 }

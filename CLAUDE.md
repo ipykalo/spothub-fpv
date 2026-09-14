@@ -401,7 +401,33 @@ so the job retries, and a retry skips what was already parsed.
 - Real SD-card logs go in `apps/api/src/flights/__fixtures__/edgetx/`; the
   spec parses every one. `npm test` runs the API suite.
 
-GPX and Betaflight BBL are the next formats on the same pipeline.
+**Betaflight blackbox logs** come in on the same pipeline, and carry what a
+quad with telemetry off never sends the radio: pack voltage and current.
+
+- **Decoded by Betaflight's own `blackbox_decode`** (GPL-3.0, run as a separate
+  program, never linked). The API image builds it from source at a pinned
+  commit; where it is not installed, `BLACKBOX_DECODE_DOCKER_IMAGE` runs it
+  through Docker — build that image with `npm run decoder:build`, since Windows
+  has no C compiler. The npm `blackbox-log` parser refuses Betaflight 4.5 logs
+  outright. `blackbox-csv.parser.ts` is pure and tested on decoded CSV from
+  real logs (`__fixtures__/bbl/`).
+- **One `.bbl` is one power-on, with a log per arm.** Logs less than 30 s apart
+  join into one flight, as EdgeTX rows do, so a crash and a re-arm do not split
+  a pack's flying. Charge is counted from current over time: the decoder's
+  `energyCumulative` carried on across logs and read double within one.
+- **A blackbox records no date.** A flight controller's clock is almost never
+  set (`0000-01-01`), so the import asks which day the logs were flown. Files
+  land on that day in `btfl_NNN` order, ten minutes apart, stored with
+  `time_recorded = false`: those times only order the day, and the logbook
+  says "time not recorded" instead of showing them.
+- A flight controller's USB drive also offers `btfl_all.bbl`, the whole flash
+  repeating every log, and a `padding.txt` of zeros. Both are skipped.
+- Builds match a craft name or radio model ignoring case and spaces, so the
+  flight controller's "Cinelog  20" finds the build Cinelog20.
+
+GPX is the next format. When it lands, a track that overlaps a flight already
+imported from EdgeTX is added to that flight by time, not stored as a second
+flight.
 
 The API was restructured into one module per bounded context — `builds` used to
 hold four, and `parts` held its catalogue, units, sources and URL preview in one

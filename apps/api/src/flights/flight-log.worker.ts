@@ -1,16 +1,19 @@
 import { createHash } from 'node:crypto';
 
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { LogFileStatus, LogImportStatus, MAX_LOG_BYTES } from '@spothub/shared';
+import { LogFileStatus, LogFormat, LogImportStatus, MAX_LOG_BYTES } from '@spothub/shared';
 import { z } from 'zod';
 
 import { JobQueue } from '../jobs';
 import { StorageGateway } from '../storage';
+import { BlackboxDecoder } from './abstract/blackbox-decoder';
 import { FlightLogsRepository } from './abstract/flight-logs.repository';
 import { FlightsRepository } from './abstract/flights.repository';
-import { LogParseError, parseEdgeTxCsv } from './edgetx-csv.parser';
+import { blackboxOrigin, craftNameFrom, parseBlackboxLogs } from './blackbox-csv.parser';
+import { parseEdgeTxCsv } from './edgetx-csv.parser';
 import type { LogFileEntity } from './entities/flight-log.entity';
 import { FLIGHT_LOG_IMPORT_JOB, SESSION_GAP_MS } from './flights.constants';
+import { LogParseError, type ParsedLog } from './parsed-log';
 
 const payloadSchema = z.object({ importId: z.uuid(), ownerId: z.uuid() });
 
@@ -35,6 +38,7 @@ export class FlightLogWorker implements OnModuleInit {
     private readonly logs: FlightLogsRepository,
     private readonly flights: FlightsRepository,
     private readonly storage: StorageGateway,
+    private readonly decoder: BlackboxDecoder,
   ) {}
 
   onModuleInit(): void {
@@ -70,7 +74,13 @@ export class FlightLogWorker implements OnModuleInit {
         }
 
         try {
-          flightCount += await this.importFile(ownerId, file, chosenBuild, buildByModel);
+          flightCount += await this.importFile(
+            ownerId,
+            file,
+            chosenBuild,
+            buildByModel,
+            batch.flownOn,
+          );
         } catch (error) {
           if (!(error instanceof RejectedLog || error instanceof LogParseError)) {
             throw error;
@@ -115,6 +125,7 @@ export class FlightLogWorker implements OnModuleInit {
     file: LogFileEntity,
     chosenBuild: string | null,
     buildByModel: Map<string, string | null>,
+    flownOn: string | null,
   ): Promise<number> {
     const stored = await this.storage.get(file.storageKey);
 
@@ -133,7 +144,7 @@ export class FlightLogWorker implements OnModuleInit {
       throw new RejectedLog('What arrived is not the file that was announced');
     }
 
-    const parsed = parseEdgeTxCsv(stored.body.toString('utf8'), file.fileName);
+    const parsed = await this.parse(file, stored.body, flownOn);
     const buildId =
       chosenBuild ?? (await this.buildForModel(ownerId, parsed.modelName, buildByModel));
 
@@ -154,9 +165,34 @@ export class FlightLogWorker implements OnModuleInit {
   }
 
   /**
-   * The build named like the radio model, if there is exactly one such name.
-   * Most pilots name the model on the radio after the quad, so this assigns
-   * most flights with nobody choosing anything.
+   * The radio's CSV is read as text; a blackbox goes through Betaflight's
+   * decoder first, and is placed on the day the batch says it was flown.
+   */
+  private async parse(
+    file: LogFileEntity,
+    body: Buffer,
+    flownOn: string | null,
+  ): Promise<ParsedLog> {
+    if (file.format === LogFormat.EdgetxCsv) {
+      return parseEdgeTxCsv(body.toString('utf8'), file.fileName);
+    }
+
+    if (flownOn === null) {
+      throw new RejectedLog('Pick the day these blackbox logs were flown, then import them again');
+    }
+
+    return parseBlackboxLogs(
+      await this.decoder.decode(body),
+      craftNameFrom(body),
+      blackboxOrigin(flownOn, file.fileName),
+    );
+  }
+
+  /**
+   * The build named like the radio model or the blackbox's craft name, if
+   * exactly one matches — ignoring case and spaces, so "Cinelog  20" finds
+   * Cinelog20. Most pilots name the quad the same on the radio and the flight
+   * controller, so this assigns most flights with nobody choosing anything.
    */
   private async buildForModel(
     ownerId: string,

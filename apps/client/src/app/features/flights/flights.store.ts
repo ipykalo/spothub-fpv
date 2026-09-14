@@ -7,6 +7,7 @@ import {
   MAX_LOGS_PER_IMPORT,
   type SessionDto,
   type UpdateFlightDto,
+  logFormatOf,
 } from '@spothub/shared';
 import { firstValueFrom, lastValueFrom, tap } from 'rxjs';
 
@@ -110,13 +111,18 @@ export class FlightsStore {
   /**
    * Imports whatever was dropped: a whole LOGS folder, or a handful of files.
    *
-   * Anything that is not a `.csv` is ignored, a file already imported is
-   * skipped without being uploaded, and the same file dropped twice counts
-   * once — so dropping the whole folder again after the next session only
-   * sends what is new.
+   * Anything that is not an EdgeTX `.csv` or a blackbox `.bbl` is ignored, a
+   * file already imported is skipped without being uploaded, and the same
+   * file dropped twice counts once — so dropping the whole folder again after
+   * the next session only sends what is new. `flownOn` is the day any
+   * blackbox logs among them were flown.
    */
-  async importLogs(dropped: readonly File[], buildId: string | null): Promise<void> {
-    const logs = dropped.filter((file) => /\.csv$/i.test(file.name) && file.size > 0);
+  async importLogs(
+    dropped: readonly File[],
+    buildId: string | null,
+    flownOn: string | null,
+  ): Promise<void> {
+    const logs = dropped.filter((file) => logFormatOf(file.name) !== null && file.size > 0);
 
     this.importBatches.set([]);
     this.importMessage.set(null);
@@ -131,7 +137,10 @@ export class FlightsStore {
     );
 
     if (logs.length === 0) {
-      this.finish('failed', 'Nothing to import — no .csv logs in what was dropped.');
+      this.finish(
+        'failed',
+        'Nothing to import — no EdgeTX .csv or Betaflight .bbl logs in what was dropped.',
+      );
       return;
     }
 
@@ -159,6 +168,7 @@ export class FlightsStore {
         const batch = await this.runBatch(
           logFileIds.slice(start, start + MAX_LOGS_PER_IMPORT),
           buildId,
+          flownOn,
         );
         this.importBatches.update((batches) => [...batches, batch]);
       }
@@ -293,9 +303,10 @@ export class FlightsStore {
   private async runBatch(
     logFileIds: readonly string[],
     buildId: string | null,
+    flownOn: string | null,
   ): Promise<LogImportDto> {
     let batch = await firstValueFrom(
-      this.api.startImport({ logFileIds: [...logFileIds], buildId }),
+      this.api.startImport({ logFileIds: [...logFileIds], buildId, flownOn }),
     );
     const giveUpAt = Date.now() + POLL_LIMIT_MS;
 

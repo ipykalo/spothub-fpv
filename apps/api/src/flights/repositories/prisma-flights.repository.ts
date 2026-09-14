@@ -181,12 +181,15 @@ export class PrismaFlightsRepository extends FlightsRepository {
   }
 
   async findBuildIdByName(ownerId: string, name: string): Promise<string | null> {
-    const build = await this.prisma.build.findFirst({
-      where: { ownerId, name: { equals: name.trim(), mode: 'insensitive' } },
-      select: { id: true },
+    const wanted = comparable(name);
+    const builds = await this.prisma.build.findMany({
+      where: { ownerId },
+      select: { id: true, name: true },
     });
+    const matches = builds.filter((build) => comparable(build.name) === wanted);
 
-    return build?.id ?? null;
+    // Two builds that read the same would make any choice a guess.
+    return wanted.length > 0 && matches.length === 1 ? matches[0].id : null;
   }
 }
 
@@ -304,6 +307,11 @@ function unitLabel(unit: BatteryUnitRow): string {
   return `#${String(index + 1)}`;
 }
 
+/** A name as a person reads it: without case, and without spaces — "Cinelog  20" is Cinelog20. */
+function comparable(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '');
+}
+
 function identity(logFileId: string, startedAt: Date): string {
   return `${logFileId}|${startedAt.toISOString()}`;
 }
@@ -322,6 +330,7 @@ function toCreateData(
     endedAt: flight.endedAt,
     durationS: flight.durationS,
     sampleCount: flight.sampleCount,
+    timeRecorded: flight.timeRecorded,
     startVoltage: flight.startVoltage,
     minVoltage: flight.minVoltage,
     endVoltage: flight.endVoltage,
@@ -359,6 +368,7 @@ function toFlightEntity(row: FlightRow): FlightEntity {
     endedAt: row.endedAt,
     durationS: row.durationS,
     sampleCount: row.sampleCount,
+    timeRecorded: row.timeRecorded,
     startVoltage: row.startVoltage,
     minVoltage: row.minVoltage,
     endVoltage: row.endVoltage,

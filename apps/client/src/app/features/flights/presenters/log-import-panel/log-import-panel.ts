@@ -7,9 +7,16 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { LogFileStatus, type LogImportDto } from '@spothub/shared';
+import {
+  LogFileStatus,
+  LogFormat,
+  type LogImportDto,
+  logFormatOf,
+} from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import type { ChoiceOption } from '../../../../core/components/choice-option';
@@ -20,6 +27,8 @@ export interface LogImportRequest {
   readonly files: readonly File[];
   /** Null means match each log's model name against the build names. */
   readonly buildId: string | null;
+  /** The day any blackbox logs among the files were flown, as YYYY-MM-DD. */
+  readonly flownOn: string | null;
 }
 
 /**
@@ -36,7 +45,14 @@ export interface LogImportRequest {
 @Component({
   selector: 'sh-log-import-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Autocomplete, MatButtonModule, MatIconModule, MatProgressBarModule],
+  imports: [
+    Autocomplete,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressBarModule,
+  ],
   templateUrl: './log-import-panel.html',
   styleUrl: './log-import-panel.scss',
 })
@@ -53,6 +69,28 @@ export class LogImportPanel {
 
   protected readonly buildId = signal<string | null>(null);
   protected readonly dragging = signal(false);
+
+  /** A drop holding blackbox logs, waiting for the day they were flown. */
+  protected readonly pending = signal<readonly File[] | null>(null);
+  protected readonly flownOn = signal('');
+
+  /** Counts logs only: a dropped folder also holds files that are neither format. */
+  protected readonly pendingPrompt = computed(() => {
+    const formats = (this.pending() ?? []).map((file) => logFormatOf(file.name)).filter((format) => format !== null);
+    const blackbox = formats.filter((format) => format === LogFormat.BetaflightBbl).length;
+    const one = blackbox === 1;
+    const which =
+      blackbox === formats.length
+        ? one
+          ? 'This is a blackbox log'
+          : `These ${String(blackbox)} logs are blackbox logs`
+        : `${String(blackbox)} of these ${String(formats.length)} logs ${one ? 'is a blackbox log' : 'are blackbox logs'}`;
+
+    return `${which}. A flight controller records no date, so say which day ${one ? 'it was' : 'they were'} flown.`;
+  });
+
+  /** No log can have been flown after today — the local today, not UTC's. */
+  protected readonly today = localToday();
 
   protected readonly busy = computed(() => {
     const phase = this.phase();
@@ -128,6 +166,26 @@ export class LogImportPanel {
     this.emit(files);
   }
 
+  protected onDayChosen(event: Event): void {
+    this.flownOn.set((event.target as HTMLInputElement).value);
+  }
+
+  protected importPending(): void {
+    const files = this.pending();
+    const day = this.flownOn();
+
+    if (files === null || day.length === 0 || this.busy()) {
+      return;
+    }
+
+    this.pending.set(null);
+    this.importRequested.emit({ files, buildId: this.buildId(), flownOn: day });
+  }
+
+  protected cancelPending(): void {
+    this.pending.set(null);
+  }
+
   private fromInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.emit(Array.from(input.files ?? []));
@@ -135,11 +193,28 @@ export class LogImportPanel {
     input.value = '';
   }
 
+  /**
+   * A flight controller records no date, so a drop holding any blackbox logs
+   * waits for the day they were flown. The radio's logs alone go straight in.
+   */
   private emit(files: readonly File[]): void {
-    if (files.length > 0 && !this.busy()) {
-      this.importRequested.emit({ files, buildId: this.buildId() });
+    if (files.length === 0 || this.busy()) {
+      return;
     }
+
+    if (files.some((file) => logFormatOf(file.name) === LogFormat.BetaflightBbl)) {
+      this.pending.set(files);
+      return;
+    }
+
+    this.importRequested.emit({ files, buildId: this.buildId(), flownOn: null });
   }
+}
+
+/** Today as YYYY-MM-DD in the browser's own zone, the way a date input reads it. */
+function localToday(): string {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 }
 
 /** Every file under the dropped entries, walking into folders. */

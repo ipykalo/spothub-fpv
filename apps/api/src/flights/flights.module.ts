@@ -2,11 +2,13 @@ import { Module } from '@nestjs/common';
 
 import { JobsModule } from '../jobs';
 import { StorageModule } from '../storage';
+import { BlackboxDecoder } from './abstract/blackbox-decoder';
 import { FlightLogsRepository } from './abstract/flight-logs.repository';
 import { FlightsRepository } from './abstract/flights.repository';
 import { FlightLogsController } from './controllers/flight-logs.controller';
 import { FlightsController } from './controllers/flights.controller';
 import { FlightLogWorker } from './flight-log.worker';
+import { ProcessBlackboxDecoder } from './process-blackbox-decoder';
 import { PrismaFlightLogsRepository } from './repositories/prisma-flight-logs.repository';
 import { PrismaFlightsRepository } from './repositories/prisma-flights.repository';
 import { FlightLogsService } from './services/flight-logs.service';
@@ -30,6 +32,7 @@ import { FlightsService } from './services/flights.service';
     FlightLogWorker,
     { provide: FlightLogsRepository, useClass: PrismaFlightLogsRepository },
     { provide: FlightsRepository, useClass: PrismaFlightsRepository },
+    { provide: BlackboxDecoder, useClass: ProcessBlackboxDecoder },
   ],
 })
 export class FlightsModule {}

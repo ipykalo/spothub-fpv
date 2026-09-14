@@ -55,8 +55,9 @@ export class SessionFlights {
     );
   });
 
-  protected time(iso: string): string {
-    return CLOCK.format(new Date(iso));
+  /** A blackbox flight records no time of day; its place in the list is its order. */
+  protected when(flight: FlightDto): string {
+    return flight.timeRecorded ? CLOCK.format(new Date(flight.startedAt)) : 'time not recorded';
   }
 
   protected duration(seconds: number): string {

@@ -3,13 +3,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  LogParseError,
-  MIN_FLIGHT_MS,
-  modelNameFrom,
-  type ParsedLog,
-  parseEdgeTxCsv,
-} from './edgetx-csv.parser';
+import { modelNameFrom, parseEdgeTxCsv } from './edgetx-csv.parser';
+import { LogParseError, MIN_FLIGHT_MS, type ParsedLog } from './parsed-log';
 
 /** The header an ELRS receiver on a Betaflight quad produces, GPS included. */
 const HEADER =
