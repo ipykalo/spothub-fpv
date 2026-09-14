@@ -21,6 +21,7 @@ import {
   type PartUnitDto,
 } from '@spothub/shared';
 
+import { PackSummary } from '../presenters/pack-summary/pack-summary';
 import { PartDetails } from '../presenters/part-details/part-details';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PartsApi } from '../parts.api';
@@ -48,6 +49,7 @@ import { FlightTrends } from '../../flights/presenters/flight-trends/flight-tren
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
+    PackSummary,
     RouterLink,
     PartDetails,
     Section,
@@ -84,11 +86,8 @@ export class PartDetailPage {
       : [];
   });
 
-  /**
-   * Flights flown on this part's packs, or on the one pack chosen — which is
-   * what shows a single pack wearing out, rather than an average of four.
-   */
-  protected readonly packFlights = computed(() => {
+  /** Every flight flown on one of this part's packs. */
+  protected readonly allPackFlights = computed(() => {
     const part = this.part();
 
     if (!part || !this.isBattery()) {
@@ -96,17 +95,24 @@ export class PartDetailPage {
     }
 
     const units = new Set(part.units.map((unit) => unit.id));
-    const filter = this.packFilter();
-    const chosen = filter !== null && units.has(filter) ? filter : null;
 
     return this.flights
       .sessions()
       .flatMap((session) => session.flights)
-      .filter(
-        (flight) =>
-          flight.batteryUnitId !== null &&
-          (chosen === null ? units.has(flight.batteryUnitId) : flight.batteryUnitId === chosen),
-      );
+      .filter((flight) => flight.batteryUnitId !== null && units.has(flight.batteryUnitId));
+  });
+
+  /**
+   * The chosen pack's flights, or every pack's — the one pack alone is what
+   * shows a single pack wearing out, rather than an average of four. A choice
+   * of a unit since deleted falls back to every pack.
+   */
+  protected readonly packFlights = computed(() => {
+    const filter = this.packFilter();
+    const all = this.allPackFlights();
+    const known = this.part()?.units.some((unit) => unit.id === filter) ?? false;
+
+    return filter === null || !known ? all : all.filter((flight) => flight.batteryUnitId === filter);
   });
 
   /** Manufacturer and model are both optional; fall back to the category. */

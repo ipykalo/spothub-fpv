@@ -1,0 +1,63 @@
+<div class="overflow-x-auto">
+  <table class="w-full border-collapse text-sm tabular-nums">
+    <caption class="sr-only">Each pack's use and wear, counted from the flights logged on it</caption>
+    <thead>
+      <tr class="text-left text-xs text-muted">
+        <th scope="col" class="py-1.5 pr-4 font-medium">Pack</th>
+        <th scope="col" class="py-1.5 pr-4 font-medium">Condition</th>
+        <th scope="col" class="py-1.5 pr-4 text-right font-medium" title="Each flight counts as one charge cycle">
+          Cycles
+        </th>
+        <th scope="col" class="py-1.5 pr-4 text-right font-medium">Airtime</th>
+        <th
+          scope="col"
+          class="py-1.5 pr-4 text-right font-medium"
+          title="Take-off voltage minus the lowest, averaged over the flights that logged both"
+        >
+          Avg sag
+        </th>
+        <th scope="col" class="py-1.5 pr-4 text-right font-medium" title="The lowest the pack fell on any flight">
+          Lowest
+        </th>
+        <th scope="col" class="py-1.5 font-medium">Last flown</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.unit.id) {
+        @let chosen = selected() === row.unit.id;
+        <tr class="border-t border-outline-variant" [class.bg-surface-high]="chosen">
+          <th scope="row" class="py-1.5 pr-4 text-left">
+            <!-- The name doubles as the filter for the charts below. -->
+            <button
+              type="button"
+              class="cursor-pointer border-0 bg-transparent p-0 text-left font-semibold text-primary underline-offset-2 [font:inherit] hover:underline"
+              [class.underline]="!chosen"
+              [attr.aria-pressed]="chosen"
+              [title]="chosen ? 'Show every pack' : 'Show only this pack'"
+              (click)="choose(row.unit.id)"
+            >
+              {{ row.name }}
+            </button>
+          </th>
+          <td class="py-1.5 pr-4">
+            <span class="tone-{{ conditionStyles[row.unit.condition].tone }} inline-flex items-center gap-1 text-(--tone)">
+              <mat-icon class="icon-sm" aria-hidden="true">{{ conditionStyles[row.unit.condition].icon }}</mat-icon>
+              {{ conditionLabels[row.unit.condition] }}
+            </span>
+          </td>
+          <td class="py-1.5 pr-4 text-right">{{ row.cycles }}</td>
+          <td class="py-1.5 pr-4 text-right">{{ row.cycles ? airtime(row.airtimeS) : '—' }}</td>
+          <td class="py-1.5 pr-4 text-right">
+            {{ row.averageSagV === null ? '—' : row.averageSagV.toFixed(2) + ' V' }}
+          </td>
+          <td class="py-1.5 pr-4 text-right">
+            {{ row.lowestVoltage === null ? '—' : row.lowestVoltage.toFixed(1) + ' V' }}
+          </td>
+          <td class="py-1.5" [class.text-muted]="row.lastFlownAt === null">
+            {{ row.lastFlownAt === null ? 'Never' : date(row.lastFlownAt) }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

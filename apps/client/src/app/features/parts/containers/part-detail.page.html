@@ -37,11 +37,27 @@
   />
 
   @if (isBattery()) {
-    <sh-section class="mt-8 block" heading="Flights" storageKey="part.flights" [count]="packFlights().length">
-      @if (!packFlights().length && packFilter() === null) {
+    <sh-section
+      class="mt-8 block"
+      heading="Packs and flights"
+      storageKey="part.flights"
+      [count]="allPackFlights().length"
+    >
+      @if (!allPackFlights().length) {
         <p class="m-0 mb-3 text-sm text-muted">
           Set which pack each flight ran on in the <a routerLink="/flights">logbook</a>, and its wear shows here.
         </p>
+      }
+
+      @if (found.units.length) {
+        <div class="mb-6">
+          <sh-pack-summary
+            [part]="found"
+            [flights]="allPackFlights()"
+            [selected]="packFilter()"
+            (packChosen)="packFilter.set($event)"
+          />
+        </div>
       }
 
       @if (packOptions().length > 1) {
