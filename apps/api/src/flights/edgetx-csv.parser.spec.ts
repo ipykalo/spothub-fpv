@@ -99,6 +99,19 @@ describe('parseEdgeTxCsv', () => {
     expect(flight.distanceM).toBeNull();
   });
 
+  it('drops an out-of-range RQly reading rather than reporting it as the flight\'s weakest link', () => {
+    // A real Air65 log with telemetry off recorded RQly as -1005 through
+    // -1024 while the link was down — not a weak reading, the same
+    // "no reading" sentinel other CRSF fields write as a clean -1.
+    const rows = steadyFlight(0, 15);
+    rows[0] = { ...rows[0], lq: -1006 };
+
+    const { flights } = parseEdgeTxCsv(log(rows), 'Air65-2026-09-12-140000.csv');
+
+    expect(flights).toHaveLength(1);
+    expect(flights[0].minLinkQuality).toBe(98);
+  });
+
   it('counts only armed rows when the flight mode says, so bench time is not flying', () => {
     const bench = Array.from({ length: 20 }, (_, i) => ({ s: i, v: 16.9, fm: 'ACRO*' }));
     const rows = [...bench, ...steadyFlight(20, 30)];
@@ -222,6 +235,72 @@ describe('parseEdgeTxCsv', () => {
 
     expect(flight.startedAt.toISOString()).toBe('2026-09-12T14:00:20.000Z');
     expect(flight.durationS).toBe(30);
+  });
+});
+
+/**
+ * Two real Air65 logs turned up a problem the fixtures above never exercise:
+ * EdgeTX's header reflects only the sensors known when logging began, but a
+ * sensor that comes or goes mid-file changes how many fields every row after
+ * it has, without the header ever being rewritten to match. A fixed
+ * left-to-right index, read once from the header, drifts onto the wrong cell
+ * for the rest of the file once that happens.
+ */
+describe('a log whose row width drifts from the header', () => {
+  it('keeps reading the receiver\'s own link quality once the flight controller\'s telemetry link comes up mid-flight', () => {
+    // No flight-controller telemetry at all when logging starts, so the
+    // header only has the receiver's own columns — exactly the shape of a
+    // real Air65 log recorded with telemetry off at first.
+    const header = 'Date,Time,1RSS(dB),2RSS(dB),RQly(%),RSNR(dB),TQly(%),Thr,CH5(us),TxBat(V)';
+    const beforeLink = (s: number): string =>
+      ['2026-09-12', clock(s), '-60', '-70', '99', '5', '90', '0', '988', '7.9'].join(',');
+    // Once the link comes up, EdgeTX starts writing two more columns —
+    // current and capacity — into every following row, ahead of the
+    // receiver's own columns, without ever rewriting line 1.
+    const afterLink = (s: number, rqly: number): string =>
+      ['2026-09-12', clock(s), '10.5', '650', '-60', '-70', String(rqly), '5', '90', '0', '988', '7.9'].join(
+        ',',
+      );
+
+    const rows = [
+      ...Array.from({ length: 5 }, (_, i) => beforeLink(i)),
+      ...Array.from({ length: 10 }, (_, i) => afterLink(5 + i, 97)),
+    ];
+
+    const { flights } = parseEdgeTxCsv([header, ...rows].join('\n'), 'Air65-2026-09-12-140000.csv');
+
+    expect(flights).toHaveLength(1);
+    // A left-anchored read would land on 1RSS's cell (-60) for every row
+    // after the link came up — invalid, so the true 97 % reading from those
+    // ten rows would go missing rather than merely misread.
+    expect(flights[0].minLinkQuality).toBe(97);
+  });
+
+  it('drops a stale telemetry reading rather than misreading the receiver\'s own link quality in its place', () => {
+    // Current and capacity are part of the header's baseline this time —
+    // the flight controller's telemetry link is up when logging starts.
+    const header =
+      'Date,Time,RxBt(V),Curr(A),1RSS(dB),2RSS(dB),RQly(%),RSNR(dB),TQly(%),Thr,CH5(us),TxBat(V)';
+    const linked = (s: number): string =>
+      ['2026-09-12', clock(s), '16.5', '12', '-60', '-70', '99', '5', '90', '0', '988', '7.9'].join(',');
+    // The link drops for a stretch, so EdgeTX stops writing those two
+    // columns until it recovers — the header still claims they are there.
+    const stale = (s: number, rqly: number): string =>
+      ['2026-09-12', clock(s), '3', '-70', String(rqly), '5', '90', '0', '988', '7.9'].join(',');
+
+    const rows = [
+      ...Array.from({ length: 5 }, (_, i) => linked(i)),
+      ...Array.from({ length: 10 }, (_, i) => stale(5 + i, 96)),
+    ];
+
+    const { flights } = parseEdgeTxCsv([header, ...rows].join('\n'), 'Air65-2026-09-12-140000.csv');
+
+    expect(flights).toHaveLength(1);
+    expect(flights[0].minLinkQuality).toBe(96);
+    // A left-anchored read during the stale stretch would land on 1RSS's
+    // cell (3) — a plausible-looking voltage that is not one, and would have
+    // dragged the flight's minimum down from the pack's real 16.5 V.
+    expect(flights[0].minVoltage).toBe(16.5);
   });
 });
 

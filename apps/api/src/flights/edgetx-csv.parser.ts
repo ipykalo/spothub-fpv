@@ -107,6 +107,8 @@ interface Sample {
 }
 
 interface Columns {
+  /** How many fields the header line itself had — see `endIndex`. */
+  readonly width: number;
   readonly date: number;
   readonly time: number;
   readonly voltage: number;
@@ -189,6 +191,7 @@ function readHeader(header: string): Columns {
   };
 
   const columns: Columns = {
+    width: names.length,
     date: find('date'),
     time: find('time'),
     // CRSF reports the flight pack as RxBt; FrSky Smart Port as VFAS.
@@ -220,6 +223,32 @@ function readHeader(header: string): Columns {
   return columns;
 }
 
+/**
+ * Where a column sits, counted back from the end of the row instead of
+ * forward from the start of the header.
+ *
+ * The header reflects only the sensors known when logging began. A sensor
+ * that comes online mid-file — typically the flight controller's own
+ * telemetry, arriving a few seconds after the receiver's own link stats do —
+ * gets its columns inserted into every following row without the header
+ * ever being rewritten, which drags every fixed left-to-right index after
+ * it onto the wrong cell for the rest of the file. Nothing is ever inserted
+ * or removed after the receiver's link-quality block, the radio's stick
+ * block, or the channel/battery tail that follows them, so counting back
+ * from wherever a given row actually ends keeps landing on the right cell
+ * however many columns appeared earlier in that same row. Returns -1 — read
+ * by `cell` as "no reading" — when the column was never in the header at
+ * all, or when a row is short enough that even the far end has gone missing.
+ */
+function endIndex(columns: Pick<Columns, 'width'>, leftIndex: number, cells: readonly string[]): number {
+  if (leftIndex === -1) {
+    return -1;
+  }
+
+  const index = cells.length - (columns.width - leftIndex);
+  return index >= 0 && index < cells.length ? index : -1;
+}
+
 function readRow(cells: readonly string[], columns: Columns): Sample | null {
   const t = timestamp(cells[columns.date], cells[columns.time]);
 
@@ -227,30 +256,51 @@ function readRow(cells: readonly string[], columns: Columns): Sample | null {
     return null;
   }
 
-  const [lat, lon] = position(cell(cells, columns.gps));
+  // Whether the columns before the receiver's link-quality reading still
+  // line up with the header — the one place a shift can be seen directly,
+  // since it is both left-anchored (declared, if at all, at a fixed spot in
+  // the header) and independently right-anchorable (nothing after it in its
+  // own block ever moves). Everything to its left — voltage, current,
+  // capacity, flight mode, the GPS fix — has no such anchor of its own, so a
+  // mismatch here is what stands in for "this row's layout has drifted" for
+  // all of them; trusting their header positions anyway would silently read
+  // whatever the drift left sitting there instead.
+  const linkQualityIndex = endIndex(columns, columns.linkQuality, cells);
+  const driftedBeforeLinkQuality =
+    columns.linkQuality !== -1 && linkQualityIndex !== columns.linkQuality;
+
+  const [lat, lon] = position(cell(cells, driftedBeforeLinkQuality ? -1 : columns.gps));
 
   return {
     t,
-    voltage: numeric(cell(cells, columns.voltage)),
-    current: numeric(cell(cells, columns.current)),
-    capacity: numeric(cell(cells, columns.capacity)),
-    linkQuality: numeric(cell(cells, columns.linkQuality)),
+    voltage: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.voltage)),
+    current: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.current)),
+    capacity: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.capacity)),
+    linkQuality: percent(numeric(cell(cells, linkQualityIndex))),
     rssi: strongest(
-      numeric(cell(cells, columns.rssi1)),
-      numeric(cell(cells, columns.rssi2)),
+      numeric(cell(cells, endIndex(columns, columns.rssi1, cells))),
+      numeric(cell(cells, endIndex(columns, columns.rssi2, cells))),
     ),
-    snr: numeric(cell(cells, columns.snr)),
-    downlinkQuality: numeric(cell(cells, columns.downlinkQuality)),
-    txPower: numeric(cell(cells, columns.txPower)),
-    throttlePct: stickPercent(numeric(cell(cells, columns.throttle))),
-    radioVoltage: numeric(cell(cells, columns.radioVoltage)),
-    armed: armedFrom(cell(cells, columns.flightMode)),
-    armSwitch: switchOn(numeric(cell(cells, columns.armChannel))),
+    snr: numeric(cell(cells, endIndex(columns, columns.snr, cells))),
+    downlinkQuality: percent(
+      numeric(cell(cells, endIndex(columns, columns.downlinkQuality, cells))),
+    ),
+    txPower: numeric(cell(cells, endIndex(columns, columns.txPower, cells))),
+    // Also anchored from the end, but the radio's stick block can itself
+    // vanish for a burst of rows independently of everything else — a rarer
+    // glitch than a new sensor coming online, and one this cannot tell apart
+    // from the block simply being there, so a throttle reading during such a
+    // burst can land on a neighbouring field. It is a handful of rows out of
+    // a whole flight either way.
+    throttlePct: stickPercent(numeric(cell(cells, endIndex(columns, columns.throttle, cells)))),
+    radioVoltage: numeric(cell(cells, endIndex(columns, columns.radioVoltage, cells))),
+    armed: driftedBeforeLinkQuality ? null : armedFrom(cell(cells, columns.flightMode)),
+    armSwitch: switchOn(numeric(cell(cells, endIndex(columns, columns.armChannel, cells)))),
     lat,
     lon,
-    altitude: numeric(cell(cells, columns.altitude)),
-    speedKmh: numeric(cell(cells, columns.speed)),
-    satellites: numeric(cell(cells, columns.satellites)),
+    altitude: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.altitude)),
+    speedKmh: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.speed)),
+    satellites: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.satellites)),
   };
 }
 
@@ -300,6 +350,19 @@ function numeric(value: string | undefined): number | null {
 function strongest(...readings: readonly (number | null)[]): number | null {
   const real = readings.filter((dbm): dbm is number => dbm !== null && dbm !== 0);
   return real.length > 0 ? Math.max(...real) : null;
+}
+
+/**
+ * RQly and TQly are link-quality percentages, 0–100. With no telemetry link
+ * at all, most CRSF fields write a clean `-1` for "no reading" — but a real
+ * Air65 log with telemetry off logged RQly as -1005 through -1024 instead,
+ * which is not a weak reading, it is the same "no reading" sentinel gone
+ * wrong. Treating anything outside the valid range as absent, rather than as
+ * the worst reading of the flight, is what keeps a session's "minimum link
+ * quality" a real number instead of a nonsense negative thousand percent.
+ */
+function percent(value: number | null): number | null {
+  return value !== null && value >= 0 && value <= 100 ? value : null;
 }
 
 function stickPercent(value: number | null): number | null {
