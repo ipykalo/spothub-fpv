@@ -25,6 +25,29 @@ mat-card {
   background: var(--mat-sys-surface-container);
 }
 
+/* Theme tokens rather than an image file: nothing to store, and it follows dark mode. */
+.cover-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  background: linear-gradient(
+    135deg,
+    var(--mat-sys-surface-container-high),
+    var(--mat-sys-surface-container-lowest)
+  );
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* MatIcon injects its own 24px rule at runtime, so the size cannot be a utility. */
+.placeholder-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 48px;
+  opacity: 0.7;
+}
+
 /* The card whose pin is lit on the map. */
 mat-card.selected {
   outline: 2px solid var(--mat-sys-primary);

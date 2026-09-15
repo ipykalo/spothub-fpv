@@ -6,6 +6,15 @@
   @if (spot().coverUrl; as cover) {
     <!-- Decorative: the name below says what it is. Served from our storage, never YouTube. -->
     <img class="cover" [src]="cover" alt="" loading="lazy" decoding="async" />
+  } @else {
+    <!--
+      The same 16:9 as a real cover, so a row of cards lines up whether or not a
+      spot has a video. A video whose cover is still being made says so.
+    -->
+    <div class="cover cover-placeholder" aria-hidden="true">
+      <mat-icon class="placeholder-icon">{{ spot().video ? 'smart_display' : terrainIcon() }}</mat-icon>
+      <span class="text-sm">{{ spot().video ? 'Flight video' : 'No flight video yet' }}</span>
+    </div>
   }
 
   <div class="flex items-start gap-2">
