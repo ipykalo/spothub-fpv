@@ -11,9 +11,24 @@ import { toRepairDto } from './repairs.mapper';
 export class RepairsService {
   constructor(private readonly repairs: RepairsRepository) {}
 
-  async list(ownerId: string, buildId: string): Promise<RepairDto[]> {
+  /**
+   * The repair history of a build the viewer may see. Someone it is shared
+   * with reads what broke and when, never what putting it right cost. A build
+   * they cannot see lists nothing, as before.
+   */
+  async list(viewerId: string, buildId: string): Promise<RepairDto[]> {
+    const ownerId = await this.repairs.findBuildOwnerVisibleToViewer(viewerId, buildId);
+
+    if (ownerId === null) {
+      return [];
+    }
+
     const repairs = await this.repairs.findManyForOwner(ownerId, buildId);
-    return repairs.map(toRepairDto);
+
+    return repairs.map((repair) => {
+      const dto = toRepairDto(repair);
+      return viewerId === ownerId ? dto : { ...dto, cost: null, currency: null };
+    });
   }
 
   async create(

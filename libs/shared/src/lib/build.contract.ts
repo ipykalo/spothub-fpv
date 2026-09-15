@@ -101,6 +101,10 @@ export const buildSchema = z.object({
   coverUrl: z.string().nullable(),
   builtOn: z.string().nullable(),
   retiredOn: z.string().nullable(),
+  /** Whether the person asking owns this build. Only its owner can change it or see its costs. */
+  ownedByViewer: z.boolean(),
+  /** The owner's display name, for people opening a shared build. Never their email. */
+  ownerName: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

@@ -8,6 +8,12 @@ import type { CreateRepairData, RepairEntity, UpdateRepairData } from '../repair
  * rather than the repair row.
  */
 export abstract class RepairsRepository {
+  /**
+   * The build's owner, when the viewer may see the build — their own, or one
+   * shared as Public or Unlisted. Null otherwise.
+   */
+  abstract findBuildOwnerVisibleToViewer(viewerId: string, buildId: string): Promise<string | null>;
+
   abstract findManyForOwner(ownerId: string, buildId: string): Promise<RepairEntity[]>;
 
   abstract create(ownerId: string, data: CreateRepairData): Promise<RepairEntity | null>;

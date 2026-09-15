@@ -29,9 +29,13 @@
         </span>
 
         <span class="flex min-w-0 flex-col">
-          <a class="truncate text-inherit no-underline hover:underline" [routerLink]="['/parts', install.part.id]">{{
-            name(install)
-          }}</a>
+          @if (readOnly()) {
+            <span class="truncate">{{ name(install) }}</span>
+          } @else {
+            <a class="truncate text-inherit no-underline hover:underline" [routerLink]="['/parts', install.part.id]">{{
+              name(install)
+            }}</a>
+          }
           <span class="flex items-center gap-1 text-xs text-muted">
             <mat-icon class="icon-sm" aria-hidden="true">{{ categoryIcons[install.part.category] }}</mat-icon>
             {{ categoryLabels[install.part.category] }} · {{ unitName(install) }}
@@ -46,7 +50,7 @@
           <span class="text-xs">{{ reasonLabels[install.reason] }}</span>
         </span>
 
-        @if (!history()) {
+        @if (!history() && !readOnly()) {
           <button
             matButton
             type="button"

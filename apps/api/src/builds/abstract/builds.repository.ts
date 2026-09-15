@@ -10,14 +10,24 @@ export interface BuildFilter {
 /**
  * Persistence contract for builds.
  *
- * Every method takes `ownerId` as its first argument. That is deliberate: the
- * ownership check lives in the signature, so it is impossible to write a query
- * that forgets it. Opening the app to more users needs no change here.
+ * Every method takes the person acting as its first argument. Writes take the
+ * owner, so it is impossible to write a query that changes someone else's
+ * build. Reads of someone else's build take the viewer instead, and say in
+ * their name what they let through: a build shared as Public or Unlisted.
  */
 export abstract class BuildsRepository {
   abstract findManyForOwner(ownerId: string, filter: BuildFilter): Promise<BuildEntity[]>;
 
   abstract findOneForOwner(ownerId: string, id: string): Promise<BuildEntity | null>;
+
+  /** A build the viewer owns, or one another owner shared as Public or Unlisted. */
+  abstract findVisibleForViewer(viewerId: string, id: string): Promise<BuildEntity | null>;
+
+  /**
+   * Other owners' Public builds. Unlisted builds are left out on purpose: they
+   * open only for someone given the link.
+   */
+  abstract findSharedForViewer(viewerId: string, filter: BuildFilter): Promise<BuildEntity[]>;
 
   abstract slugExistsForOwner(ownerId: string, slug: string): Promise<boolean>;
 

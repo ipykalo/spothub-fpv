@@ -19,6 +19,19 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
     super();
   }
 
+  async findBuildOwnerVisibleToViewer(viewerId: string, buildId: string): Promise<string | null> {
+    // The same rule as a build's own page: the viewer's build, or a shared one.
+    const build = await this.prisma.build.findFirst({
+      where: {
+        id: buildId,
+        OR: [{ ownerId: viewerId }, { visibility: { in: ['PUBLIC', 'UNLISTED'] } }],
+      },
+      select: { ownerId: true },
+    });
+
+    return build?.ownerId ?? null;
+  }
+
   async findManyForOwner(
     ownerId: string,
     buildId: string,

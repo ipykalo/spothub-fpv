@@ -49,15 +49,28 @@ export class BuildPartsStore {
 
   readonly isEmpty = computed(() => !this.busy() && this.items().length === 0);
 
-  async load(buildId: string): Promise<void> {
+  /**
+   * Loads what is fitted, and — unless told not to — what it cost. A build
+   * page does not yet know whose build it is when it starts loading, so it
+   * asks for the list alone and calls `loadCost` once the build turns out to
+   * be the viewer's own: the cost is only ever the owner's to see.
+   */
+  async load(buildId: string, options: { readonly withCost?: boolean } = {}): Promise<void> {
+    const withCost = options.withCost ?? true;
+
     this.currentBuildId.set(buildId);
     this.busy.set(true);
     this.failure.set(null);
 
+    if (!withCost) {
+      // Never leave the previous build's total on screen under this one.
+      this.rollup.set(EMPTY_COST);
+    }
+
     try {
       const [installs, cost] = await Promise.all([
         firstValueFrom(this.api.list(buildId)),
-        firstValueFrom(this.api.cost(buildId)),
+        withCost ? firstValueFrom(this.api.cost(buildId)) : Promise.resolve(EMPTY_COST),
       ]);
 
       this.items.set(installs);
@@ -72,7 +85,7 @@ export class BuildPartsStore {
   async install(buildId: string, input: InstallPartDto): Promise<void> {
     const created = await firstValueFrom(this.api.install(buildId, input));
     this.items.update((installs) => [created, ...installs]);
-    await this.refreshCost(buildId);
+    await this.loadCost(buildId);
   }
 
   async remove(
@@ -86,7 +99,7 @@ export class BuildPartsStore {
       installs.map((install) => (install.id === closed.id ? closed : install)),
     );
 
-    await this.refreshCost(buildId);
+    await this.loadCost(buildId);
   }
 
   reset(): void {
@@ -96,8 +109,11 @@ export class BuildPartsStore {
     this.failure.set(null);
   }
 
-  /** Fitting or removing changes what the rollup counts, so re-read it. */
-  private async refreshCost(buildId: string): Promise<void> {
+  /**
+   * Reads the cost rollup. Also what fitting or removing a part calls, since
+   * either changes what the rollup counts.
+   */
+  async loadCost(buildId: string): Promise<void> {
     try {
       this.rollup.set(await firstValueFrom(this.api.cost(buildId)));
     } catch {

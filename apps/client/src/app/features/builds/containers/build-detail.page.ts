@@ -144,29 +144,54 @@ export class BuildDetailPage {
     return status ? BUILD_STATUS_STYLES[status] : BUILD_STATUS_STYLES.PLANNING;
   });
 
+  /**
+   * The viewer owns this build. Until the build has loaded this is false, so
+   * a shared build never flashes its owner's controls; the owner's own page
+   * shows them a moment later instead.
+   */
+  protected readonly owned = computed(() => this.build()?.ownedByViewer ?? false);
+
   constructor() {
     // Route inputs land after construction, so this cannot run in the ctor.
     effect(() => {
       const id = this.id();
 
       untracked(() => {
-        void this.hydrate(id);
-        void this.installs.load(id);
+        // What anyone the build is shared with may see. The cost rollup is not
+        // among it, so the parts list is loaded without it.
+        void this.installs.load(id, { withCost: false });
         void this.repairs.load(id);
-        void this.configs.load(id);
         void this.photos.load(id);
 
-        // The install picker needs the inventory; harmless if already loaded.
-        if (this.parts.parts().length === 0) {
-          void this.parts.load();
-        }
-
-        // The trend charts need the logbook; harmless if already loaded.
-        if (this.flights.sessions().length === 0) {
-          void this.flights.load();
-        }
+        void this.hydrate(id).then(() => {
+          this.loadOwnersSections(id);
+        });
       });
     });
+  }
+
+  /**
+   * What the build cost, its firmware captures, the inventory behind the fit
+   * picker, and the logbook behind the trends are the owner's alone — not
+   * even asked for on a build someone only shares.
+   */
+  private loadOwnersSections(id: string): void {
+    if (!this.owned()) {
+      return;
+    }
+
+    void this.installs.loadCost(id);
+    void this.configs.load(id);
+
+    // The install picker needs the inventory; harmless if already loaded.
+    if (this.parts.parts().length === 0) {
+      void this.parts.load();
+    }
+
+    // The trend charts need the logbook; harmless if already loaded.
+    if (this.flights.sessions().length === 0) {
+      void this.flights.load();
+    }
   }
 
   protected async uploadPhotos(files: readonly File[]): Promise<void> {

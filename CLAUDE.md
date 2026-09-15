@@ -631,6 +631,22 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   adds them with `.extend()`.** `apps/api/e2e/partial-updates.e2e.spec.ts`
   holds each entity to it — add a case there for any new update schema.
 
+**Shared builds** follow the spots rule for who can open one — Private is the
+owner alone, Unlisted anyone signed in with the link, Public also listed at
+`GET /builds/shared` — but a build page reads from four modules, so the rule
+is applied in each. `media` sits beneath `builds` (a card's cover), so no
+builds facade can be asked; instead `build-parts`, `repairs` and `media` each
+ask their own repository `findBuildOwnerVisibleToViewer` /
+`findSubjectOwnerVisibleToViewer` — a join on `builds` — and then run their
+existing owner-scoped read against that owner. What a shared reader never
+gets: purchase prices, sources, part and unit notes, other units, the cost
+rollup, repair cost and currency, a photo's original file name, firmware
+captures, flights and packs. The redaction is in the service, next to the
+read (`withoutOwnersDetails`); every write stays owner-scoped and untouched.
+The client hides every owner section and control where `ownedByViewer` is
+false, and does not even request configs, the inventory or the logbook;
+`?scope=shared` on `/hangar` is the shared list.
+
 **Next, in order:** VPS + Caddy first deploy, then database backups with a
 tested restore. V1 is feature-complete; what is left is getting it off the
 laptop.

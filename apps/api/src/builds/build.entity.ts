@@ -4,6 +4,8 @@ import type { BuildClass, BuildStatus, Visibility } from '@spothub/shared';
 export interface BuildEntity {
   readonly id: string;
   readonly ownerId: string;
+  /** The owner's display name, for people opening a build they do not own. */
+  readonly ownerName: string | null;
   readonly name: string;
   readonly slug: string;
   readonly buildClass: BuildClass | null;
