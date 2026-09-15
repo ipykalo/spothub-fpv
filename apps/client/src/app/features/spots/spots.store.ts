@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import type { CreateSpotDto, SpotDto, UpdateSpotDto } from '@spothub/shared';
+import type { CreateDraftSpotDto, CreateSpotDto, SpotDto, UpdateSpotDto } from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
 import { SpotsApi } from './spots.api';
@@ -40,6 +40,14 @@ export class SpotsStore {
 
   async create(input: CreateSpotDto): Promise<SpotDto> {
     const created = await firstValueFrom(this.api.create(input));
+    this.items.update((spots) => [created, ...spots]);
+
+    return created;
+  }
+
+  /** A draft at a GPS fix; it goes to the front like any new spot. */
+  async createDraft(input: CreateDraftSpotDto): Promise<SpotDto> {
+    const created = await firstValueFrom(this.api.createDraft(input));
     this.items.update((spots) => [created, ...spots]);
 
     return created;

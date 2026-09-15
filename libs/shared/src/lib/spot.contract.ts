@@ -157,9 +157,25 @@ export const createSpotSchema = spotFields.extend({
  */
 export const updateSpotSchema = spotFields
   .partial()
+  .extend({
+    /** A draft can be finished; a finished spot is never turned back into a draft. */
+    isDraft: z.literal(false).optional(),
+  })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'Provide at least one field to update',
   });
+
+/** What a location captured from a GPS fix is called until someone names it. */
+export const DRAFT_SPOT_NAME = 'Unnamed location';
+
+/**
+ * A one-tap capture at the field: the fix and nothing else. The server fills
+ * in a placeholder name and saves it as a private draft.
+ */
+export const createDraftSpotSchema = z.object({
+  lat: latitudeSchema,
+  lng: longitudeSchema,
+});
 
 export const spotSchema = z.object({
   id: z.uuid(),
@@ -175,11 +191,14 @@ export const spotSchema = z.object({
   descriptionMd: z.string().nullable(),
   accessNotesMd: z.string().nullable(),
   visibility: z.enum(Visibility),
+  /** Captured from a GPS fix and not filled in yet. */
+  isDraft: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 
 export type SpotFormValue = z.input<typeof spotFields>;
 export type CreateSpotDto = z.output<typeof createSpotSchema>;
+export type CreateDraftSpotDto = z.output<typeof createDraftSpotSchema>;
 export type UpdateSpotDto = z.output<typeof updateSpotSchema>;
 export type SpotDto = z.output<typeof spotSchema>;

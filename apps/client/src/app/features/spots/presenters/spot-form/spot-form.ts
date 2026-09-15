@@ -118,6 +118,9 @@ export class SpotForm {
 
   protected readonly message = computed(() => this.errorMessage() ?? this.validationError());
 
+  /** Saved from a GPS fix with only a placeholder name so far. */
+  protected readonly isDraft = computed(() => this.spot()?.isDraft ?? false);
+
   constructor() {
     const syncPoint = (): void => {
       const { lat, lng } = this.form.getRawValue();
@@ -135,7 +138,8 @@ export class SpotForm {
       }
 
       this.form.patchValue({
-        name: spot.name,
+        // A draft's placeholder is not a name worth editing around: start blank.
+        name: spot.isDraft ? '' : spot.name,
         lat: spot.lat,
         lng: spot.lng,
         locality: spot.locality ?? '',

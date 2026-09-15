@@ -88,6 +88,7 @@ function toEntity(row: Spot): SpotEntity {
     descriptionMd: row.descriptionMd,
     accessNotesMd: row.accessNotesMd,
     visibility: row.visibility,
+    isDraft: row.isDraft,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

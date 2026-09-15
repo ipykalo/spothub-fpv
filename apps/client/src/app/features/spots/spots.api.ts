@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import type { CreateSpotDto, SpotDto, UpdateSpotDto } from '@spothub/shared';
+import type { CreateDraftSpotDto, CreateSpotDto, SpotDto, UpdateSpotDto } from '@spothub/shared';
 import type { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../../core/api/api.tokens';
@@ -21,6 +21,10 @@ export class SpotsApi {
 
   create(body: CreateSpotDto): Observable<SpotDto> {
     return this.http.post<SpotDto>(this.url, body);
+  }
+
+  createDraft(body: CreateDraftSpotDto): Observable<SpotDto> {
+    return this.http.post<SpotDto>(`${this.url}/drafts`, body);
   }
 
   update(id: string, body: UpdateSpotDto): Observable<SpotDto> {

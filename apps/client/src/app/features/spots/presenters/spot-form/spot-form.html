@@ -1,6 +1,9 @@
 <mat-card appearance="outlined" class="mx-auto max-w-208">
   <mat-card-header>
-    <mat-card-title>{{ isEdit() ? 'Edit spot' : 'New spot' }}</mat-card-title>
+    <mat-card-title>{{ isDraft() ? 'Finish this location' : isEdit() ? 'Edit spot' : 'New spot' }}</mat-card-title>
+    @if (isDraft()) {
+      <mat-card-subtitle>Saved from your GPS fix. Give it a name — the rest can wait.</mat-card-subtitle>
+    }
   </mat-card-header>
 
   <mat-card-content>

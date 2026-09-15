@@ -28,7 +28,7 @@ const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-type PinKind = 'spot' | 'selected' | 'picked';
+type PinKind = 'spot' | 'draft' | 'selected' | 'picked';
 
 /**
  * Presenter: a Leaflet map of spots, and the one place Leaflet is touched.
@@ -128,9 +128,10 @@ export class SpotMap {
 
     for (const spot of spots) {
       const selected = spot.id === selectedId;
+      const kind: PinKind = selected ? 'selected' : spot.isDraft ? 'draft' : 'spot';
 
       L.marker([spot.lat, spot.lng], {
-        icon: pin(selected ? 'selected' : 'spot'),
+        icon: pin(kind),
         title: spot.name,
         alt: spot.name,
         keyboard: true,

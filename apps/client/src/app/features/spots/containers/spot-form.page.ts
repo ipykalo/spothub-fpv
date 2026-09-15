@@ -72,7 +72,10 @@ export class SpotFormPage {
 
     try {
       const id = this.id();
-      const spot = id ? await this.store.update(id, input) : await this.store.create(input);
+      // Saving the form is what finishes a draft; for any other spot it is a no-op.
+      const spot = id
+        ? await this.store.update(id, { ...input, isDraft: false })
+        : await this.store.create(input);
 
       this.snackBar.open('Saved', undefined, { duration: 2500 });
       await this.router.navigate(['/spots', spot.id]);

@@ -542,6 +542,15 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   per-component style budget — so a running dev server must be restarted to
   pick it up. `invalidateSize` runs a frame after the ResizeObserver fires;
   calling it inside the callback is a layout loop.
+- **"Add location" is the at-the-field action.** One tap asks the browser's
+  Geolocation API for a fresh fix (`DeviceLocation`, the one place `navigator`
+  is asked), `POST /spots/drafts` saves it as a private draft named "Unnamed
+  location", and the edit form opens on it. Saving that form sends
+  `isDraft: false`, which is also the one time a slug is rewritten — the
+  placeholder's `unnamed-location-3` was never an address worth keeping. The
+  contract accepts only `false` there: a spot never goes back to being a
+  draft. **Anything that lists spots publicly must filter out drafts.**
+  Geolocation needs a secure context — HTTPS, or localhost in development.
 - Tiles come from OpenStreetMap, and nothing else sends a spot's coordinates
   anywhere. Weather was deliberately deferred for that reason.
 - **zod 4 applies `.default()` inside `.partial()`.** An update schema built as

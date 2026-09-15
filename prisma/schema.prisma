@@ -735,6 +735,9 @@ model Spot {
   /// Parking, the way in, who to ask.
   accessNotesMd String?      @map("access_notes_md")
   visibility    Visibility   @default(PRIVATE)
+  /// Captured from a GPS fix with nothing filled in yet. Created private, and
+  /// anything that lists spots publicly must skip drafts.
+  isDraft       Boolean      @default(false) @map("is_draft")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 

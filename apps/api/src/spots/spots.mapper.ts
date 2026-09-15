@@ -21,6 +21,7 @@ export function toSpotDto(spot: SpotEntity): SpotDto {
     descriptionMd: spot.descriptionMd,
     accessNotesMd: spot.accessNotesMd,
     visibility: spot.visibility,
+    isDraft: spot.isDraft,
     createdAt: spot.createdAt.toISOString(),
     updatedAt: spot.updatedAt.toISOString(),
   };

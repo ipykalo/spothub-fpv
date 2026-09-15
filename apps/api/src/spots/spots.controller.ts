@@ -11,9 +11,11 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  type CreateDraftSpotDto,
   type CreateSpotDto,
   type SpotDto,
   type UpdateSpotDto,
+  createDraftSpotSchema,
   createSpotSchema,
   updateSpotSchema,
 } from '@spothub/shared';
@@ -48,6 +50,15 @@ export class SpotsController {
     @Body(new ZodValidationPipe(createSpotSchema)) body: CreateSpotDto,
   ): Promise<SpotDto> {
     return this.spots.create(user.id, body);
+  }
+
+  /** One tap at the field: a private draft at the device's GPS fix, filled in afterwards. */
+  @Post('drafts')
+  createDraft(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(createDraftSpotSchema)) body: CreateDraftSpotDto,
+  ): Promise<SpotDto> {
+    return this.spots.createDraft(user.id, body);
   }
 
   @Patch(':id')

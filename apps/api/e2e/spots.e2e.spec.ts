@@ -132,4 +132,74 @@ describe('spots', () => {
       .set('Authorization', as(owner))
       .expect(404);
   });
+
+  describe('drafts from a GPS fix', () => {
+    let draft: SpotDto;
+
+    it('saves a private draft at the fix, under a placeholder name', async () => {
+      const response = await request(testApp.server)
+        .post('/api/spots/drafts')
+        .set('Authorization', as(owner))
+        .send({ lat: 49.1234567, lng: 11.7654321 })
+        .expect(201);
+
+      draft = response.body as SpotDto;
+
+      expect(draft.isDraft).toBe(true);
+      expect(draft.visibility).toBe('PRIVATE');
+      expect(draft.name).toBe('Unnamed location');
+      expect(draft.lat).toBe(49.123457);
+      expect(draft.lng).toBe(11.765432);
+    });
+
+    it('refuses a fix that is not on Earth, or no fix at all', async () => {
+      await request(testApp.server)
+        .post('/api/spots/drafts')
+        .set('Authorization', as(owner))
+        .send({ lat: 95, lng: 0 })
+        .expect(400);
+
+      await request(testApp.server)
+        .post('/api/spots/drafts')
+        .set('Authorization', as(owner))
+        .send({})
+        .expect(400);
+    });
+
+    it('a second draft does not collide with the first', async () => {
+      const second = await request(testApp.server)
+        .post('/api/spots/drafts')
+        .set('Authorization', as(owner))
+        .send({ lat: 49.2, lng: 11.8 })
+        .expect(201);
+
+      expect((second.body as SpotDto).slug).not.toBe(draft.slug);
+
+      await request(testApp.server)
+        .delete(`/api/spots/${(second.body as SpotDto).id}`)
+        .set('Authorization', as(owner))
+        .expect(204);
+    });
+
+    it('finishing a draft clears the flag and takes its address from the new name', async () => {
+      const response = await request(testApp.server)
+        .patch(`/api/spots/${draft.id}`)
+        .set('Authorization', as(owner))
+        .send({ name: 'Rothenberg ridge', isDraft: false })
+        .expect(200);
+
+      const finished = response.body as SpotDto;
+      expect(finished.isDraft).toBe(false);
+      expect(finished.slug).toBe('rothenberg-ridge');
+      expect(finished.lat).toBe(49.123457);
+    });
+
+    it('never turns a spot back into a draft', async () => {
+      await request(testApp.server)
+        .patch(`/api/spots/${draft.id}`)
+        .set('Authorization', as(owner))
+        .send({ isDraft: true })
+        .expect(400);
+    });
+  });
 });

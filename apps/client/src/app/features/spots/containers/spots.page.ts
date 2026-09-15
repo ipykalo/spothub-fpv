@@ -27,6 +27,7 @@ import {
   type SortOption,
   gridView,
 } from '../../../core/components/grid-toolbar/grid-view';
+import { DeviceLocation, LocationError } from '../device-location';
 import { SpotCard } from '../presenters/spot-card/spot-card';
 import { SpotMap } from '../presenters/spot-map/spot-map';
 import { type LatLng, SPOT_TERRAIN_ICONS, formatCoordinates } from '../spot-style';
@@ -38,6 +39,7 @@ const SPOT_GRID: GridSpec<SpotDto, SpotSortKey> = {
   text: (spot) => [
     spot.name,
     spot.locality,
+    spot.isDraft ? 'Draft' : null,
     spot.terrain ? SPOT_TERRAIN_LABELS[spot.terrain] : null,
     SPOT_ACCESS_LABELS[spot.access],
     ...spot.hazards.map((hazard) => SPOT_HAZARD_LABELS[hazard]),
@@ -60,7 +62,8 @@ const SORTS: readonly SortOption<SpotSortKey>[] = [
  * filter narrow both — a pin hidden from the list is hidden from the map too.
  *
  * Clicking a pin selects its card; clicking empty map offers to add a spot at
- * that point, which opens the form with the coordinates filled in.
+ * that point, which opens the form with the coordinates filled in. "Add
+ * location" does the same from the device's GPS without asking anything first.
  */
 @Component({
   selector: 'sh-spots-page',
@@ -82,6 +85,7 @@ export class SpotsPage {
   protected readonly store = inject(SpotsStore);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly location = inject(DeviceLocation);
 
   protected readonly sorts = SORTS;
   protected readonly grid = new GridState<SpotSortKey, SpotTerrain>({
@@ -98,6 +102,7 @@ export class SpotsPage {
   protected readonly selectedId = signal<string | null>(null);
   protected readonly picked = signal<LatLng | null>(null);
   protected readonly pendingDelete = signal<string | null>(null);
+  protected readonly locating = signal(false);
 
   protected readonly shown = computed(() => {
     const terrain = this.grid.filter();
@@ -137,6 +142,34 @@ export class SpotsPage {
     await this.router.navigate(['/spots/new'], {
       queryParams: { lat: point.lat, lng: point.lng },
     });
+  }
+
+  /**
+   * One tap at the field: a GPS fix becomes a draft spot straight away, and
+   * its edit form opens. The details can be written now or at home.
+   */
+  protected async addCurrentLocation(): Promise<void> {
+    if (this.locating()) {
+      return;
+    }
+
+    this.locating.set(true);
+
+    try {
+      const fix = await this.location.locate();
+      const spot = await this.store.createDraft({ lat: fix.lat, lng: fix.lng });
+
+      this.snackBar.open(`Location saved, accurate to ${fix.accuracyM} m`, undefined, {
+        duration: 4000,
+      });
+      await this.router.navigate(['/spots', spot.id, 'edit']);
+    } catch (error) {
+      const message =
+        error instanceof LocationError ? error.message : 'Could not save that location.';
+      this.snackBar.open(message, 'OK', { duration: 8000 });
+    } finally {
+      this.locating.set(false);
+    }
   }
 
   protected async remove(spot: SpotDto): Promise<void> {

@@ -9,6 +9,12 @@
 
   <span class="flex-auto"></span>
 
+  <!-- The at-the-field action: saves where the phone is now, details later. -->
+  <button matButton="outlined" type="button" [disabled]="locating()" (click)="addCurrentLocation()">
+    <mat-icon>my_location</mat-icon>
+    {{ locating() ? 'Getting a fix…' : 'Add location' }}
+  </button>
+
   <a matButton="filled" routerLink="/spots/new">
     <mat-icon>add_location_alt</mat-icon>
     New spot

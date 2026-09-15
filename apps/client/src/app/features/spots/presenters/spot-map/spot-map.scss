@@ -36,6 +36,11 @@
   filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 55%));
 }
 
+/* A draft is somewhere, but not yet a spot anyone described: drawn quieter. */
+:host ::ng-deep .sh-pin-draft .material-icons {
+  color: var(--mat-sys-outline);
+}
+
 :host ::ng-deep .sh-pin-selected .material-icons {
   font-size: 44px;
   color: var(--mat-sys-error);

@@ -16,6 +16,7 @@ export interface SpotEntity {
   readonly descriptionMd: string | null;
   readonly accessNotesMd: string | null;
   readonly visibility: Visibility;
+  readonly isDraft: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
@@ -35,10 +36,12 @@ export interface CreateSpotData {
   readonly descriptionMd: string | null;
   readonly accessNotesMd: string | null;
   readonly visibility: Visibility;
+  readonly isDraft: boolean;
 }
 
 /**
- * A sparse patch: only the keys present are written. The slug stays as it was
- * created, so a renamed spot keeps its address.
+ * A sparse patch: only the keys present are written. The slug is normally
+ * left as it was created, so a renamed spot keeps its address — the one
+ * exception is finishing a draft, whose placeholder slug is replaced once.
  */
-export type UpdateSpotData = Partial<Omit<CreateSpotData, 'ownerId' | 'slug'>>;
+export type UpdateSpotData = Partial<Omit<CreateSpotData, 'ownerId'>>;
