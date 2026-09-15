@@ -65,24 +65,71 @@ export class PrismaCommentsRepository extends CommentsRepository {
     body: string,
   ): Promise<boolean> {
     const { count } = await this.prisma.comment.updateMany({
-      where: { id: commentId, authorId, ...onSubject(ref) },
+      // A deleted question has no words left to reword.
+      where: { id: commentId, authorId, deletedAt: null, ...onSubject(ref) },
       data: { body, editedAt: new Date() },
     });
 
     return count > 0;
   }
 
-  async deleteForViewer(viewerId: string, ref: SubjectRef, commentId: string): Promise<boolean> {
-    // Replies go through the foreign key's ON DELETE CASCADE.
-    const { count } = await this.prisma.comment.deleteMany({
-      where: {
-        id: commentId,
-        ...onSubject(ref),
-        OR: [{ authorId: viewerId }, subjectOwnedBy(ref, viewerId)],
-      },
-    });
+  deleteForViewer(viewerId: string, ref: SubjectRef, commentId: string): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      // A comment on this subject that the viewer wrote, or on a subject the viewer owns.
+      const comment = await tx.comment.findFirst({
+        where: {
+          id: commentId,
+          ...onSubject(ref),
+          OR: [{ authorId: viewerId }, subjectOwnedBy(ref, viewerId)],
+        },
+        select: {
+          authorId: true,
+          parentId: true,
+          deletedAt: true,
+          spot: { select: { ownerId: true } },
+          build: { select: { ownerId: true } },
+          _count: { select: { replies: true } },
+        },
+      });
 
-    return count > 0;
+      if (!comment) {
+        return false;
+      }
+
+      const ownsSubject = (comment.spot?.ownerId ?? comment.build?.ownerId) === viewerId;
+
+      // Already deleted by its asker: only the owner can remove what is left.
+      if (comment.deletedAt !== null && !ownsSubject) {
+        return false;
+      }
+
+      // An asker taking back a question others replied to: the words go, the replies stay.
+      if (
+        comment.parentId === null &&
+        comment.authorId === viewerId &&
+        comment.deletedAt === null &&
+        comment._count.replies > 0
+      ) {
+        await tx.comment.updateMany({
+          where: { id: commentId, authorId: viewerId },
+          data: { body: '', deletedAt: new Date() },
+        });
+
+        return true;
+      }
+
+      // Replies go through the foreign key's ON DELETE CASCADE.
+      await tx.comment.deleteMany({ where: { id: commentId, ...onSubject(ref) } });
+
+      // A deleted question has nothing left to show once its last reply is gone.
+      if (comment.parentId !== null) {
+        await tx.comment.deleteMany({
+          where: { id: comment.parentId, deletedAt: { not: null }, replies: { none: {} } },
+        });
+      }
+
+      return true;
+    });
   }
 
   setAnswerForAskerOrOwner(
@@ -156,6 +203,7 @@ export class PrismaCommentsRepository extends CommentsRepository {
       LEFT JOIN comment_reads r ON r.spot_id = c.spot_id AND r.user_id = s.owner_id
       WHERE s.owner_id = ${ownerId}::uuid
         AND c.author_id <> s.owner_id
+        AND c.deleted_at IS NULL
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.spot_id
       UNION ALL
@@ -165,6 +213,7 @@ export class PrismaCommentsRepository extends CommentsRepository {
       LEFT JOIN comment_reads r ON r.build_id = c.build_id AND r.user_id = b.owner_id
       WHERE b.owner_id = ${ownerId}::uuid
         AND c.author_id <> b.owner_id
+        AND c.deleted_at IS NULL
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.build_id
     `;
@@ -201,6 +250,7 @@ function toEntity(row: CommentRow): CommentEntity {
     body: row.body,
     isAnswer: row.isAnswer,
     editedAt: row.editedAt,
+    deletedAt: row.deletedAt,
     createdAt: row.createdAt,
   };
 }

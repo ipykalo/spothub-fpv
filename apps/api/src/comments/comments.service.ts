@@ -52,6 +52,10 @@ export class CommentsService {
       if (parent.parentId !== null) {
         throw new BadRequestException('Replies go one level deep — reply to the question instead');
       }
+
+      if (parent.deletedAt !== null) {
+        throw new BadRequestException('That question was deleted and takes no new replies');
+      }
     }
 
     await this.comments.create(ref, {

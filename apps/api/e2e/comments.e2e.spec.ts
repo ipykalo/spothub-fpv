@@ -256,6 +256,103 @@ describe('comments', () => {
       expect(orphans).toBe(0);
     });
 
+    describe('when an asker deletes their own question', () => {
+      const questionIn = (thread: ConversationDto, id: string): QuestionDto | undefined =>
+        thread.questions.find((entry) => entry.id === id);
+
+      const questionOf = (thread: ConversationDto, id: string): QuestionDto => {
+        const found = questionIn(thread, id);
+
+        if (!found) {
+          throw new Error(`Question ${id} is not in the conversation`);
+        }
+
+        return found;
+      };
+
+      const remove = (user: TestUser, commentId: string): request.Test =>
+        request(testApp.server).delete(`${comments(publicSpot.id)}/${commentId}`).set('Authorization', as(user));
+
+      it('one nobody replied to is simply gone', async () => {
+        const asked = (await post(pilot, publicSpot.id, { body: 'Never mind' }).expect(201)).body as ConversationDto;
+        const lonely = asked.questions[0];
+
+        const thread = (await remove(pilot, lonely.id).expect(200)).body as ConversationDto;
+
+        expect(questionIn(thread, lonely.id)).toBeUndefined();
+        expect(await testApp.app.get(PrismaService).comment.count({ where: { id: lonely.id } })).toBe(0);
+      });
+
+      describe('one that others replied to', () => {
+        let asked: QuestionDto;
+        let reply: CommentDto;
+
+        beforeAll(async () => {
+          asked = ((await post(pilot, publicSpot.id, { body: 'Is there shelter from the wind?' }).expect(201))
+            .body as ConversationDto).questions[0];
+          const thread = (
+            await post(bystander, publicSpot.id, { body: 'Behind the tree line', parentId: asked.id }).expect(201)
+          ).body as ConversationDto;
+          reply = questionOf(thread, asked.id).replies[0];
+        });
+
+        it('keeps the replies under a question with no words and no author, no longer unread', async () => {
+          const unreadBefore = (await unreadFor(owner)).spots.bySubject[publicSpot.id] ?? 0;
+
+          const thread = (await remove(pilot, asked.id).expect(200)).body as ConversationDto;
+
+          // The question stops counting for the owner; the reply under it still does.
+          expect((await unreadFor(owner)).spots.bySubject[publicSpot.id] ?? 0).toBe(unreadBefore - 1);
+
+          expect(questionIn(thread, asked.id)).toMatchObject({
+            deleted: true,
+            body: '',
+            authorName: null,
+            byViewer: false,
+            byOwner: false,
+            canDelete: false,
+            editedAt: null,
+          });
+          expect(questionIn(thread, asked.id)?.replies.map((entry) => entry.id)).toEqual([reply.id]);
+
+          const row = await testApp.app.get(PrismaService).comment.findUnique({ where: { id: asked.id } });
+          expect(row?.body).toBe('');
+
+          // Only the owner may clear what is left.
+          expect(questionIn(await conversationFor(owner), asked.id)?.canDelete).toBe(true);
+        });
+
+        it('the asker cannot reword or delete it again, and nobody can reply to it', async () => {
+          await request(testApp.server)
+            .patch(`${comments(publicSpot.id)}/${asked.id}`)
+            .set('Authorization', as(pilot))
+            .send({ body: 'Back again' })
+            .expect(404);
+          await remove(pilot, asked.id).expect(404);
+          await post(bystander, publicSpot.id, { body: 'Also the barn', parentId: asked.id }).expect(400);
+        });
+
+        it('goes for good with its last reply', async () => {
+          const thread = (await remove(bystander, reply.id).expect(200)).body as ConversationDto;
+
+          expect(questionIn(thread, asked.id)).toBeUndefined();
+          expect(await testApp.app.get(PrismaService).comment.count({ where: { id: asked.id } })).toBe(0);
+        });
+      });
+
+      it('the owner clearing a deleted question removes its replies too', async () => {
+        const asked = ((await post(pilot, publicSpot.id, { body: 'Toilets nearby?' }).expect(201)).body as ConversationDto)
+          .questions[0];
+        await post(bystander, publicSpot.id, { body: 'At the petrol station', parentId: asked.id }).expect(201);
+        await remove(pilot, asked.id).expect(200);
+
+        const thread = (await remove(owner, asked.id).expect(200)).body as ConversationDto;
+
+        expect(questionIn(thread, asked.id)).toBeUndefined();
+        expect(await testApp.app.get(PrismaService).comment.count({ where: { parentId: asked.id } })).toBe(0);
+      });
+    });
+
     it('making the spot private again closes its conversation to everyone else', async () => {
       await request(testApp.server)
         .patch(`/api/spots/${publicSpot.id}`)

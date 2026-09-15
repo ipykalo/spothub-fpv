@@ -32,7 +32,10 @@ export abstract class CommentsRepository {
 
   /**
    * Deletes a comment the viewer wrote, or any comment on a subject the viewer
-   * owns. A question's replies go with it.
+   * owns. The owner's delete takes a question's replies with it; an asker's
+   * own question that others replied to is emptied instead, and its replies
+   * stay. A deleted question goes for good with its last reply, or when the
+   * owner deletes it. False when the viewer may not.
    */
   abstract deleteForViewer(viewerId: string, ref: SubjectRef, commentId: string): Promise<boolean>;
 

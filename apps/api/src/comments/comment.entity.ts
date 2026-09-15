@@ -17,6 +17,8 @@ export interface CommentEntity {
   readonly body: string;
   readonly isAnswer: boolean;
   readonly editedAt: Date | null;
+  /** A question its asker deleted after others replied; its body is already empty. */
+  readonly deletedAt: Date | null;
   readonly createdAt: Date;
 }
 

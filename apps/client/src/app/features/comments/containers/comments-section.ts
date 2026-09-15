@@ -88,15 +88,19 @@ export class CommentsSection {
   }
 
   protected async remove(comment: CommentDto): Promise<void> {
-    const replies =
-      this.comments.comments()?.questions.find((question) => question.id === comment.id)?.replies
-        .length ?? 0;
+    const question = this.comments.comments()?.questions.find((entry) => entry.id === comment.id);
+    const replies = question?.replies.length ?? 0;
+    const counted = `${String(replies)} ${replies === 1 ? 'reply' : 'replies'}`;
 
-    // Deleting a question takes its replies with it, so say so before it happens.
-    const prompt =
-      replies > 0
-        ? `Delete this question and its ${String(replies)} ${replies === 1 ? 'reply' : 'replies'}?`
-        : 'Delete this comment?';
+    // Say what goes before it goes: an asker's own question leaves its replies
+    // behind, while the owner removing someone's question takes the thread.
+    let prompt = 'Delete this comment?';
+
+    if (replies > 0) {
+      prompt = question?.byViewer
+        ? `Delete your question? Its ${counted} will stay, under "Question deleted".`
+        : `Delete this question and its ${counted}?`;
+    }
 
     if (!window.confirm(prompt)) {
       return;

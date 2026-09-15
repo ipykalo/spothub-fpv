@@ -581,8 +581,12 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   deep. The question's asker or the spot's owner marks at most one reply per
   question as the answer — never a reply the asker wrote, since a follow-up
   or a thank-you cannot answer their own question (`canMarkAnswer`). Authors reword their own words; a
-  comment's author or the spot's owner deletes it, and a question takes its
-  replies with it (FK cascade). Those rules are not checks before a write —
+  comment's author or the spot's owner deletes it. The owner's delete takes a
+  question's replies with it (FK cascade); an asker deleting their own
+  question that others replied to only clears it — empty body, `deleted_at`
+  set, shown as "Question deleted" with no author — so the replies stay. That
+  placeholder takes no replies or edits, stops counting as unread, and goes
+  for good with its last reply or when the owner deletes it. Those rules are not checks before a write —
   they are the writes' own `where` clauses (`updateBodyForAuthor`,
   `deleteForViewer`'s `OR [author, spot.owner]`, `setAnswerForAskerOrOwner`), so
   a stranger's edit cannot be expressed. A spot someone cannot open answers

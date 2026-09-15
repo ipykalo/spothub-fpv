@@ -51,6 +51,12 @@ export const commentSchema = z.object({
   byViewer: z.boolean(),
   /** The person asking may delete it: their own comment, or anything on their own spot or build. */
   canDelete: z.boolean(),
+  /**
+   * A question its asker deleted after others replied: the words and the
+   * author are gone (empty body, null name) and the replies stay. Always
+   * false on a reply.
+   */
+  deleted: z.boolean(),
   /** A reply marked as its question's answer, by the asker or the owner. Always false on a question. */
   isAnswer: z.boolean(),
   /**
