@@ -72,6 +72,15 @@
         </div>
       </section>
 
+      <section class="grid gap-2 border-t border-outline-variant pt-4 pb-2">
+        <h3 class="m-0 text-base font-semibold">Flight video</h3>
+        <mat-form-field>
+          <mat-label>YouTube link</mat-label>
+          <input matInput type="url" formControlName="video" placeholder="https://youtu.be/…" />
+          <mat-hint>One video per spot, so others see what flying there looks like. A start time in the link is kept.</mat-hint>
+        </mat-form-field>
+      </section>
+
       <section class="grid gap-2 border-t border-outline-variant pt-4">
         <mat-form-field>
           <mat-label>Description (Markdown)</mat-label>

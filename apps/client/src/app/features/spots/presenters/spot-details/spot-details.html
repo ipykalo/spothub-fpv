@@ -78,6 +78,14 @@
     </mat-card>
   </sh-section>
 
+  <sh-section heading="Flight video" storageKey="spot.video">
+    @if (spot().video; as video) {
+      <sh-spot-video [video]="video" />
+    } @else {
+      <p class="m-0 text-muted italic">No video yet. Edit the spot to add a YouTube link.</p>
+    }
+  </sh-section>
+
   <sh-section heading="Hazards" storageKey="spot.hazards" [count]="hazards().length">
     @if (hazards().length) {
       <ul class="m-0 flex list-none flex-wrap gap-2 p-0">

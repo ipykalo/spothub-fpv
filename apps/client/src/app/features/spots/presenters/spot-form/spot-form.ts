@@ -27,6 +27,7 @@ import {
   createSpotSchema,
   type CreateSpotDto,
   type SpotDto,
+  youTubeWatchUrl,
 } from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
@@ -109,6 +110,8 @@ export class SpotForm {
     visibility: [Visibility.Private as Visibility],
     descriptionMd: [''],
     accessNotesMd: [''],
+    /** A pasted YouTube link; the contract turns it into the video it points at. */
+    video: [''],
   });
 
   /** The pin, kept in step with the two coordinate fields. */
@@ -150,6 +153,7 @@ export class SpotForm {
         visibility: spot.visibility,
         descriptionMd: spot.descriptionMd ?? '',
         accessNotesMd: spot.accessNotesMd ?? '',
+        video: spot.video ? youTubeWatchUrl(spot.video) : '',
       });
     });
 
@@ -176,6 +180,7 @@ export class SpotForm {
       locality: raw.locality || null,
       descriptionMd: raw.descriptionMd || null,
       accessNotesMd: raw.accessNotesMd || null,
+      video: raw.video || null,
     });
 
     if (!parsed.success) {

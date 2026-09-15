@@ -738,6 +738,10 @@ model Spot {
   /// Captured from a GPS fix with nothing filled in yet. Created private, and
   /// anything that lists spots publicly must skip drafts.
   isDraft       Boolean      @default(false) @map("is_draft")
+  /// A flight video on YouTube: its 11-character id and an optional start
+  /// time, never the pasted URL. One per spot, by being these two columns.
+  youtubeVideoId String?     @map("youtube_video_id") @db.VarChar(11)
+  youtubeStartS  Int?        @map("youtube_start_s")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 

@@ -202,4 +202,86 @@ describe('spots', () => {
         .expect(400);
     });
   });
+
+  describe('a YouTube video', () => {
+    let withVideo: SpotDto;
+
+    it('keeps the video id and start time from a pasted link, never the link itself', async () => {
+      const response = await request(testApp.server)
+        .post('/api/spots')
+        .set('Authorization', as(owner))
+        .send({ name: 'Video spot', lat: 49.5, lng: 11.3, video: 'https://youtu.be/aBcDeFgHi_1?t=1m30s' })
+        .expect(201);
+
+      withVideo = response.body as SpotDto;
+      expect(withVideo.video).toEqual({ youtubeId: 'aBcDeFgHi_1', startS: 90 });
+    });
+
+    const links: readonly (readonly [string, SpotDto['video']])[] = [
+      ['https://www.youtube.com/watch?v=aBcDeFgHi_2&t=42', { youtubeId: 'aBcDeFgHi_2', startS: 42 }],
+      ['youtube.com/shorts/aBcDeFgHi_3', { youtubeId: 'aBcDeFgHi_3', startS: null }],
+      ['https://m.youtube.com/live/aBcDeFgHi_4?start=5', { youtubeId: 'aBcDeFgHi_4', startS: 5 }],
+    ];
+
+    it.each(links)('reads %s', async (link, expected) => {
+      const response = await request(testApp.server)
+        .patch(`/api/spots/${withVideo.id}`)
+        .set('Authorization', as(owner))
+        .send({ video: link })
+        .expect(200);
+
+      expect((response.body as SpotDto).video).toEqual(expected);
+    });
+
+    it('leaves the video alone when a PATCH does not name it', async () => {
+      const response = await request(testApp.server)
+        .patch(`/api/spots/${withVideo.id}`)
+        .set('Authorization', as(owner))
+        .send({ name: 'Video spot renamed' })
+        .expect(200);
+
+      expect((response.body as SpotDto).video).toEqual({ youtubeId: 'aBcDeFgHi_4', startS: 5 });
+    });
+
+    it('refuses a link that is not to a YouTube video', async () => {
+      for (const video of [
+        'https://vimeo.com/123456789',
+        'https://www.youtube.com/watch?v=tooshort',
+        'https://youtube.com.example.org/watch?v=aBcDeFgHi_1',
+        'https://www.youtube.com/@somechannel',
+      ]) {
+        await request(testApp.server)
+          .patch(`/api/spots/${withVideo.id}`)
+          .set('Authorization', as(owner))
+          .send({ video })
+          .expect(400);
+      }
+    });
+
+    it('removes the video with null', async () => {
+      const response = await request(testApp.server)
+        .patch(`/api/spots/${withVideo.id}`)
+        .set('Authorization', as(owner))
+        .send({ video: null })
+        .expect(200);
+
+      expect((response.body as SpotDto).video).toBeNull();
+    });
+
+    it('takes back a video the shared schema already parsed, as the form sends it', async () => {
+      const response = await request(testApp.server)
+        .patch(`/api/spots/${withVideo.id}`)
+        .set('Authorization', as(owner))
+        .send({ video: { youtubeId: 'aBcDeFgHi_5', startS: 12 } })
+        .expect(200);
+
+      expect((response.body as SpotDto).video).toEqual({ youtubeId: 'aBcDeFgHi_5', startS: 12 });
+
+      await request(testApp.server)
+        .patch(`/api/spots/${withVideo.id}`)
+        .set('Authorization', as(owner))
+        .send({ video: { youtubeId: 'bad"><script', startS: null } })
+        .expect(400);
+    });
+  });
 });

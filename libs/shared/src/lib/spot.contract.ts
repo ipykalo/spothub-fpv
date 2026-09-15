@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { Visibility } from './enums';
+import { youTubeLinkSchema, youTubeVideoSchema } from './youtube';
 
 /**
  * The spot contract: a place to fly, defined once for both sides of the wire.
@@ -138,6 +139,11 @@ const spotFields = z.object({
   /** Parking, the way in, who to ask. */
   accessNotesMd: optionalText(5_000),
   visibility: z.enum(Visibility),
+  /**
+   * One flight video on YouTube, sent as the link someone pasted and stored as
+   * the video it points at. Null removes it.
+   */
+  video: youTubeLinkSchema,
 });
 
 export const createSpotSchema = spotFields.extend({
@@ -149,6 +155,7 @@ export const createSpotSchema = spotFields.extend({
   descriptionMd: spotFields.shape.descriptionMd.default(null),
   accessNotesMd: spotFields.shape.accessNotesMd.default(null),
   visibility: spotFields.shape.visibility.default(Visibility.Private),
+  video: spotFields.shape.video.default(null),
 });
 
 /**
@@ -193,11 +200,13 @@ export const spotSchema = z.object({
   visibility: z.enum(Visibility),
   /** Captured from a GPS fix and not filled in yet. */
   isDraft: z.boolean(),
+  /** The spot's flight video on YouTube, if it has one. */
+  video: youTubeVideoSchema.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 
-export type SpotFormValue = z.input<typeof spotFields>;
+export type SpotFormValue = z.input<typeof createSpotSchema>;
 export type CreateSpotDto = z.output<typeof createSpotSchema>;
 export type CreateDraftSpotDto = z.output<typeof createDraftSpotSchema>;
 export type UpdateSpotDto = z.output<typeof updateSpotSchema>;

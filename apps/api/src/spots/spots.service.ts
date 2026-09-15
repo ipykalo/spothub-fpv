@@ -50,6 +50,7 @@ export class SpotsService {
       accessNotesMd: input.accessNotesMd,
       visibility: input.visibility,
       isDraft: false,
+      video: input.video,
     });
 
     return toSpotDto(spot);
@@ -76,6 +77,7 @@ export class SpotsService {
       accessNotesMd: null,
       visibility: Visibility.Private,
       isDraft: true,
+      video: null,
     });
 
     return toSpotDto(spot);
@@ -139,6 +141,7 @@ function toUpdateData(input: UpdateSpotDto): { -readonly [K in keyof UpdateSpotD
   if (input.accessNotesMd !== undefined) data.accessNotesMd = input.accessNotesMd;
   if (input.visibility !== undefined) data.visibility = input.visibility;
   if (input.isDraft !== undefined) data.isDraft = input.isDraft;
+  if (input.video !== undefined) data.video = input.video;
 
   return data;
 }

@@ -40,6 +40,13 @@
         {{ hazards }} hazard{{ hazards === 1 ? '' : 's' }}
       </span>
     }
+
+    @if (spot().video) {
+      <span class="inline-flex items-center gap-0.5 text-xs text-muted">
+        <mat-icon class="icon-xs" aria-hidden="true">smart_display</mat-icon>
+        Video
+      </span>
+    }
   </div>
 
   <div class="-ml-2 mt-auto flex flex-wrap gap-0.5">

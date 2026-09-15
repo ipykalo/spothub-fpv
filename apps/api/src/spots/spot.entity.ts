@@ -1,4 +1,10 @@
-import type { SpotAccess, SpotHazard, SpotTerrain, Visibility } from '@spothub/shared';
+import type {
+  SpotAccess,
+  SpotHazard,
+  SpotTerrain,
+  Visibility,
+  YouTubeVideo,
+} from '@spothub/shared';
 
 /** A spot as the domain understands it — no ORM types, coordinates as plain numbers. */
 export interface SpotEntity {
@@ -17,6 +23,8 @@ export interface SpotEntity {
   readonly accessNotesMd: string | null;
   readonly visibility: Visibility;
   readonly isDraft: boolean;
+  /** The spot's one flight video on YouTube, if it has one. */
+  readonly video: YouTubeVideo | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
@@ -37,6 +45,7 @@ export interface CreateSpotData {
   readonly accessNotesMd: string | null;
   readonly visibility: Visibility;
   readonly isDraft: boolean;
+  readonly video: YouTubeVideo | null;
 }
 
 /**

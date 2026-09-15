@@ -1,0 +1,32 @@
+<div class="grid max-w-3xl gap-2">
+  <div class="aspect-video w-full overflow-hidden rounded border border-outline-variant bg-surface-container">
+    @if (playing() && embedUrl(); as src) {
+      <iframe
+        class="size-full border-0"
+        [src]="src"
+        title="Flight video"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allowfullscreen
+        referrerpolicy="strict-origin-when-cross-origin"
+      ></iframe>
+    } @else {
+      <button
+        type="button"
+        class="play flex size-full flex-col items-center justify-center gap-1.5 border-0 bg-transparent px-4 text-inherit"
+        [disabled]="!embedUrl()"
+        (click)="playing.set(true)"
+      >
+        <mat-icon class="play-icon" aria-hidden="true">play_circle</mat-icon>
+        <span class="text-base font-semibold">Play flight video</span>
+        <span class="text-sm text-muted">
+          Loads from YouTube{{ startsAt() ? ', starting at ' + startsAt() : '' }}
+        </span>
+      </button>
+    }
+  </div>
+
+  <a matButton class="justify-self-start" [href]="watchUrl()" target="_blank" rel="noopener noreferrer">
+    <mat-icon>open_in_new</mat-icon>
+    Open on YouTube
+  </a>
+</div>

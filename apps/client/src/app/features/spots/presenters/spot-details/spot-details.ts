@@ -26,12 +26,13 @@ import {
   googleMapsUrl,
   openStreetMapUrl,
 } from '../../spot-style';
+import { SpotVideo } from '../spot-video/spot-video';
 
 /** Presenter: the whole spot, read-only. */
 @Component({
   selector: 'sh-spot-details',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ClipboardModule, MatButtonModule, MatCardModule, MatIconModule, Section],
+  imports: [ClipboardModule, MatButtonModule, MatCardModule, MatIconModule, Section, SpotVideo],
   templateUrl: './spot-details.html',
   styleUrl: './spot-details.scss',
 })

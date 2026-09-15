@@ -22,6 +22,7 @@ export function toSpotDto(spot: SpotEntity): SpotDto {
     accessNotesMd: spot.accessNotesMd,
     visibility: spot.visibility,
     isDraft: spot.isDraft,
+    video: spot.video ? { youtubeId: spot.video.youtubeId, startS: spot.video.startS } : null,
     createdAt: spot.createdAt.toISOString(),
     updatedAt: spot.updatedAt.toISOString(),
   };

@@ -36,8 +36,15 @@ export class PrismaSpotsRepository extends SpotsRepository {
   }
 
   async create(data: CreateSpotData): Promise<SpotEntity> {
+    const { hazards, video, ...rest } = data;
+
     const row = await this.prisma.spot.create({
-      data: { ...data, hazards: [...data.hazards] },
+      data: {
+        ...rest,
+        hazards: [...hazards],
+        youtubeVideoId: video?.youtubeId ?? null,
+        youtubeStartS: video?.startS ?? null,
+      },
     });
 
     return toEntity(row);
@@ -67,8 +74,16 @@ export class PrismaSpotsRepository extends SpotsRepository {
 }
 
 function toUpdateInput(data: UpdateSpotData): Prisma.SpotUpdateManyMutationInput {
-  const { hazards, ...rest } = data;
-  return { ...rest, ...(hazards === undefined ? {} : { hazards: [...hazards] }) };
+  const { hazards, video, ...rest } = data;
+
+  return {
+    ...rest,
+    ...(hazards === undefined ? {} : { hazards: [...hazards] }),
+    // The video is two columns, written together or not at all.
+    ...(video === undefined
+      ? {}
+      : { youtubeVideoId: video?.youtubeId ?? null, youtubeStartS: video?.startS ?? null }),
+  };
 }
 
 /** Coordinates are `numeric(9,6)` in the table and plain numbers everywhere above it. */
@@ -89,6 +104,10 @@ function toEntity(row: Spot): SpotEntity {
     accessNotesMd: row.accessNotesMd,
     visibility: row.visibility,
     isDraft: row.isDraft,
+    video:
+      row.youtubeVideoId === null
+        ? null
+        : { youtubeId: row.youtubeVideoId, startS: row.youtubeStartS },
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

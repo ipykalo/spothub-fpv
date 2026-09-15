@@ -554,6 +554,15 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   contract accepts only `false` there: a spot never goes back to being a
   draft. **Anything that lists spots publicly must filter out drafts.**
   Geolocation needs a secure context — HTTPS, or localhost in development.
+- **A spot's flight video is a YouTube link, not an upload** — no storage and
+  no transcoding. `libs/shared/src/lib/youtube.ts` parses any YouTube link
+  (watch, youtu.be, shorts, live, embed, with `t=` or `start=`) into an
+  11-character id and a start time, and those two columns are all that is
+  stored: never the pasted URL, and one video per spot by construction. The
+  spot page loads nothing from Google until play is pressed, then embeds the
+  youtube-nocookie player; `bypassSecurityTrustResourceUrl` is only ever given
+  a URL built from an id re-checked against YouTube's alphabet. Uploaded,
+  transcoded clips are a possible later extension.
 - Tiles come from OpenStreetMap, and nothing else sends a spot's coordinates
   anywhere. Weather was deliberately deferred for that reason.
 - **zod 4 applies `.default()` inside `.partial()`.** An update schema built as
