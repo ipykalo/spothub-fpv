@@ -165,6 +165,7 @@ function toEntity(row: PostRow): PostEntity {
     bodyMd: row.bodyMd,
     visibility: row.visibility,
     publishedAt: row.publishedAt,
+    coverAssetId: row.coverAssetId,
     buildIds: row.builds.map((link) => link.buildId),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

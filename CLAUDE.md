@@ -685,9 +685,25 @@ in or not, and render them on the server.
   private drops out of the post for everyone else. The raw link list goes to
   the author only.
 - **Markdown is rendered by `sh-markdown`** (`marked`): raw HTML in the
-  source is escaped, an image becomes a link (loading it would tell its host
-  who read the page), and the result still goes through Angular's
-  `[innerHTML]` sanitizer.
+  source is escaped, an image at any outside address becomes a link (loading
+  it would tell its host who read the page), and the result still goes
+  through Angular's `[innerHTML]` sanitizer.
+- **A post's images are uploads, not addresses.** They go through the same
+  presigned pipeline as build photos — `media` has a `post` subject beside
+  `build`, with routes under `posts/:postId/images` — and the body refers to
+  one as `![caption](image:<asset id>)`, which `sh-markdown` resolves against
+  the post's `images`. `posts.cover_asset_id` is the cover. Saving a body
+  deletes the images it no longer shows (the cover excepted) and deleting a
+  post deletes them all, through `MediaFacade`, so storage never keeps an
+  image nobody can reach (`apps/api/e2e/post-images.e2e.spec.ts`).
+- **The editor is our own toolbar over a textarea**, not an editor library:
+  images needed our pipeline either way, and posts stay Markdown.
+  `core/components/markdown-editor` holds the text transforms
+  (`markdown-edits.ts`, no DOM) and `sh-markdown-toolbar`, which writes
+  through `execCommand('insertText')` so Ctrl+Z undoes a button. An image is
+  a placeholder line until it uploads; the first image on a never-saved post
+  saves it as a draft and swaps the address to its edit page with
+  `Location.replaceState`, so nothing typed is lost.
 - **Only `builds` and `blog` render on the server** (`app.routes.server.ts`);
   everything behind sign-in stays browser-rendered, since the server holds no
   session and the map touches browser APIs as it loads. `apps/client` builds
@@ -730,7 +746,9 @@ re-encodes rather than copying, which is what drops the metadata; `rotate()`
 runs first so the orientation tag is applied before it is discarded.
 
 The `assets` table is polymorphic on `subject_type`, so parts and repairs get
-photos later with a row rather than a table. Only `build` exists today.
+photos later with a row rather than a table. `build` and `post` exist today;
+a subject added to `AssetSubject` without its ownership and visibility
+lookups in `prisma-assets.repository.ts` fails to compile.
 
 **Storage CORS is per-environment.** MinIO allows the browser preflight for a
 presigned PUT out of the box; R2 and Blob do not and need explicit

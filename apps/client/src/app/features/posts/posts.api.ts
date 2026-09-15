@@ -1,11 +1,14 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type {
+  AssetDto,
   CreatePostDto,
   ListPublishedPostsQuery,
   PostDto,
   PostSummaryDto,
+  RequestUploadDto,
   UpdatePostDto,
+  UploadTicketDto,
 } from '@spothub/shared';
 import type { Observable } from 'rxjs';
 
@@ -46,5 +49,26 @@ export class PostsApi {
   /** Resolves when the server confirms the delete; the 204 carries no body. */
   remove(id: string): Observable<null> {
     return this.http.delete<null>(`${this.url}/${id}`);
+  }
+
+  /**
+   * An image for the post, step one: somewhere to PUT the bytes. Step two is
+   * the same presigned PUT build photos use (`PhotosApi.upload`).
+   */
+  requestImageUpload(
+    postId: string,
+    body: RequestUploadDto,
+  ): Observable<UploadTicketDto> {
+    return this.http.post<UploadTicketDto>(`${this.url}/${postId}/images/uploads`, body);
+  }
+
+  /** Step three: the API reads the image, strips EXIF and attaches it to the post. */
+  commitImage(postId: string, assetId: string): Observable<AssetDto> {
+    return this.http.post<AssetDto>(`${this.url}/${postId}/images/${assetId}/commit`, {});
+  }
+
+  /** One of the post's own images, or null for no cover. */
+  setCover(postId: string, assetId: string | null): Observable<null> {
+    return this.http.patch<null>(`${this.url}/${postId}/images/cover`, { assetId });
   }
 }

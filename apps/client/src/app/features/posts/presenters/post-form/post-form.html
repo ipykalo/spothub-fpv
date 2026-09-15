@@ -1,80 +1,217 @@
-<mat-card appearance="outlined" class="mx-auto max-w-176">
-  <mat-card-header>
-    <mat-card-title>{{ isEdit() ? 'Edit post' : 'New post' }}</mat-card-title>
-  </mat-card-header>
+<form class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem]" [formGroup]="form" (ngSubmit)="submit(currentVisibility())">
+  <div class="min-w-0">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <h1 class="m-0 text-xl">{{ isEdit() ? 'Edit post' : 'Create post' }}</h1>
+      <mat-button-toggle-group
+        hideSingleSelectionIndicator
+        aria-label="Edit or preview the post"
+        [value]="mode()"
+        (change)="setMode($event.value)"
+      >
+        <mat-button-toggle value="edit">Edit</mat-button-toggle>
+        <mat-button-toggle value="preview">Preview</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
 
-  <mat-card-content>
-    <form class="grid gap-2" [formGroup]="form" (ngSubmit)="submit()">
-      <mat-form-field>
-        <mat-label>Title</mat-label>
-        <input matInput formControlName="title" [attr.maxlength]="maxTitle" />
-      </mat-form-field>
+    <div class="overflow-hidden rounded-lg border border-outline-variant">
+      <!-- Hidden rather than removed while previewing: an upload still finishing writes into this text. -->
+      <div [class.hidden]="mode() === 'preview'">
+        <div class="grid gap-4 px-4 pt-6 pb-4 sm:px-8">
+          <div class="flex flex-wrap items-center gap-3">
+            @if (cover(); as image) {
+              <img class="h-24 w-44 rounded object-cover" [src]="image.thumbUrl ?? image.url" alt="Cover image" />
+              <button matButton="outlined" type="button" [disabled]="busy()" (click)="coverPicker.click()">
+                Change
+              </button>
+              <button matButton type="button" [disabled]="busy()" (click)="removeCover()">Remove</button>
+            } @else {
+              <button matButton="outlined" type="button" [disabled]="busy()" (click)="coverPicker.click()">
+                <mat-icon>add_photo_alternate</mat-icon>
+                {{ coverBusy() ? 'Uploading…' : 'Upload cover image' }}
+              </button>
+            }
+            <input #coverPicker type="file" hidden [accept]="accept" (change)="onCoverChosen($event)" />
+          </div>
 
-      <mat-form-field>
-        <mat-label>Summary</mat-label>
-        <input matInput formControlName="summary" [attr.maxlength]="maxSummary" />
-        <mat-hint>A line or two for the blog list and link previews</mat-hint>
-      </mat-form-field>
+          <textarea
+            class="title-field"
+            formControlName="title"
+            placeholder="New post title here…"
+            aria-label="Title"
+            rows="1"
+            cdkTextareaAutosize
+            [attr.maxlength]="maxTitle"
+            (keydown.enter)="$event.preventDefault()"
+          ></textarea>
 
-      <sh-autocomplete formControlName="visibility" label="Visibility" [options]="visibilityOptions" />
-      <p class="mt-0 mb-2 text-xs text-muted">
-        Private is a draft only you see. Unlisted opens for anyone with the link. Public is also listed on the blog.
-      </p>
+          <input
+            class="summary-field"
+            formControlName="summary"
+            placeholder="A line or two for the blog list and link previews"
+            aria-label="Summary"
+            [attr.maxlength]="maxSummary"
+          />
 
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <span class="text-sm font-semibold">Post, in Markdown</span>
-        <mat-button-toggle-group
-          hideSingleSelectionIndicator
-          aria-label="Write or preview the post"
-          [value]="mode()"
-          (change)="setMode($event.value)"
-        >
-          <mat-button-toggle value="write">Write</mat-button-toggle>
-          <mat-button-toggle value="preview">Preview</mat-button-toggle>
-        </mat-button-toggle-group>
+          @if (builds().length) {
+            <mat-chip-listbox multiple aria-label="Builds this post is about">
+              @for (build of builds(); track build.id) {
+                <mat-chip-option
+                  [selected]="isLinked(build.id)"
+                  (selectionChange)="toggleBuild(build.id, $event.selected)"
+                >
+                  {{ build.name }}
+                </mat-chip-option>
+              }
+            </mat-chip-listbox>
+          }
+        </div>
+
+        <div class="border-y border-outline-variant bg-surface-high px-2 py-1 sm:px-6">
+          <sh-markdown-toolbar [target]="body" [disabled]="saving()" (imageRequested)="imagePicker.click()" />
+          <input #imagePicker type="file" hidden multiple [accept]="accept" (change)="onImagesChosen($event)" />
+        </div>
+
+        <textarea
+          #body
+          class="body-field"
+          formControlName="bodyMd"
+          placeholder="Write your post content here…"
+          aria-label="Post, in Markdown"
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="16"
+          [attr.maxlength]="maxBody"
+          (paste)="onPaste($event)"
+          (dragover)="onDragOver($event)"
+          (drop)="onDrop($event)"
+        ></textarea>
+
+        @if (uploading() > 0) {
+          <p class="m-0 px-4 pb-4 text-sm text-muted sm:px-8" role="status">
+            Uploading {{ uploading() }} {{ uploading() === 1 ? 'image' : 'images' }}…
+          </p>
+        }
       </div>
 
-      @if (mode() === 'write') {
-        <mat-form-field>
-          <mat-label>What happened</mat-label>
-          <textarea matInput rows="14" formControlName="bodyMd" [attr.maxlength]="maxBody"></textarea>
-        </mat-form-field>
-      } @else {
-        <div class="mb-5 min-h-40 rounded border border-outline-variant p-4">
-          @if (previewSource()) {
-            <sh-markdown [source]="previewSource()" />
+      @if (mode() === 'preview') {
+        <article class="px-4 py-6 sm:px-8">
+          @if (cover(); as image) {
+            <img class="mb-6 aspect-[2/1] w-full rounded object-cover" [src]="image.url" alt="" />
+          }
+          <h1 class="mt-0 mb-6 text-4xl leading-tight font-bold wrap-anywhere">
+            {{ previewTitle() || 'Untitled post' }}
+          </h1>
+          @if (previewBody()) {
+            <sh-markdown [source]="previewBody()" [images]="images()" />
           } @else {
             <p class="m-0 text-muted italic">Nothing written yet.</p>
           }
-        </div>
+        </article>
       }
+    </div>
 
-      @if (builds().length) {
-        <fieldset class="m-0 border-0 p-0">
-          <legend class="mb-1 p-0 text-sm font-semibold">Builds this post is about</legend>
-          <div class="grid gap-0.5">
-            @for (build of builds(); track build.id) {
-              <mat-checkbox [checked]="isLinked(build.id)" (change)="toggleBuild(build.id, $event.checked)">
-                {{ build.name }}
-              </mat-checkbox>
-            }
-          </div>
-          <p class="mt-1 mb-0 text-xs text-muted">
-            Readers see only the builds you have shared; a private one shows to you alone.
-          </p>
-        </fieldset>
-      }
+    @if (message(); as text) {
+      <p class="mb-0" role="alert">{{ text }}</p>
+    }
 
-      @if (message(); as text) {
-        <p role="alert">{{ text }}</p>
-      }
-
-      <div class="mt-4 flex gap-3">
-        <button matButton="filled" type="submit" [disabled]="saving()">
-          {{ saving() ? 'Saving…' : 'Save' }}
+    <div class="mt-4 flex flex-wrap items-center gap-2">
+      @if (isPublished()) {
+        <button matButton="filled" type="button" [disabled]="busy()" (click)="submit(currentVisibility())">
+          {{ saving() ? 'Saving…' : 'Save changes' }}
         </button>
-        <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
-      </div>
-    </form>
-  </mat-card-content>
-</mat-card>
+      } @else {
+        <button matButton="filled" type="button" [disabled]="busy()" (click)="submit(visibility.Public)">
+          {{ saving() ? 'Saving…' : 'Publish' }}
+        </button>
+        <button matButton="tonal" type="button" [disabled]="busy()" (click)="submit(visibility.Private)">
+          Save draft
+        </button>
+      }
+
+      <button
+        matIconButton
+        type="button"
+        aria-label="More publishing options"
+        [disabled]="busy()"
+        [matMenuTriggerFor]="more"
+      >
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #more="matMenu">
+        @if (currentVisibility() !== visibility.Unlisted) {
+          <button mat-menu-item type="button" (click)="submit(visibility.Unlisted)">
+            <mat-icon>link</mat-icon>
+            <span>{{ isPublished() ? 'Make unlisted' : 'Publish unlisted' }} — only people with the link</span>
+          </button>
+        }
+        @if (currentVisibility() === visibility.Unlisted) {
+          <button mat-menu-item type="button" (click)="submit(visibility.Public)">
+            <mat-icon>public</mat-icon>
+            <span>Make public — listed on the blog</span>
+          </button>
+        }
+        @if (isPublished()) {
+          <button mat-menu-item type="button" (click)="submit(visibility.Private)">
+            <mat-icon>edit_note</mat-icon>
+            <span>Unpublish to a draft</span>
+          </button>
+        }
+      </mat-menu>
+
+      <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
+    </div>
+  </div>
+
+  <aside class="text-sm max-lg:hidden">
+    <h2 class="mt-12 mb-3 text-base">Editor basics</h2>
+    <ul class="m-0 grid gap-2 pl-5">
+      <li>
+        Posts are written in Markdown. The buttons above the text write it for you, and Ctrl+B, Ctrl+I and Ctrl+K work
+        too.
+      </li>
+      <li>
+        Add pictures with the image button, or drop or paste them into the text. They are kept with the post, with their
+        location data removed.
+      </li>
+      <li>The cover shows at the top of the post and on the blog.</li>
+      <li>Pick the builds the post is about; readers see the ones you have shared.</li>
+    </ul>
+
+    <h3 class="mt-6 mb-2 text-sm">Commonly used syntax</h3>
+    <table class="w-full border-collapse text-xs">
+      <tbody>
+        <tr>
+          <td class="py-1 pr-2 font-mono">## Heading</td>
+          <td class="py-1">Heading</td>
+        </tr>
+        <tr>
+          <td class="py-1 pr-2 font-mono">**bold**</td>
+          <td class="py-1"><strong>bold</strong></td>
+        </tr>
+        <tr>
+          <td class="py-1 pr-2 font-mono">_italic_</td>
+          <td class="py-1"><em>italic</em></td>
+        </tr>
+        <tr>
+          <td class="py-1 pr-2 font-mono">- item</td>
+          <td class="py-1">Bulleted list</td>
+        </tr>
+        <tr>
+          <td class="py-1 pr-2 font-mono">1. item</td>
+          <td class="py-1">Numbered list</td>
+        </tr>
+        <tr>
+          <td class="py-1 pr-2 font-mono">&gt; quote</td>
+          <td class="py-1">Quote</td>
+        </tr>
+        <tr>
+          <td class="py-1 pr-2 font-mono">[text](url)</td>
+          <td class="py-1">Link</td>
+        </tr>
+        <tr>
+          <td class="py-1 pr-2 font-mono">`code`</td>
+          <td class="py-1">Code</td>
+        </tr>
+      </tbody>
+    </table>
+  </aside>
+</form>

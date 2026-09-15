@@ -100,15 +100,12 @@ export class PrismaAssetsRepository extends AssetsRepository {
   }
 
   /**
-   * One lookup per subject kind, as a table rather than a `switch`.
-   *
-   * `build` is the only entry today, and a switch over a one-member union
-   * reads to the compiler as a constant. A record keeps the shape the second
-   * subject will need without writing a branch that is always taken.
+   * One lookup per subject kind, as a table rather than a `switch`: a subject
+   * added to `AssetSubject` without an entry here fails to compile.
    *
    * Each is a join inside this module's own repository rather than a call into
    * the owning module — which is what keeps media dependency-free, so `builds`
-   * can depend on it without closing a cycle.
+   * and `posts` can depend on it without closing a cycle.
    */
   private readonly subjectOwnership: Record<
     AssetSubject,
@@ -121,6 +118,13 @@ export class PrismaAssetsRepository extends AssetsRepository {
       });
       return build !== null;
     },
+    [AssetSubject.Post]: async (ownerId, subjectId) => {
+      const post = await this.prisma.post.findFirst({
+        where: { id: subjectId, authorId: ownerId },
+        select: { id: true },
+      });
+      return post !== null;
+    },
   };
 
   subjectBelongsToOwner(
@@ -131,7 +135,7 @@ export class PrismaAssetsRepository extends AssetsRepository {
     return this.subjectOwnership[subject](ownerId, subjectId);
   }
 
-  /** The same one-entry table, for reading a gallery someone shared. */
+  /** The same table, for reading images someone shared. */
   private readonly subjectVisibility: Record<
     AssetSubject,
     (viewerId: string | null, subjectId: string) => Promise<string | null>
@@ -146,6 +150,17 @@ export class PrismaAssetsRepository extends AssetsRepository {
         select: { ownerId: true },
       });
       return build?.ownerId ?? null;
+    },
+    [AssetSubject.Post]: async (viewerId, subjectId) => {
+      const shared = { visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] } };
+      const post = await this.prisma.post.findFirst({
+        where: {
+          id: subjectId,
+          ...(viewerId === null ? shared : { OR: [{ authorId: viewerId }, shared] }),
+        },
+        select: { authorId: true },
+      });
+      return post?.authorId ?? null;
     },
   };
 
@@ -292,6 +307,55 @@ export class PrismaAssetsRepository extends AssetsRepository {
     });
 
     return count > 0;
+  }
+
+  async setPostCoverForOwner(
+    ownerId: string,
+    postId: string,
+    assetId: string | null,
+  ): Promise<boolean> {
+    if (assetId !== null) {
+      // The cover must be one of this post's own images, or a guessed id would
+      // put someone else's picture at the top of the post.
+      const link = await this.prisma.assetLink.findFirst({
+        where: {
+          assetId,
+          subjectType: AssetSubject.Post,
+          subjectId: postId,
+          asset: { ownerId, status: AssetStatus.READY },
+        },
+        select: { id: true },
+      });
+
+      if (!link) {
+        return false;
+      }
+    }
+
+    const { count } = await this.prisma.post.updateMany({
+      where: { id: postId, authorId: ownerId },
+      data: { coverAssetId: assetId },
+    });
+
+    return count > 0;
+  }
+
+  async findThumbKeysForOwner(
+    ownerId: string,
+    assetIds: readonly string[],
+  ): Promise<ReadonlyMap<string, string>> {
+    if (assetIds.length === 0) {
+      return new Map();
+    }
+
+    const assets = await this.prisma.asset.findMany({
+      where: { id: { in: [...assetIds] }, ownerId, status: AssetStatus.READY },
+      include: WITH_THUMB,
+    });
+
+    return new Map(
+      assets.map((asset) => [asset.id, asset.thumb?.storageKey ?? asset.storageKey]),
+    );
   }
 
   async findKeysForOwner(

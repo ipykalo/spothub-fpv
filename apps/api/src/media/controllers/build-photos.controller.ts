@@ -27,8 +27,9 @@ import {
   CurrentViewer,
   Public,
   ZodValidationPipe,
-} from '../common';
-import { AssetsService } from './assets.service';
+} from '../../common';
+import { AssetSubject } from '../asset.entity';
+import { AssetsService } from '../assets.service';
 
 /**
  * Photos, addressed through the build they belong to — the same shape as
@@ -52,7 +53,7 @@ export class BuildPhotosController {
     @CurrentViewer() viewer: AuthenticatedUser | null,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<AssetDto[]> {
-    return this.assets.list(viewer?.id ?? null, buildId);
+    return this.assets.list(viewer?.id ?? null, AssetSubject.Build, buildId);
   }
 
   @Post('uploads')
@@ -62,7 +63,7 @@ export class BuildPhotosController {
     @Param('buildId', ParseUUIDPipe) buildId: string,
     @Body(new ZodValidationPipe(requestUploadSchema)) body: RequestUploadDto,
   ): Promise<UploadTicketDto> {
-    return this.assets.requestUpload(user.id, buildId, body);
+    return this.assets.requestUpload(user.id, AssetSubject.Build, buildId, body);
   }
 
   @Post(':assetId/commit')
@@ -72,7 +73,7 @@ export class BuildPhotosController {
     @Param('buildId', ParseUUIDPipe) buildId: string,
     @Param('assetId', ParseUUIDPipe) assetId: string,
   ): Promise<AssetDto> {
-    return this.assets.commit(user.id, buildId, assetId);
+    return this.assets.commit(user.id, AssetSubject.Build, buildId, assetId);
   }
 
   /** The whole order, so the result cannot be ambiguous. */
@@ -92,7 +93,7 @@ export class BuildPhotosController {
     @Param('buildId', ParseUUIDPipe) buildId: string,
     @Body(new ZodValidationPipe(setCoverSchema)) body: SetCoverDto,
   ): Promise<void> {
-    return this.assets.setCover(user.id, buildId, body.assetId);
+    return this.assets.setBuildCover(user.id, buildId, body.assetId);
   }
 
   @Delete(':assetId')
@@ -102,6 +103,6 @@ export class BuildPhotosController {
     @Param('buildId', ParseUUIDPipe) buildId: string,
     @Param('assetId', ParseUUIDPipe) assetId: string,
   ): Promise<void> {
-    return this.assets.remove(user.id, buildId, assetId);
+    return this.assets.remove(user.id, AssetSubject.Build, buildId, assetId);
   }
 }

@@ -13,6 +13,8 @@ export interface PostEntity {
   readonly visibility: Visibility;
   /** When it first left Private; null for a draft that never has. */
   readonly publishedAt: Date | null;
+  /** The cover, one of the post's own images. Set through the images route, never a patch. */
+  readonly coverAssetId: string | null;
   /** The builds it is about, in the author's order. Not yet checked against any viewer. */
   readonly buildIds: readonly string[];
   readonly createdAt: Date;

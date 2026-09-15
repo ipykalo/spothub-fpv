@@ -11,12 +11,33 @@ import { Visibility } from './enums';
  * its author sees, Unlisted opens for anyone with the link — signed in or
  * not — and Public is also listed on the blog. A post is published the first
  * time it leaves Private.
+ *
+ * Images live in our own storage, uploaded to the post, and the body refers to
+ * one as `![caption](image:<asset id>)`. Readers' pages swap that for a URL;
+ * an image at any other address is shown as a link, never loaded.
  */
 
 export const MAX_POST_TITLE_LENGTH = 120;
 export const MAX_POST_SUMMARY_LENGTH = 300;
 export const MAX_POST_BODY_LENGTH = 50_000;
 export const MAX_POST_BUILDS = 10;
+
+/** The URL scheme a post's body uses for one of its own uploaded images. */
+export const POST_IMAGE_SCHEME = 'image:';
+
+const IMAGE_REFERENCE = /!\[[^\]]*\]\(image:([0-9a-f-]{36})\)/g;
+
+/** The Markdown that shows one of the post's images, with a caption that cannot break it. */
+export function postImageMarkdown(caption: string, assetId: string): string {
+  return `![${caption.replace(/[[\]]/g, '')}](${POST_IMAGE_SCHEME}${assetId})`;
+}
+
+/** The ids of the post's own images a body shows, in order. */
+export function referencedImageIds(bodyMd: string): string[] {
+  return [...bodyMd.matchAll(IMAGE_REFERENCE)].flatMap((match) =>
+    match[1] ? [match[1]] : [],
+  );
+}
 
 /**
  * The writable fields, without defaults — create adds them, because zod 4
@@ -73,6 +94,15 @@ export const updatePostSchema = postFields
     message: 'Provide at least one field to update',
   });
 
+/** One image uploaded to a post, with short-lived URLs to render now. */
+export const postImageSchema = z.object({
+  id: z.uuid(),
+  url: z.string(),
+  thumbUrl: z.string().nullable(),
+  width: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+});
+
 /** What the blog list shows: everything but the body and the linked builds. */
 export const postSummarySchema = z.object({
   id: z.uuid(),
@@ -86,12 +116,20 @@ export const postSummarySchema = z.object({
   authorName: z.string().nullable(),
   /** Whether the person asking wrote it. Only its author can change it. */
   ownedByViewer: z.boolean(),
+  /** The cover's thumbnail, for a list. Short-lived; render it now. */
+  coverUrl: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 
 export const postSchema = postSummarySchema.extend({
   bodyMd: z.string(),
+  /** The cover the author chose, one of the post's own images. */
+  coverAssetId: z.uuid().nullable(),
+  /** The cover at full size, for the top of the post. */
+  coverImageUrl: z.string().nullable(),
+  /** The post's own images, which `image:` references in the body resolve to. */
+  images: z.array(postImageSchema),
   /**
    * The linked builds the person asking may open, in the author's order. A
    * build its owner has since made private is left out for everyone else.
@@ -109,6 +147,7 @@ export const listPublishedPostsQuerySchema = z.object({
 export type PostFormValue = z.input<typeof createPostSchema>;
 export type CreatePostDto = z.output<typeof createPostSchema>;
 export type UpdatePostDto = z.output<typeof updatePostSchema>;
+export type PostImageDto = z.output<typeof postImageSchema>;
 export type PostSummaryDto = z.output<typeof postSummarySchema>;
 export type PostDto = z.output<typeof postSchema>;
 export type ListPublishedPostsQuery = z.output<typeof listPublishedPostsQuerySchema>;

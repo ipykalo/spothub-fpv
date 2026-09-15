@@ -396,6 +396,8 @@ model Asset {
   original Asset?      @relation("AssetThumb")
   links    AssetLink[]
   coverFor Build[]     @relation("BuildCover")
+  /// Posts this image is the cover of.
+  postCoverFor Post[]  @relation("PostCover")
 
   @@index([ownerId, status])
   @@map("assets")
@@ -839,10 +841,14 @@ model Post {
   /// Set the first time the post leaves Private, and kept after that: the day
   /// it was published, not the last day it was made public again.
   publishedAt DateTime?  @map("published_at")
+  /// The cover image, one of the post's own uploaded images. SetNull, so
+  /// deleting the image does not delete the post.
+  coverAssetId String?   @map("cover_asset_id") @db.Uuid
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
   author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  cover  Asset?      @relation("PostCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
   builds PostBuild[]
 
   @@unique([authorId, slug])

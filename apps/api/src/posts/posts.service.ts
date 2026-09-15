@@ -6,12 +6,14 @@ import {
   type PostSummaryDto,
   type UpdatePostDto,
   Visibility,
+  referencedImageIds,
 } from '@spothub/shared';
 
 import { BuildsFacade } from '../builds';
 import { uniqueSlug } from '../common';
+import { MediaFacade } from '../media';
 import { PostsRepository } from './abstract/posts.repository';
-import type { UpdatePostData } from './post.entity';
+import type { PostEntity, UpdatePostData } from './post.entity';
 import { toPostDto, toPostSummaryDto } from './posts.mapper';
 
 /**
@@ -21,18 +23,22 @@ import { toPostDto, toPostSummaryDto } from './posts.mapper';
  * linking asks `BuildsFacade` whether each build is the author's own, and
  * reading asks which linked builds this viewer may open — so a build made
  * private after it was written about drops out of the post for everyone else.
+ *
+ * Its images belong to the media module. Reading asks `MediaFacade` for them;
+ * saving a body drops the images it no longer shows, and deleting the post
+ * deletes them all, so storage never keeps pictures nobody can reach.
  */
 @Injectable()
 export class PostsService {
   constructor(
     private readonly posts: PostsRepository,
     private readonly builds: BuildsFacade,
+    private readonly media: MediaFacade,
   ) {}
 
   /** The author's own posts, drafts included. */
   async listMine(authorId: string): Promise<PostSummaryDto[]> {
-    const posts = await this.posts.findManyForAuthor(authorId);
-    return posts.map((post) => toPostSummaryDto(post, authorId));
+    return this.summaries(await this.posts.findManyForAuthor(authorId), authorId);
   }
 
   /** The blog: Public posts, newest first. `viewerId` is null for a signed-out visitor. */
@@ -40,8 +46,7 @@ export class PostsService {
     viewerId: string | null,
     query: ListPublishedPostsQuery,
   ): Promise<PostSummaryDto[]> {
-    const posts = await this.posts.findPublished(query);
-    return posts.map((post) => toPostSummaryDto(post, viewerId));
+    return this.summaries(await this.posts.findPublished(query), viewerId);
   }
 
   /** The author's own post, or one shared as Public or Unlisted. Anything else is not found. */
@@ -52,8 +57,12 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    const builds = await this.builds.visibleToViewer(viewerId, post.buildIds);
-    return toPostDto(post, builds, viewerId);
+    const [builds, images] = await Promise.all([
+      this.builds.visibleToViewer(viewerId, post.buildIds),
+      this.media.postImages(post.authorId, post.id),
+    ]);
+
+    return toPostDto(post, builds, images, viewerId);
   }
 
   async create(authorId: string, input: CreatePostDto): Promise<PostDto> {
@@ -106,13 +115,63 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
+    // Images the new body no longer shows go, unless one is the cover.
+    if (input.bodyMd !== undefined) {
+      const keep = referencedImageIds(updated.bodyMd);
+
+      if (updated.coverAssetId !== null) {
+        keep.push(updated.coverAssetId);
+      }
+
+      await this.media.deletePostImages(authorId, id, keep);
+    }
+
     return this.getOne(authorId, id);
   }
 
   async remove(authorId: string, id: string): Promise<void> {
+    if (!(await this.posts.findOneForAuthor(authorId, id))) {
+      throw new NotFoundException('Post not found');
+    }
+
+    // Images first: once the post is gone nothing would be left to find them by.
+    await this.media.deletePostImages(authorId, id, []);
+
     if (!(await this.posts.deleteForAuthor(authorId, id))) {
       throw new NotFoundException('Post not found');
     }
+  }
+
+  /** Summaries with their cover thumbnails, signed in one batch per author. */
+  private async summaries(
+    posts: readonly PostEntity[],
+    viewerId: string | null,
+  ): Promise<PostSummaryDto[]> {
+    const coversByAuthor = new Map<string, string[]>();
+
+    for (const post of posts) {
+      if (post.coverAssetId !== null) {
+        const ids = coversByAuthor.get(post.authorId) ?? [];
+        ids.push(post.coverAssetId);
+        coversByAuthor.set(post.authorId, ids);
+      }
+    }
+
+    const urls = new Map<string, string>();
+
+    for (const [authorId, ids] of coversByAuthor) {
+      for (const [assetId, url] of await this.media.thumbUrlsFor(authorId, ids)) {
+        urls.set(assetId, url);
+      }
+    }
+
+    return posts.map((post) =>
+      toPostSummaryDto(
+        post,
+        viewerId,
+        post.coverAssetId === null ? null : (urls.get(post.coverAssetId) ?? null),
+      ),
+    );
   }
 
   /** A post may only point at its author's own builds — never at someone else's, shared or not. */

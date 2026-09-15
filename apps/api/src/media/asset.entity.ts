@@ -38,12 +38,12 @@ export interface CommitAssetData {
 }
 
 /**
- * What an asset is attached to.
- *
- * Only `build` exists today. The column is polymorphic so parts, repairs and
- * posts need a row rather than a table.
+ * What an asset is attached to: a build's gallery, or the images of a post.
+ * The column is polymorphic, so parts and repairs would need a row here
+ * rather than a table.
  */
 export const AssetSubject = {
   Build: 'build',
+  Post: 'post',
 } as const;
 export type AssetSubject = (typeof AssetSubject)[keyof typeof AssetSubject];

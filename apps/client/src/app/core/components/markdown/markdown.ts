@@ -5,6 +5,7 @@ import {
   computed,
   input,
 } from '@angular/core';
+import { POST_IMAGE_SCHEME, type PostImageDto } from '@spothub/shared';
 import { Marked, type Tokens } from 'marked';
 
 const ESCAPES: Readonly<Record<string, string>> = {
@@ -19,27 +20,49 @@ const escapeHtml = (text: string): string =>
   text.replace(/[&<>"']/g, (char) => ESCAPES[char] ?? char);
 
 /**
- * GitHub-flavoured Markdown, with the two things a writer could smuggle in
- * taken out before Angular's own sanitizer ever sees the result.
+ * Markdown to HTML, with what a writer could smuggle in taken out before
+ * Angular's own sanitizer ever sees the result. Still bound through
+ * `[innerHTML]`, so Angular sanitizes it once more.
+ *
+ * `images` are the post's own uploads: `![caption](image:<id>)` shows one of
+ * them. Any other image address is offered as a link instead — loading it
+ * would tell that host who read the page.
  */
-const markdown = new Marked({
-  gfm: true,
-  breaks: true,
-  renderer: {
-    // Raw HTML in what someone wrote is shown as the text it is, never rendered.
-    html(token: Tokens.HTML | Tokens.Tag): string {
-      return escapeHtml(token.text);
-    },
-    // An image loads from wherever the writer pointed it, telling that host
-    // who read the page — so it is offered as a link instead.
-    image(token: Tokens.Image): string {
-      return `<a href="${escapeHtml(token.href)}">${escapeHtml(token.text || token.href)}</a>`;
-    },
-  },
-});
+export function renderMarkdown(
+  source: string,
+  images: readonly PostImageDto[] = [],
+): string {
+  const byId = new Map(images.map((image) => [image.id, image]));
 
-/** Markdown to HTML. Still bound through `[innerHTML]`, so Angular sanitizes it once more. */
-export function renderMarkdown(source: string): string {
+  const markdown = new Marked({
+    gfm: true,
+    breaks: true,
+    renderer: {
+      // Raw HTML in what someone wrote is shown as the text it is, never rendered.
+      html(token: Tokens.HTML | Tokens.Tag): string {
+        return escapeHtml(token.text);
+      },
+      image(token: Tokens.Image): string {
+        if (token.href.startsWith(POST_IMAGE_SCHEME)) {
+          const image = byId.get(token.href.slice(POST_IMAGE_SCHEME.length));
+
+          if (!image) {
+            return `<span class="sh-markdown-missing">${escapeHtml(token.text || 'Image')}</span>`;
+          }
+
+          const size =
+            image.width && image.height
+              ? ` width="${String(image.width)}" height="${String(image.height)}"`
+              : '';
+
+          return `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(token.text)}"${size}>`;
+        }
+
+        return `<a href="${escapeHtml(token.href)}">${escapeHtml(token.text || token.href)}</a>`;
+      },
+    },
+  });
+
   return markdown.parse(source, { async: false });
 }
 
@@ -60,9 +83,11 @@ export function renderMarkdown(source: string): string {
 })
 export class Markdown {
   readonly source = input<string | null>(null);
+  /** The post's own images, which `image:` references resolve to. */
+  readonly images = input<readonly PostImageDto[]>([]);
 
   protected readonly html = computed(() => {
     const source = this.source();
-    return source ? renderMarkdown(source) : '';
+    return source ? renderMarkdown(source, this.images()) : '';
   });
 }

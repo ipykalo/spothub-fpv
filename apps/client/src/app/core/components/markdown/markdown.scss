@@ -50,6 +50,20 @@
     color: var(--mat-sys-primary);
   }
 
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1.5em auto;
+    border-radius: 6px;
+  }
+
+  // A reference to an image the post no longer has.
+  .sh-markdown-missing {
+    color: var(--mat-sys-on-surface-variant);
+    font-style: italic;
+  }
+
   code {
     padding: 0.1em 0.35em;
     border-radius: 4px;

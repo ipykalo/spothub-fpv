@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { BuildsModule } from '../builds';
+import { MediaModule } from '../media';
 import { PostsRepository } from './abstract/posts.repository';
 import { PostsController } from './posts.controller';
 import { PostsService } from './posts.service';
@@ -11,11 +12,11 @@ import { PrismaPostsRepository } from './prisma-posts.repository';
  *
  * Its own bounded context rather than more of `builds`: a post has an author,
  * a lifecycle and an audience of its own, and may be about several builds or
- * none. It reaches builds only through `BuildsFacade` — `posts → builds`,
- * never the other way.
+ * none. It reaches builds only through `BuildsFacade` and its images only
+ * through `MediaFacade` — `posts → builds`, `posts → media`, never the other way.
  */
 @Module({
-  imports: [BuildsModule],
+  imports: [BuildsModule, MediaModule],
   controllers: [PostsController],
   providers: [
     PostsService,
