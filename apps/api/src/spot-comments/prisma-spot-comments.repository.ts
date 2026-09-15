@@ -75,19 +75,31 @@ export class PrismaSpotCommentsRepository extends SpotCommentsRepository {
     return count > 0;
   }
 
-  setAnswerForSpotOwner(
-    ownerId: string,
+  setAnswerForAskerOrSpotOwner(
+    viewerId: string,
     spotId: string,
     replyId: string,
     isAnswer: boolean,
   ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
+      // A reply on this spot, to a question the viewer asked or on a spot the viewer owns.
       const reply = await tx.spotComment.findFirst({
-        where: { id: replyId, spotId, parentId: { not: null }, spot: { ownerId } },
-        select: { parentId: true },
+        where: {
+          id: replyId,
+          spotId,
+          parentId: { not: null },
+          OR: [{ spot: { ownerId: viewerId } }, { parent: { authorId: viewerId } }],
+        },
+        select: { parentId: true, authorId: true, parent: { select: { authorId: true } } },
       });
 
       if (!reply?.parentId) {
+        return false;
+      }
+
+      // The asker's own follow-up or thank-you never answers the question it follows.
+      // Two columns compared, so it is checked here rather than in the `where`.
+      if (reply.authorId === reply.parent?.authorId) {
         return false;
       }
 

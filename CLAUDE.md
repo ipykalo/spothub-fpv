@@ -571,12 +571,14 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   `/spots` is the shared list.
 - **Comments are their own module, `spot-comments`, reaching spots only
   through `SpotsFacade.ownerIfVisible`.** Anyone who can open a spot can ask
-  a question; replies go one level deep, and the spot's owner marks at most
-  one reply per question as the answer. Authors reword their own words; a
+  a question, and anyone who can open it can reply; replies go one level
+  deep. The question's asker or the spot's owner marks at most one reply per
+  question as the answer — never a reply the asker wrote, since a follow-up
+  or a thank-you cannot answer their own question (`canMarkAnswer`). Authors reword their own words; a
   comment's author or the spot's owner deletes it, and a question takes its
   replies with it (FK cascade). Those rules are not checks before a write —
   they are the writes' own `where` clauses (`updateBodyForAuthor`,
-  `deleteForViewer`'s `OR [author, spot.owner]`, `setAnswerForSpotOwner`), so
+  `deleteForViewer`'s `OR [author, spot.owner]`, `setAnswerForAskerOrSpotOwner`), so
   a stranger's edit cannot be expressed. A spot someone cannot open answers
   404 for its comments too, never 403. Every change returns the whole
   conversation, with per-viewer flags (`byViewer`, `canDelete`,

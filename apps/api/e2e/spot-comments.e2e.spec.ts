@@ -13,26 +13,27 @@ import { type TestApp, createTestApp } from './support/app';
 import { type TestUser, createTestUser, deleteTestUser } from './support/users';
 
 /**
- * Questions and replies on spots, driven through the real routes as two
- * people: the spot's owner and another pilot. The tests run in order and
- * build one conversation, because the rules are about who did what to whose
- * words.
+ * Questions and replies on spots, driven through the real routes as three
+ * people: the spot's owner, the pilot who asks, and a bystander who can also
+ * open the spot. The tests run in order and build one conversation, because
+ * the rules are about who did what to whose words.
  */
 describe('spot comments', () => {
   let testApp: TestApp;
   let owner: TestUser;
   let pilot: TestUser;
+  let bystander: TestUser;
   let publicSpot: SpotDto;
   let privateSpot: SpotDto;
 
   let question: SpotQuestionDto;
-  let firstReply: SpotCommentDto;
-  let secondReply: SpotCommentDto;
+  let ownerReply: SpotCommentDto;
 
   beforeAll(async () => {
     testApp = await createTestApp();
     owner = await createTestUser(testApp.app, 'comments-owner');
     pilot = await createTestUser(testApp.app, 'comments-pilot');
+    bystander = await createTestUser(testApp.app, 'comments-bystander');
 
     publicSpot = await createSpot({ name: 'Talked-about field', lat: 49.4, lng: 11.4, visibility: 'PUBLIC' });
     privateSpot = await createSpot({ name: 'Secret field', lat: 49.5, lng: 11.5 });
@@ -41,6 +42,7 @@ describe('spot comments', () => {
   afterAll(async () => {
     await deleteTestUser(testApp.app, owner.id);
     await deleteTestUser(testApp.app, pilot.id);
+    await deleteTestUser(testApp.app, bystander.id);
     await testApp.close();
   });
 
@@ -60,6 +62,21 @@ describe('spot comments', () => {
 
   const post = (user: TestUser, spotId: string, body: object): request.Test =>
     request(testApp.server).post(comments(spotId)).set('Authorization', as(user)).send(body);
+
+  const markAnswer = (user: TestUser, commentId: string, isAnswer = true): request.Test =>
+    request(testApp.server)
+      .put(`${comments(publicSpot.id)}/${commentId}/answer`)
+      .set('Authorization', as(user))
+      .send({ isAnswer });
+
+  async function conversationFor(user: TestUser): Promise<SpotCommentsDto> {
+    const response = await request(testApp.server)
+      .get(comments(publicSpot.id))
+      .set('Authorization', as(user))
+      .expect(200);
+
+    return response.body as SpotCommentsDto;
+  }
 
   async function unreadFor(user: TestUser): Promise<UnreadSpotCommentsDto> {
     const response = await request(testApp.server)
@@ -88,7 +105,13 @@ describe('spot comments', () => {
 
     question = thread.questions[0];
     expect(question.body).toBe('Is parking free?');
-    expect(question).toMatchObject({ byViewer: true, byOwner: false, canDelete: true, answered: false });
+    expect(question).toMatchObject({
+      byViewer: true,
+      byOwner: false,
+      canDelete: true,
+      canMarkAnswer: false,
+      answered: false,
+    });
   });
 
   it('the owner replies, and may moderate the pilot’s question', async () => {
@@ -101,12 +124,12 @@ describe('spot comments', () => {
     const asked = thread.questions[0];
     expect(asked).toMatchObject({ byViewer: false, canDelete: true });
 
-    firstReply = asked.replies[0];
-    expect(firstReply).toMatchObject({ byOwner: true, byViewer: true, isAnswer: false });
+    ownerReply = asked.replies[0];
+    expect(ownerReply).toMatchObject({ byOwner: true, byViewer: true, isAnswer: false });
   });
 
   it('replies go one level deep', async () => {
-    await post(pilot, publicSpot.id, { body: 'Thanks!', parentId: firstReply.id }).expect(400);
+    await post(pilot, publicSpot.id, { body: 'Thanks!', parentId: ownerReply.id }).expect(400);
   });
 
   it('refuses an empty or overlong comment', async () => {
@@ -116,7 +139,7 @@ describe('spot comments', () => {
 
   it('only the author can reword a comment', async () => {
     await request(testApp.server)
-      .patch(`${comments(publicSpot.id)}/${firstReply.id}`)
+      .patch(`${comments(publicSpot.id)}/${ownerReply.id}`)
       .set('Authorization', as(pilot))
       .send({ body: 'No, it costs 5 EUR' })
       .expect(404);
@@ -133,34 +156,57 @@ describe('spot comments', () => {
     expect(thread.questions[0].editedAt).not.toBeNull();
   });
 
-  it('the owner marks one reply as the answer, and nobody else can', async () => {
-    const added = (
-      await post(pilot, publicSpot.id, { body: 'Any shelter from the wind?', parentId: question.id }).expect(201)
-    ).body as SpotCommentsDto;
-    secondReply = added.questions[0].replies[1];
+  describe('marking the answer', () => {
+    let askerReply: SpotCommentDto;
+    let bystanderReply: SpotCommentDto;
 
-    const answer = (user: TestUser, commentId: string): request.Test =>
-      request(testApp.server)
-        .put(`${comments(publicSpot.id)}/${commentId}/answer`)
-        .set('Authorization', as(user))
-        .send({ isAnswer: true });
+    beforeAll(async () => {
+      await post(pilot, publicSpot.id, { body: 'Ok, thank you', parentId: question.id }).expect(201);
+      const thread = (
+        await post(bystander, publicSpot.id, { body: 'The gate shuts at 20:00', parentId: question.id }).expect(201)
+      ).body as SpotCommentsDto;
 
-    await answer(pilot, firstReply.id).expect(404);
-    // A question is not an answer to anything.
-    await answer(owner, question.id).expect(404);
+      [, askerReply, bystanderReply] = thread.questions[0].replies;
+    });
 
-    let thread = (await answer(owner, firstReply.id).expect(200)).body as SpotCommentsDto;
-    expect(thread.questions[0].answered).toBe(true);
+    it('anyone who can open the spot can answer a question', () => {
+      expect(bystanderReply).toMatchObject({ byViewer: true, byOwner: false });
+    });
 
-    thread = (await answer(owner, secondReply.id).expect(200)).body as SpotCommentsDto;
-    expect(thread.questions[0].replies.map((reply) => reply.isAnswer)).toEqual([false, true]);
+    it('offers the mark to the asker and the owner, never on the asker’s own reply', async () => {
+      const marks = async (user: TestUser): Promise<boolean[]> =>
+        (await conversationFor(user)).questions[0].replies.map((reply) => reply.canMarkAnswer);
+
+      // Replies in order: the owner's, the asker's thank-you, the bystander's.
+      expect(await marks(pilot)).toEqual([true, false, true]);
+      expect(await marks(owner)).toEqual([true, false, true]);
+      expect(await marks(bystander)).toEqual([false, false, false]);
+    });
+
+    it('refuses a mark from a bystander, on a question, or on the asker’s own reply', async () => {
+      await markAnswer(bystander, ownerReply.id).expect(404);
+      await markAnswer(owner, question.id).expect(404);
+      await markAnswer(owner, askerReply.id).expect(404);
+      await markAnswer(pilot, askerReply.id).expect(404);
+    });
+
+    it('the asker marks the answer, the owner can move it, and the asker can take it back', async () => {
+      let thread = (await markAnswer(pilot, ownerReply.id).expect(200)).body as SpotCommentsDto;
+      expect(thread.questions[0].answered).toBe(true);
+
+      thread = (await markAnswer(owner, bystanderReply.id).expect(200)).body as SpotCommentsDto;
+      expect(thread.questions[0].replies.map((reply) => reply.isAnswer)).toEqual([false, false, true]);
+
+      thread = (await markAnswer(pilot, bystanderReply.id, false).expect(200)).body as SpotCommentsDto;
+      expect(thread.questions[0].answered).toBe(false);
+    });
   });
 
   it("counts other people's comments as unread for the owner, until the owner reads them", async () => {
-    // The pilot's question and second reply; the owner's own reply never counts.
+    // The pilot's question and thank-you, and the bystander's reply; the owner's own reply never counts.
     let unread = await unreadFor(owner);
-    expect(unread.bySpot[publicSpot.id]).toBe(2);
-    expect(unread.total).toBe(2);
+    expect(unread.bySpot[publicSpot.id]).toBe(3);
+    expect(unread.total).toBe(3);
 
     await request(testApp.server)
       .post(`${comments(publicSpot.id)}/read`)
@@ -182,7 +228,7 @@ describe('spot comments', () => {
 
   it("a pilot cannot delete the owner's reply; the owner deletes the pilot's question, replies and all", async () => {
     await request(testApp.server)
-      .delete(`${comments(publicSpot.id)}/${firstReply.id}`)
+      .delete(`${comments(publicSpot.id)}/${ownerReply.id}`)
       .set('Authorization', as(pilot))
       .expect(404);
 

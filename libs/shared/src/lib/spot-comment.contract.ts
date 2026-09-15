@@ -27,7 +27,7 @@ export const updateSpotCommentSchema = z.object({
   body: commentBody,
 });
 
-/** The spot's owner marks one reply as its question's answer, or takes the mark back. */
+/** The asker or the spot's owner marks one reply as its question's answer, or takes the mark back. */
 export const markAnswerSchema = z.object({
   isAnswer: z.boolean(),
 });
@@ -43,8 +43,15 @@ export const spotCommentSchema = z.object({
   byViewer: z.boolean(),
   /** The person asking may delete it: their own comment, or anything on their own spot. */
   canDelete: z.boolean(),
-  /** A reply the spot's owner marked as its question's answer. Always false on a question. */
+  /** A reply marked as its question's answer, by the asker or the spot's owner. Always false on a question. */
   isAnswer: z.boolean(),
+  /**
+   * The person asking may mark or unmark this reply as the answer: they asked
+   * the question or own the spot, and the reply is not the asker's own — a
+   * follow-up or a thank-you never answers the question it follows. Always
+   * false on a question.
+   */
+  canMarkAnswer: z.boolean(),
   createdAt: z.string(),
   editedAt: z.string().nullable(),
 });

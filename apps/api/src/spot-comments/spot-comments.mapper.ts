@@ -11,18 +11,27 @@ export interface CommentViewContext {
 /**
  * The single place comments become a wire object, grouped into questions and
  * their replies. The flags say what the viewer may do, so the client never
- * re-derives a permission the server would refuse anyway.
+ * re-derives a permission the server would refuse anyway — they mirror the
+ * repository's scoped writes exactly.
  */
 export function toSpotCommentsDto(
   comments: readonly SpotCommentEntity[],
   context: CommentViewContext,
 ): SpotCommentsDto {
+  const askerOf = new Map<string, string>();
+
+  for (const comment of comments) {
+    if (comment.parentId === null) {
+      askerOf.set(comment.id, comment.authorId);
+    }
+  }
+
   const repliesByQuestion = new Map<string, SpotCommentDto[]>();
 
   for (const comment of comments) {
     if (comment.parentId !== null) {
       const replies = repliesByQuestion.get(comment.parentId) ?? [];
-      replies.push(toCommentDto(comment, context));
+      replies.push(toCommentDto(comment, context, askerOf.get(comment.parentId) ?? null));
       repliesByQuestion.set(comment.parentId, replies);
     }
   }
@@ -33,7 +42,7 @@ export function toSpotCommentsDto(
       const replies = repliesByQuestion.get(question.id) ?? [];
 
       return {
-        ...toCommentDto(question, context),
+        ...toCommentDto(question, context, null),
         replies,
         answered: replies.some((reply) => reply.isAnswer),
       };
@@ -44,8 +53,14 @@ export function toSpotCommentsDto(
   return { questions, viewerOwnsSpot: context.viewerId === context.ownerId };
 }
 
-function toCommentDto(comment: SpotCommentEntity, context: CommentViewContext): SpotCommentDto {
+/** `askerId` is the author of the question a reply answers; null for a question itself. */
+function toCommentDto(
+  comment: SpotCommentEntity,
+  context: CommentViewContext,
+  askerId: string | null,
+): SpotCommentDto {
   const byViewer = comment.authorId === context.viewerId;
+  const viewerOwnsSpot = context.viewerId === context.ownerId;
 
   return {
     id: comment.id,
@@ -53,8 +68,12 @@ function toCommentDto(comment: SpotCommentEntity, context: CommentViewContext): 
     authorName: comment.authorName,
     byOwner: comment.authorId === context.ownerId,
     byViewer,
-    canDelete: byViewer || context.viewerId === context.ownerId,
+    canDelete: byViewer || viewerOwnsSpot,
     isAnswer: comment.isAnswer,
+    canMarkAnswer:
+      askerId !== null &&
+      comment.authorId !== askerId &&
+      (viewerOwnsSpot || context.viewerId === askerId),
     createdAt: comment.createdAt.toISOString(),
     editedAt: comment.editedAt?.toISOString() ?? null,
   };

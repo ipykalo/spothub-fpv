@@ -95,7 +95,7 @@
         </button>
       }
 
-      @if (isReply && conversation.viewerOwnsSpot) {
+      @if (comment.canMarkAnswer) {
         <button
           matButton
           type="button"

@@ -96,7 +96,7 @@ export class SpotCommentsService {
     input: MarkAnswerDto,
   ): Promise<SpotCommentsDto> {
     const ownerId = await this.ownerOfVisibleSpot(viewerId, spotId);
-    const set = await this.comments.setAnswerForSpotOwner(
+    const set = await this.comments.setAnswerForAskerOrSpotOwner(
       viewerId,
       spotId,
       commentId,

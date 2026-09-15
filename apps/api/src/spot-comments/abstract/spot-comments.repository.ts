@@ -5,9 +5,9 @@ import type { CreateSpotCommentData, SpotCommentEntity } from '../spot-comment.e
  *
  * Reads take the spot; the service has already asked `SpotsFacade` whether
  * the viewer may open it. Every write that could touch someone else's words
- * names, in its signature, who is allowed — the author, or the spot's owner —
- * and scopes its query by that, so a stranger's edit or delete cannot be
- * written.
+ * names, in its signature, who is allowed — the author, the question's asker,
+ * or the spot's owner — and scopes its query by that, so a stranger's edit,
+ * delete or answer mark cannot be written.
  */
 export abstract class SpotCommentsRepository {
   /** Every comment on the spot, oldest first. */
@@ -33,11 +33,12 @@ export abstract class SpotCommentsRepository {
 
   /**
    * Marks a reply as its question's answer — clearing any other answer on
-   * that question — or takes the mark back. Only for the spot's owner, and
-   * only on a reply: false otherwise.
+   * that question — or takes the mark back. Allowed for whoever asked the
+   * question and for the spot's owner, and only on a reply the asker did not
+   * write: false otherwise.
    */
-  abstract setAnswerForSpotOwner(
-    ownerId: string,
+  abstract setAnswerForAskerOrSpotOwner(
+    viewerId: string,
     spotId: string,
     replyId: string,
     isAnswer: boolean,
