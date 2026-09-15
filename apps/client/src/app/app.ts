@@ -8,7 +8,7 @@ import { filter } from 'rxjs';
 
 import { AuthStore } from './core/auth/auth.store';
 import { ThemeStore } from './core/theme/theme.store';
-import { SpotCommentsStore } from './features/spot-comments/spot-comments.store';
+import { CommentsStore } from './features/comments/comments.store';
 
 @Component({
   selector: 'sh-root',
@@ -20,12 +20,13 @@ import { SpotCommentsStore } from './features/spot-comments/spot-comments.store'
 export class App {
   protected readonly auth = inject(AuthStore);
   protected readonly theme = inject(ThemeStore);
-  protected readonly comments = inject(SpotCommentsStore);
+  protected readonly comments = inject(CommentsStore);
   private readonly router = inject(Router);
 
   constructor() {
-    // The Spots badge is asked for on every page change: one small query, and
-    // a page change is exactly when someone would look for it to have moved.
+    // The Hangar and Spots badges are asked for on every page change: one small
+    // query, and a page change is exactly when someone would look for them to
+    // have moved.
     this.router.events
       .pipe(
         filter((event) => event instanceof NavigationEnd),

@@ -2,11 +2,13 @@
 
 @if (!conversation.questions.length) {
   <p class="m-0 text-muted italic">
-    {{
-      conversation.viewerOwnsSpot
-        ? 'No questions yet. Pilots who can open this spot can ask here.'
-        : 'No questions yet. Ask about access, parking or the best time to fly.'
-    }}
+    @if (conversation.viewerOwnsSubject) {
+      No questions yet. Pilots who can open this {{ subjectLabel() }} can ask here.
+    } @else if (subjectLabel() === 'spot') {
+      No questions yet. Ask about access, parking or the best time to fly.
+    } @else {
+      No questions yet. Ask about the parts, the tune or how it flies.
+    }
   </p>
 } @else {
   <ol class="m-0 grid list-none gap-4 p-0">

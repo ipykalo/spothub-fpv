@@ -1,7 +1,7 @@
 /**
  * The spots module's public API — the only thing another module may inject.
  *
- * Narrow on purpose. `spot-comments` needs to know whether someone may open a
+ * Narrow on purpose. `comments` needs to know whether someone may open a
  * spot and whose it is, so it can decide who may ask, delete or mark an
  * answer; it never reads or changes the spot itself.
  */

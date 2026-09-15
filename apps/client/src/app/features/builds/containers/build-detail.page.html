@@ -248,4 +248,13 @@
       <sh-flight-trends [flights]="buildFlights()" />
     </sh-section>
   }
+
+  <!-- Open to anyone the build is shared with: they ask, its owner answers. -->
+  @if (build(); as quad) {
+    <sh-comments-section
+      [subject]="commentSubject"
+      [subjectId]="quad.id"
+      [ownedByViewer]="quad.ownedByViewer"
+    />
+  }
 </div>

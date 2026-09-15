@@ -12,7 +12,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MAX_COMMENT_LENGTH, updateSpotCommentSchema } from '@spothub/shared';
+import { MAX_COMMENT_LENGTH, updateCommentSchema } from '@spothub/shared';
 
 /**
  * Presenter: a box to write a question, a reply or an edit in. Checks the
@@ -56,7 +56,7 @@ export class CommentForm {
   }
 
   protected submit(): void {
-    const parsed = updateSpotCommentSchema.safeParse(this.form.getRawValue());
+    const parsed = updateCommentSchema.safeParse(this.form.getRawValue());
 
     if (!parsed.success) {
       this.error.set(parsed.error.issues[0]?.message ?? 'Check what you wrote');

@@ -17,6 +17,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
+  CommentSubject,
   SPOT_ACCESS_LABELS,
   SPOT_HAZARD_LABELS,
   SPOT_TERRAIN_LABELS,
@@ -33,7 +34,7 @@ import {
   type SortOption,
   gridView,
 } from '../../../core/components/grid-toolbar/grid-view';
-import { SpotCommentsStore } from '../../spot-comments/spot-comments.store';
+import { CommentsStore } from '../../comments/comments.store';
 import { DeviceLocation, LocationError } from '../device-location';
 import { SpotCard } from '../presenters/spot-card/spot-card';
 import { SpotMap } from '../presenters/spot-map/spot-map';
@@ -100,7 +101,8 @@ export class SpotsPage {
   readonly scope = input<string | undefined>(undefined);
 
   protected readonly store = inject(SpotsStore);
-  protected readonly comments = inject(SpotCommentsStore);
+  protected readonly comments = inject(CommentsStore);
+  protected readonly commentSubject = CommentSubject.Spot;
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);

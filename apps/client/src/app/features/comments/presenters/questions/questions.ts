@@ -2,7 +2,7 @@ import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, linkedSignal, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import type { SpotCommentDto, SpotCommentsDto } from '@spothub/shared';
+import type { CommentDto, ConversationDto } from '@spothub/shared';
 
 import { CommentForm } from '../comment-form/comment-form';
 
@@ -22,41 +22,44 @@ export interface AnswerMark {
 }
 
 /**
- * Presenter: a spot's questions, each with its replies. Renders what the
- * server's flags allow — Edit on the viewer's own words, Delete where they
- * may, "Mark as answer" for the spot's owner — and hands every intent up.
+ * Presenter: the questions on a spot or a build, each with its replies.
+ * Renders what the server's flags allow — Edit on the viewer's own words,
+ * Delete where they may, "Mark as answer" for the asker and the owner — and
+ * hands every intent up.
  *
  * Which reply or edit box is open is view state. It closes whenever a new
  * conversation arrives, which is what a successful save produces; a failed
  * one leaves the box open with the words still in it.
  */
 @Component({
-  selector: 'sh-spot-questions',
+  selector: 'sh-questions',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommentForm, DatePipe, MatButtonModule, MatIconModule, NgTemplateOutlet],
-  templateUrl: './spot-questions.html',
-  styleUrl: './spot-questions.scss',
+  templateUrl: './questions.html',
+  styleUrl: './questions.scss',
 })
-export class SpotQuestions {
-  readonly comments = input.required<SpotCommentsDto>();
+export class Questions {
+  readonly comments = input.required<ConversationDto>();
+  /** "spot" or "build" — what the empty state talks about. */
+  readonly subjectLabel = input('spot');
   readonly saving = input(false);
 
   readonly replied = output<CommentReply>();
   readonly edited = output<CommentEdit>();
-  readonly deleted = output<SpotCommentDto>();
+  readonly deleted = output<CommentDto>();
   readonly answerMarked = output<AnswerMark>();
 
-  protected readonly replyingTo = linkedSignal<SpotCommentsDto, string | null>({
+  protected readonly replyingTo = linkedSignal<ConversationDto, string | null>({
     source: this.comments,
     computation: () => null,
   });
 
-  protected readonly editing = linkedSignal<SpotCommentsDto, string | null>({
+  protected readonly editing = linkedSignal<ConversationDto, string | null>({
     source: this.comments,
     computation: () => null,
   });
 
-  protected author(comment: SpotCommentDto): string {
+  protected author(comment: CommentDto): string {
     return comment.byViewer ? 'You' : (comment.authorName ?? 'A pilot');
   }
 

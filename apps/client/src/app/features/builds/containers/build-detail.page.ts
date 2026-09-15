@@ -19,6 +19,7 @@ import {
   BUILD_CLASS_LABELS,
   BUILD_STATUS_LABELS,
   VISIBILITY_LABELS,
+  CommentSubject,
   type BuildDto,
   type AssetDto,
   type BuildPartDto,
@@ -34,6 +35,7 @@ import { Section } from '../../../core/components/section/section';
 import { CollapseAll } from '../../../core/components/section/collapse-all';
 import { SectionGroup } from '../../../core/components/section/section-group';
 import { InstallPartForm } from '../../build-parts/presenters/install-part-form/install-part-form';
+import { CommentsSection } from '../../comments/containers/comments-section';
 import { InstalledPartsList } from '../../build-parts/presenters/installed-parts-list/installed-parts-list';
 import { BuildPartsStore } from '../../build-parts/build-parts.store';
 import { ConfigList } from '../../configs/presenters/config-list/config-list';
@@ -81,6 +83,7 @@ import { BuildsStore } from '../builds.store';
     ConfigList,
     ConfigPasteForm,
     FlightTrends,
+    CommentsSection,
   ],
   hostDirectives: [SectionGroup],
   templateUrl: './build-detail.page.html',
@@ -137,6 +140,7 @@ export class BuildDetailPage {
   protected readonly statusLabels = BUILD_STATUS_LABELS;
   protected readonly classLabels = BUILD_CLASS_LABELS;
   protected readonly visibilityLabels = VISIBILITY_LABELS;
+  protected readonly commentSubject = CommentSubject.Build;
 
   /** Same icon and tone the card uses, so the two pages cannot disagree. */
   protected readonly statusStyle = computed(() => {

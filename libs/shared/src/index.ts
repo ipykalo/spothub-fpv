@@ -10,4 +10,4 @@ export * from './lib/betaflight';
 export * from './lib/user.contract';
 export * from './lib/spot.contract';
 export * from './lib/youtube';
-export * from './lib/spot-comment.contract';
+export * from './lib/comment.contract';

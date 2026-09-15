@@ -18,6 +18,7 @@ import {
   BUILD_CLASS_LABELS,
   BUILD_STATUS_LABELS,
   BuildStatus,
+  CommentSubject,
   type BuildDto,
 } from '@spothub/shared';
 
@@ -30,6 +31,7 @@ import {
   type SortOption,
   gridView,
 } from '../../../core/components/grid-toolbar/grid-view';
+import { CommentsStore } from '../../comments/comments.store';
 import { BUILD_STATUS_STYLES } from '../build-status';
 import { BuildCard } from '../presenters/build-card/build-card';
 import { BuildsStore } from '../builds.store';
@@ -76,7 +78,8 @@ const SORTS: readonly SortOption<BuildSortKey>[] = [
  *
  * Shows the viewer's own builds, or, with `?scope=shared`, the ones other
  * pilots shared. The status filter goes to the server for either list, as it
- * always has; search and sort run on the page over what came back.
+ * always has; search and sort run on the page over what came back. The
+ * viewer's own cards also say how many new questions wait on each.
  */
 @Component({
   selector: 'sh-builds-list-page',
@@ -99,10 +102,12 @@ export class BuildsListPage {
   readonly scope = input<string | undefined>(undefined);
 
   protected readonly store = inject(BuildsStore);
+  protected readonly comments = inject(CommentsStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
 
+  protected readonly commentSubject = CommentSubject.Build;
   protected readonly sorts = SORTS;
   protected readonly pendingDelete = signal<string | null>(null);
 
@@ -144,6 +149,8 @@ export class BuildsListPage {
   );
 
   constructor() {
+    void this.comments.loadUnread();
+
     // Each list is loaded when it is opened, so switching back never shows a stale one.
     effect(() => {
       const shared = this.isShared();

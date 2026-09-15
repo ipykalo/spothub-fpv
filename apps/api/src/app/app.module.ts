@@ -5,6 +5,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuthModule } from '../auth';
 import { BuildPartsModule } from '../build-parts';
 import { BuildsModule } from '../builds';
+import { CommentsModule } from '../comments';
 import { AllExceptionsFilter, JwtAuthGuard } from '../common';
 import { validateEnv } from '../config';
 import { ConfigsModule } from '../configs';
@@ -16,7 +17,6 @@ import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
-import { SpotCommentsModule } from '../spot-comments';
 import { SpotsModule } from '../spots';
 import { StorageModule } from '../storage';
 import { UsersModule } from '../users';
@@ -47,7 +47,7 @@ import { UsersModule } from '../users';
     FlightsModule,
     FlightLogsModule,
     SpotsModule,
-    SpotCommentsModule,
+    CommentsModule,
     HealthModule,
   ],
   providers: [

@@ -1,8 +1,8 @@
-import type { SpotCommentDto, SpotCommentsDto } from '@spothub/shared';
+import type { CommentDto, ConversationDto } from '@spothub/shared';
 
-import type { SpotCommentEntity } from './spot-comment.entity';
+import type { CommentEntity } from './comment.entity';
 
-/** Who is looking, and whose spot it is — what every permission flag is worked out from. */
+/** Who is looking, and whose spot or build it is — what every permission flag is worked out from. */
 export interface CommentViewContext {
   readonly viewerId: string;
   readonly ownerId: string;
@@ -14,10 +14,10 @@ export interface CommentViewContext {
  * re-derives a permission the server would refuse anyway — they mirror the
  * repository's scoped writes exactly.
  */
-export function toSpotCommentsDto(
-  comments: readonly SpotCommentEntity[],
+export function toConversationDto(
+  comments: readonly CommentEntity[],
   context: CommentViewContext,
-): SpotCommentsDto {
+): ConversationDto {
   const askerOf = new Map<string, string>();
 
   for (const comment of comments) {
@@ -26,7 +26,7 @@ export function toSpotCommentsDto(
     }
   }
 
-  const repliesByQuestion = new Map<string, SpotCommentDto[]>();
+  const repliesByQuestion = new Map<string, CommentDto[]>();
 
   for (const comment of comments) {
     if (comment.parentId !== null) {
@@ -50,17 +50,17 @@ export function toSpotCommentsDto(
     // Comments arrive oldest first: newest question first, replies left in order.
     .reverse();
 
-  return { questions, viewerOwnsSpot: context.viewerId === context.ownerId };
+  return { questions, viewerOwnsSubject: context.viewerId === context.ownerId };
 }
 
 /** `askerId` is the author of the question a reply answers; null for a question itself. */
 function toCommentDto(
-  comment: SpotCommentEntity,
+  comment: CommentEntity,
   context: CommentViewContext,
   askerId: string | null,
-): SpotCommentDto {
+): CommentDto {
   const byViewer = comment.authorId === context.viewerId;
-  const viewerOwnsSpot = context.viewerId === context.ownerId;
+  const viewerOwnsSubject = context.viewerId === context.ownerId;
 
   return {
     id: comment.id,
@@ -68,12 +68,12 @@ function toCommentDto(
     authorName: comment.authorName,
     byOwner: comment.authorId === context.ownerId,
     byViewer,
-    canDelete: byViewer || viewerOwnsSpot,
+    canDelete: byViewer || viewerOwnsSubject,
     isAnswer: comment.isAnswer,
     canMarkAnswer:
       askerId !== null &&
       comment.authorId !== askerId &&
-      (viewerOwnsSpot || context.viewerId === askerId),
+      (viewerOwnsSubject || context.viewerId === askerId),
     createdAt: comment.createdAt.toISOString(),
     editedAt: comment.editedAt?.toISOString() ?? null,
   };

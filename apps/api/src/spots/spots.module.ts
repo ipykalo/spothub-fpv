@@ -19,7 +19,7 @@ import { SpotsService } from './spots.service';
  * Kept apart from `flights` on purpose. A spot is somewhere, written by hand;
  * a flight is something that happened, read from a log. Nothing here depends
  * on another feature module — only on the job queue and storage, which are
- * infrastructure. `spot-comments` depends on this one, through `SpotsFacade`,
+ * infrastructure. `comments` depends on this one, through `SpotsFacade`,
  * the only provider exported.
  */
 @Module({

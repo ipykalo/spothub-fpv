@@ -109,7 +109,7 @@
                 [spot]="spot"
                 [selected]="selectedId() === spot.id"
                 [deleting]="pendingDelete() === spot.id"
-                [unread]="spot.ownedByViewer ? comments.unreadFor(spot.id) : 0"
+                [unread]="spot.ownedByViewer ? comments.unreadFor(commentSubject, spot.id) : 0"
                 (showOnMap)="showOnMap($event)"
                 (delete)="remove($event)"
               />

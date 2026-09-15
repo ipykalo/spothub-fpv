@@ -62,7 +62,12 @@
 } @else {
   <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
     @for (build of rows(); track build.id) {
-      <sh-build-card [build]="build" [deleting]="pendingDelete() === build.id" (delete)="remove($event)" />
+      <sh-build-card
+        [build]="build"
+        [deleting]="pendingDelete() === build.id"
+        [unread]="build.ownedByViewer ? comments.unreadFor(commentSubject, build.id) : 0"
+        (delete)="remove($event)"
+      />
     }
   </div>
 }
