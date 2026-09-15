@@ -28,7 +28,6 @@
         ],
         "styles": [
           "node_modules/@fontsource-variable/open-sans/index.css",
-          "node_modules/leaflet/dist/leaflet.css",
           "apps/client/src/styles.scss",
           "apps/client/src/styles/tailwind.css"
         ]

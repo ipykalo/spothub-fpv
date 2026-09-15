@@ -21,25 +21,40 @@ export const buildNameSchema = z
   .max(80, 'Keep the name under 80 characters');
 
 /**
- * The writable fields. Both create and update derive from this so they cannot
- * diverge — a field added here is immediately available to both.
+ * The writable fields, without defaults. Both create and update derive from
+ * this so they cannot diverge — a field added here is immediately available to
+ * both.
+ *
+ * Defaults are added on create only: zod 4 applies a `.default()` even inside
+ * `.partial()`, so a PATCH naming only `name` would otherwise reset the status
+ * to PLANNING and clear the class, weight, notes and dates.
  */
 const buildFields = z.object({
   name: buildNameSchema,
-  buildClass: z.enum(BuildClass).nullable().default(null),
-  status: z.enum(BuildStatus).default(BuildStatus.Planning),
-  visibility: z.enum(Visibility).default(Visibility.Private),
+  buildClass: z.enum(BuildClass).nullable(),
+  status: z.enum(BuildStatus),
+  visibility: z.enum(Visibility),
   weightG: z.coerce
     .number()
     .int('Weight must be a whole number of grams')
     .positive('Weight must be positive')
     .max(50_000, 'That is not a quad')
-    .nullable()
-    .default(null),
-  hasGps: z.boolean().default(false),
-  descriptionMd: z.string().max(20_000).nullable().default(null),
-  builtOn: optionalDate.default(null),
-  retiredOn: optionalDate.default(null),
+    .nullable(),
+  hasGps: z.boolean(),
+  descriptionMd: z.string().max(20_000).nullable(),
+  builtOn: optionalDate,
+  retiredOn: optionalDate,
+});
+
+const newBuildFields = buildFields.extend({
+  buildClass: buildFields.shape.buildClass.default(null),
+  status: buildFields.shape.status.default(BuildStatus.Planning),
+  visibility: buildFields.shape.visibility.default(Visibility.Private),
+  weightG: buildFields.shape.weightG.default(null),
+  hasGps: buildFields.shape.hasGps.default(false),
+  descriptionMd: buildFields.shape.descriptionMd.default(null),
+  builtOn: buildFields.shape.builtOn.default(null),
+  retiredOn: buildFields.shape.retiredOn.default(null),
 });
 
 const retiredAfterBuilt = (value: {
@@ -52,10 +67,7 @@ const RETIRED_DATE_ISSUE = {
   path: ['retiredOn'],
 };
 
-export const createBuildSchema = buildFields.refine(
-  retiredAfterBuilt,
-  RETIRED_DATE_ISSUE,
-);
+export const createBuildSchema = newBuildFields.refine(retiredAfterBuilt, RETIRED_DATE_ISSUE);
 
 /**
  * Every field optional, but a body with no fields at all is rejected — an empty
@@ -98,7 +110,7 @@ export const listBuildsQuerySchema = z.object({
   search: z.string().trim().min(1).max(80).optional(),
 });
 
-export type BuildFormValue = z.input<typeof buildFields>;
+export type BuildFormValue = z.input<typeof newBuildFields>;
 export type CreateBuildDto = z.output<typeof createBuildSchema>;
 export type UpdateBuildDto = z.output<typeof updateBuildSchema>;
 export type BuildDto = z.output<typeof buildSchema>;

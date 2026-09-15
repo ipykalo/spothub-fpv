@@ -537,11 +537,14 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   them out as numbers.
 - **Leaflet is touched in one presenter, `spot-map`.** Pins are `divIcon`s
   holding a Material Icons glyph: Leaflet's default marker images are URLs a
-  bundler rewrites into paths that do not exist. `leaflet.css` is a global
-  style in `project.json` — loaded from the component it blew the 8 kB
-  per-component style budget — so a running dev server must be restarted to
-  pick it up. `invalidateSize` runs a frame after the ResizeObserver fires;
-  calling it inside the callback is a layout loop.
+  bundler rewrites into paths that do not exist. **`leaflet.css` is `@use`d
+  from `styles.scss`.** Without it the panes lose their absolute positioning,
+  and tiles land scattered with dark gaps and no zoom buttons. It is not in
+  `project.json`'s styles list, because a running dev server reads that list
+  only at start-up and kept serving maps without it; from the map component it
+  blew the 8 kB per-component style budget. `invalidateSize` runs a frame
+  after the ResizeObserver fires; calling it inside the callback is a layout
+  loop.
 - **"Add location" is the at-the-field action.** One tap asks the browser's
   Geolocation API for a fresh fix (`DeviceLocation`, the one place `navigator`
   is asked), `POST /spots/drafts` saves it as a private draft named "Unnamed
@@ -555,8 +558,12 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   anywhere. Weather was deliberately deferred for that reason.
 - **zod 4 applies `.default()` inside `.partial()`.** An update schema built as
   `fields.partial()` over fields with defaults resets every field a PATCH does
-  not name. `spot.contract.ts` keeps its defaults on the create schema only; the
-  e2e spec asserts a partial PATCH leaves the rest alone.
+  not name. It was live in builds, parts, part units, part sources and repairs
+  from the start: renaming a build reset its status to PLANNING, a note on a
+  part wiped its spec, relabelling a unit marked it serviceable again. **Every
+  `*Fields` object in `libs/shared` carries no defaults; the create schema
+  adds them with `.extend()`.** `apps/api/e2e/partial-updates.e2e.spec.ts`
+  holds each entity to it — add a case there for any new update schema.
 
 **Next, in order:** VPS + Caddy first deploy, then database backups with a
 tested restore. V1 is feature-complete; what is left is getting it off the

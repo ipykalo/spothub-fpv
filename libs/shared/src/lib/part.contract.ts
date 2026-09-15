@@ -7,6 +7,12 @@ import { PartCategory, PartCondition } from './enums';
  *
  * A part is a physical thing owned, not a field on a build — motors move
  * between quads, and spares exist before they are fitted to anything.
+ *
+ * Every `*Fields` object below carries no defaults, and each create schema adds
+ * them. zod 4 applies a `.default()` even inside `.partial()`, so an update
+ * derived from defaulted fields fills in everything a PATCH left out: a note on
+ * a motor would wipe its spec, and relabelling a unit would mark it serviceable
+ * again.
  */
 
 /** Nullable date accepted from a form as `''`, an ISO date, or null. */
@@ -21,28 +27,23 @@ const optionalDate = z
  * a column per category, the shape is open — but values are constrained to
  * scalars so the JSONB column never grows nested structures nothing can query.
  */
-export const partSpecSchema = z
-  .record(
-    z.string().min(1).max(40),
-    z.union([z.string().max(200), z.number(), z.boolean()]),
-  )
-  .default({});
+export const partSpecSchema = z.record(
+  z.string().min(1).max(40),
+  z.union([z.string().max(200), z.number(), z.boolean()]),
+);
 
 export const partFields = z.object({
   category: z.enum(PartCategory),
   manufacturer: z
     .union([z.string().trim().max(80), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value))
-    .default(null),
+    .transform((value) => (value === null || value === '' ? null : value)),
   model: z
     .union([z.string().trim().max(120), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value))
-    .default(null),
+    .transform((value) => (value === null || value === '' ? null : value)),
   spec: partSpecSchema,
   notesMd: z
     .union([z.string().max(20_000), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value))
-    .default(null),
+    .transform((value) => (value === null || value === '' ? null : value)),
 });
 
 /**
@@ -52,6 +53,10 @@ export const partFields = z.object({
  * what changes is that it now stores four objects rather than the number 4.
  */
 export const createPartSchema = partFields.extend({
+  manufacturer: partFields.shape.manufacturer.default(null),
+  model: partFields.shape.model.default(null),
+  spec: partSpecSchema.default({}),
+  notesMd: partFields.shape.notesMd.default(null),
   quantity: z.coerce
     .number()
     .int('Quantity must be a whole number')
@@ -74,34 +79,39 @@ export const updatePartSchema = partFields
 export const partSourceFields = z.object({
   vendor: z
     .union([z.string().trim().max(80), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value))
-    .default(null),
+    .transform((value) => (value === null || value === '' ? null : value)),
   url: z
     .union([z.url('That does not look like a link'), z.literal(''), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value))
-    .default(null),
+    .transform((value) => (value === null || value === '' ? null : value)),
   // Order matters: `z.coerce.number()` accepts null and '' and turns both into
   // 0, so it must come last or an unfilled price is stored as a real zero.
-  price: z
-    .union([
-      z.null(),
-      z.literal('').transform(() => null),
-      z.coerce.number().nonnegative('Price cannot be negative').max(1_000_000),
-    ])
-    .default(null),
+  price: z.union([
+    z.null(),
+    z.literal('').transform(() => null),
+    z.coerce.number().nonnegative('Price cannot be negative').max(1_000_000),
+  ]),
   currency: z
     .union([z.string().trim().length(3, 'Use a three-letter code, e.g. EUR'), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value.toUpperCase()))
-    .default(null),
-  isPurchase: z.boolean().default(false),
-  purchasedOn: optionalDate.default(null),
-  quantity: z.coerce.number().int().min(1).max(9_999).default(1),
+    .transform((value) => (value === null || value === '' ? null : value.toUpperCase())),
+  isPurchase: z.boolean(),
+  purchasedOn: optionalDate,
+  quantity: z.coerce.number().int().min(1).max(9_999),
 });
 
-export const createPartSourceSchema = partSourceFields.refine(
-  (value) => !value.isPurchase || value.price !== null,
-  { message: 'A purchase needs a price', path: ['price'] },
-);
+export const createPartSourceSchema = partSourceFields
+  .extend({
+    vendor: partSourceFields.shape.vendor.default(null),
+    url: partSourceFields.shape.url.default(null),
+    price: partSourceFields.shape.price.default(null),
+    currency: partSourceFields.shape.currency.default(null),
+    isPurchase: partSourceFields.shape.isPurchase.default(false),
+    purchasedOn: partSourceFields.shape.purchasedOn.default(null),
+    quantity: partSourceFields.shape.quantity.default(1),
+  })
+  .refine((value) => !value.isPurchase || value.price !== null, {
+    message: 'A purchase needs a price',
+    path: ['price'],
+  });
 
 /**
  * Every field optional, but a body with no fields at all is rejected. Used to
@@ -114,20 +124,23 @@ export const updatePartSourceSchema = partSourceFields
   });
 
 export const partUnitFields = z.object({
-  condition: z.enum(PartCondition).default(PartCondition.Serviceable),
+  condition: z.enum(PartCondition),
   /** Free-text marking on the physical item — a Sharpie number, usually. */
   label: z
     .union([z.string().trim().max(40), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value))
-    .default(null),
-  acquiredOn: optionalDate.default(null),
+    .transform((value) => (value === null || value === '' ? null : value)),
+  acquiredOn: optionalDate,
   notes: z
     .union([z.string().max(2_000), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value))
-    .default(null),
+    .transform((value) => (value === null || value === '' ? null : value)),
 });
 
-export const createPartUnitSchema = partUnitFields;
+export const createPartUnitSchema = partUnitFields.extend({
+  condition: partUnitFields.shape.condition.default(PartCondition.Serviceable),
+  label: partUnitFields.shape.label.default(null),
+  acquiredOn: partUnitFields.shape.acquiredOn.default(null),
+  notes: partUnitFields.shape.notes.default(null),
+});
 
 export const updatePartUnitSchema = partUnitFields
   .partial()
@@ -205,7 +218,7 @@ export type PartSpec = z.output<typeof partSpecSchema>;
 export type PartUnitDto = z.output<typeof partUnitSchema>;
 export type CreatePartUnitDto = z.output<typeof createPartUnitSchema>;
 export type UpdatePartUnitDto = z.output<typeof updatePartUnitSchema>;
-export type PartFormValue = z.input<typeof partFields>;
+export type PartFormValue = z.input<typeof createPartSchema>;
 export type CreatePartDto = z.output<typeof createPartSchema>;
 export type UpdatePartDto = z.output<typeof updatePartSchema>;
 export type PartDto = z.output<typeof partSchema>;

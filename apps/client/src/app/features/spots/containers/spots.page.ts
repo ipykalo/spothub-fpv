@@ -1,9 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -58,8 +60,9 @@ const SORTS: readonly SortOption<SpotSortKey>[] = [
 ];
 
 /**
- * Container: the map and the collection beside it. The search and the terrain
- * filter narrow both — a pin hidden from the list is hidden from the map too.
+ * Container: the map across the page and the collection beneath it. The
+ * search and the terrain filter narrow both — a pin hidden from the list is
+ * hidden from the map too.
  *
  * Clicking a pin selects its card; clicking empty map offers to add a spot at
  * that point, which opens the form with the coordinates filled in. "Add
@@ -86,6 +89,8 @@ export class SpotsPage {
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly location = inject(DeviceLocation);
+
+  private readonly map = viewChild.required(SpotMap, { read: ElementRef<HTMLElement> });
 
   protected readonly sorts = SORTS;
   protected readonly grid = new GridState<SpotSortKey, SpotTerrain>({
@@ -127,10 +132,16 @@ export class SpotsPage {
     return formatCoordinates(point);
   }
 
+  /** A pin was clicked: select it, and bring its card into view below the map. */
   protected onSpotSelected(spot: SpotDto): void {
-    this.picked.set(null);
-    this.selectedId.set(spot.id);
+    this.select(spot);
     document.getElementById(`spot-${spot.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  /** A card's "Map" button: select it, and bring the map above back into view. */
+  protected showOnMap(spot: SpotDto): void {
+    this.select(spot);
+    (this.map().nativeElement as HTMLElement).scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   protected onPointPicked(point: LatLng): void {
@@ -188,5 +199,10 @@ export class SpotsPage {
     } finally {
       this.pendingDelete.set(null);
     }
+  }
+
+  private select(spot: SpotDto): void {
+    this.picked.set(null);
+    this.selectedId.set(spot.id);
   }
 }

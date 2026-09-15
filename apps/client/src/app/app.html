@@ -1,8 +1,14 @@
 @if (auth.isAuthenticated()) {
   <mat-toolbar>
     <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/hangar">SpotHub FPV</a>
-    <!-- On a phone the links scroll sideways rather than pushing the page wider than the screen. -->
-    <nav class="ml-2 flex min-w-0 gap-1 overflow-x-auto min-[40rem]:ml-6">
+    <!--
+      On a phone the links scroll sideways rather than pushing the page wider than the screen,
+      with no scrollbar drawn: overflow-x alone turns overflow-y to auto too, and Windows then
+      paints both bars inside the toolbar. On wider screens nothing overflows at all.
+    -->
+    <nav
+      class="ml-2 flex min-w-0 gap-1 min-[40rem]:ml-6 max-[40rem]:overflow-x-auto max-[40rem]:overflow-y-hidden max-[40rem]:[scrollbar-width:none]"
+    >
       <a matButton routerLink="/hangar">Hangar</a>
       <a matButton routerLink="/parts">Parts</a>
       <a matButton routerLink="/flights">Flights</a>

@@ -1,5 +1,13 @@
 @use '@angular/material' as mat;
 @use 'styles/theme-colors' as theme;
+/*
+ * Leaflet's own stylesheet: without it the map's panes and tiles lose their
+ * absolute positioning, and tiles land scattered with dark gaps between them.
+ * Imported here rather than listed in project.json's styles, because a running
+ * dev server rebuilds this file but only reads that list when it starts — and
+ * from the map component it overran the 8 kB per-component style budget.
+ */
+@use 'leaflet/dist/leaflet';
 
 /*
  * Cascade-layer order, established before anything uses a layer.

@@ -29,9 +29,9 @@
   <p role="alert">{{ message }}</p>
 }
 
-<div class="grid items-start gap-6 min-[64rem]:grid-cols-[3fr_2fr]">
-  <!-- Sticky on wide screens, so the map stays in view while the list scrolls. -->
-  <div class="flex flex-col gap-3 min-[64rem]:sticky min-[64rem]:top-4">
+<!-- The map across the full width, the collection beneath it. -->
+<div class="grid gap-6">
+  <div class="flex flex-col gap-3">
     <sh-spot-map
       class="h-[26rem] min-[64rem]:h-[34rem]"
       label="Map of your spots. Click an empty place to add a spot there."
@@ -83,14 +83,14 @@
           <p class="py-8 text-muted">Nothing matches.</p>
         }
       } @else {
-        <ul class="m-0 mt-4 grid list-none gap-3 p-0">
+        <ul class="m-0 mt-4 grid list-none grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-3 p-0">
           @for (spot of shown(); track spot.id) {
             <li [id]="'spot-' + spot.id">
               <sh-spot-card
                 [spot]="spot"
                 [selected]="selectedId() === spot.id"
                 [deleting]="pendingDelete() === spot.id"
-                (showOnMap)="onSpotSelected($event)"
+                (showOnMap)="showOnMap($event)"
                 (delete)="remove($event)"
               />
             </li>
