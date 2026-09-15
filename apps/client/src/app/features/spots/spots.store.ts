@@ -5,7 +5,8 @@ import { firstValueFrom } from 'rxjs';
 import { SpotsApi } from './spots.api';
 
 /**
- * Signal-backed state for spots.
+ * Signal-backed state for spots: the viewer's own, and the ones other pilots
+ * shared. Kept as two lists, because only the first is ever written to.
  *
  * Components read signals and call intents; none of them touch HttpClient,
  * so loading and error handling live in exactly one place.
@@ -18,9 +19,17 @@ export class SpotsStore {
   private readonly busy = signal(false);
   private readonly failure = signal<string | null>(null);
 
+  private readonly sharedItems = signal<readonly SpotDto[]>([]);
+  private readonly sharedBusy = signal(false);
+  private readonly sharedFailure = signal<string | null>(null);
+
   readonly spots = this.items.asReadonly();
   readonly loading = this.busy.asReadonly();
   readonly error = this.failure.asReadonly();
+
+  readonly shared = this.sharedItems.asReadonly();
+  readonly sharedLoading = this.sharedBusy.asReadonly();
+  readonly sharedError = this.sharedFailure.asReadonly();
 
   readonly total = computed(() => this.items().length);
   readonly isEmpty = computed(() => !this.busy() && this.items().length === 0);
@@ -35,6 +44,19 @@ export class SpotsStore {
       this.failure.set('Could not load your spots.');
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  async loadShared(): Promise<void> {
+    this.sharedBusy.set(true);
+    this.sharedFailure.set(null);
+
+    try {
+      this.sharedItems.set(await firstValueFrom(this.api.listShared()));
+    } catch {
+      this.sharedFailure.set('Could not load the spots other pilots shared.');
+    } finally {
+      this.sharedBusy.set(false);
     }
   }
 
@@ -75,7 +97,11 @@ export class SpotsStore {
     }
   }
 
+  /** A spot already loaded into either list, so opening it needs no request. */
   find(id: string): SpotDto | undefined {
-    return this.items().find((spot) => spot.id === id);
+    return (
+      this.items().find((spot) => spot.id === id) ??
+      this.sharedItems().find((spot) => spot.id === id)
+    );
   }
 }

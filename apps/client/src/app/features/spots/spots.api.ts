@@ -15,6 +15,12 @@ export class SpotsApi {
     return this.http.get<SpotDto[]>(this.url);
   }
 
+  /** Public spots other pilots shared. */
+  listShared(): Observable<SpotDto[]> {
+    return this.http.get<SpotDto[]>(`${this.url}/shared`);
+  }
+
+  /** One of the viewer's own spots, or one shared with them. */
   getOne(id: string): Observable<SpotDto> {
     return this.http.get<SpotDto>(`${this.url}/${id}`);
   }

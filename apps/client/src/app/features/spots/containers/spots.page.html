@@ -1,9 +1,19 @@
-<header class="mb-4 flex flex-wrap items-baseline gap-4">
+<header class="mb-4 flex flex-wrap items-center gap-4">
   <h1 class="m-0 text-2xl">Spots</h1>
 
-  @if (store.total()) {
+  <mat-button-toggle-group
+    hideSingleSelectionIndicator
+    aria-label="Whose spots to show"
+    [value]="activeScope()"
+    (change)="setScope($event.value)"
+  >
+    <mat-button-toggle value="mine">My spots</mat-button-toggle>
+    <mat-button-toggle value="shared">Shared</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (list().length) {
     <span class="text-sm text-muted tabular-nums">
-      {{ store.total() }} spot{{ store.total() === 1 ? '' : 's' }}
+      {{ list().length }} spot{{ list().length === 1 ? '' : 's' }}
     </span>
   }
 
@@ -21,11 +31,11 @@
   </a>
 </header>
 
-@if (store.loading()) {
+@if (loading()) {
   <mat-progress-bar mode="indeterminate" />
 }
 
-@if (store.error(); as message) {
+@if (failure(); as message) {
   <p role="alert">{{ message }}</p>
 }
 
@@ -34,11 +44,12 @@
   <div class="flex flex-col gap-3">
     <sh-spot-map
       class="h-[26rem] min-[64rem]:h-[34rem]"
-      label="Map of your spots. Click an empty place to add a spot there."
+      [label]="isShared() ? 'Map of spots other pilots shared.' : 'Map of your spots. Click an empty place to add a spot there.'"
       [spots]="shown()"
+      [frameKey]="activeScope()"
       [selectedId]="selectedId()"
       [picked]="picked()"
-      [pickable]="true"
+      [pickable]="!isShared()"
       (spotSelected)="onSpotSelected($event)"
       (pointPicked)="onPointPicked($event)"
     />
@@ -50,6 +61,10 @@
         <button matButton="filled" type="button" (click)="addHere(point)">Add a spot here</button>
         <button matButton type="button" (click)="picked.set(null)">Cancel</button>
       </div>
+    } @else if (isShared()) {
+      <p class="m-0 text-sm text-muted">
+        Spots other pilots made Public. Share your own by setting a spot's visibility.
+      </p>
     } @else {
       <p class="m-0 text-sm text-muted">Click an empty place on the map to add a spot there.</p>
     }
@@ -58,8 +73,12 @@
   <div class="min-w-0">
     @if (firstRun()) {
       <div class="px-4 py-12 text-center text-muted">
-        <p>No spots yet. Click the map where you fly, or add one by its coordinates.</p>
-        <a matButton routerLink="/spots/new">Add your first spot</a>
+        @if (isShared()) {
+          <p>No one has shared a spot yet.</p>
+        } @else {
+          <p>No spots yet. Click the map where you fly, or add one by its coordinates.</p>
+          <a matButton routerLink="/spots/new">Add your first spot</a>
+        }
       </div>
     } @else {
       <sh-grid-toolbar
@@ -67,7 +86,7 @@
         [(sort)]="grid.sort"
         [sorts]="sorts"
         [shown]="shown().length"
-        [total]="store.total()"
+        [total]="list().length"
         searchLabel="Search spots"
       >
         <sh-filter-chips
@@ -79,7 +98,7 @@
       </sh-grid-toolbar>
 
       @if (!shown().length) {
-        @if (!store.loading()) {
+        @if (!loading()) {
           <p class="py-8 text-muted">Nothing matches.</p>
         }
       } @else {

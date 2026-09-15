@@ -1,9 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma, Spot } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../prisma';
 import { SpotsRepository } from './abstract/spots.repository';
 import type { CreateSpotData, SpotEntity, UpdateSpotData } from './spot.entity';
+
+/**
+ * The owner's display name rides along on every read — a join inside this
+ * repository, not a call to the users module, and only the name: an owner's
+ * email never leaves the users table through here.
+ */
+const WITH_OWNER_NAME = { owner: { select: { displayName: true } } } satisfies Prisma.SpotInclude;
+
+type SpotRow = Prisma.SpotGetPayload<{ include: typeof WITH_OWNER_NAME }>;
+
+/** What "shared" means: visible to other signed-in users, and finished. */
+const SHARED: Prisma.SpotWhereInput = {
+  visibility: { in: ['PUBLIC', 'UNLISTED'] },
+  isDraft: false,
+};
 
 /** The only place in the spots feature that knows Prisma exists. */
 @Injectable()
@@ -15,6 +30,7 @@ export class PrismaSpotsRepository extends SpotsRepository {
   async findManyForOwner(ownerId: string): Promise<SpotEntity[]> {
     const rows = await this.prisma.spot.findMany({
       where: { ownerId },
+      include: WITH_OWNER_NAME,
       orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
     });
 
@@ -22,8 +38,31 @@ export class PrismaSpotsRepository extends SpotsRepository {
   }
 
   async findOneForOwner(ownerId: string, id: string): Promise<SpotEntity | null> {
-    const row = await this.prisma.spot.findFirst({ where: { id, ownerId } });
+    const row = await this.prisma.spot.findFirst({
+      where: { id, ownerId },
+      include: WITH_OWNER_NAME,
+    });
+
     return row ? toEntity(row) : null;
+  }
+
+  async findVisibleForViewer(viewerId: string, id: string): Promise<SpotEntity | null> {
+    const row = await this.prisma.spot.findFirst({
+      where: { id, OR: [{ ownerId: viewerId }, SHARED] },
+      include: WITH_OWNER_NAME,
+    });
+
+    return row ? toEntity(row) : null;
+  }
+
+  async findSharedForViewer(viewerId: string): Promise<SpotEntity[]> {
+    const rows = await this.prisma.spot.findMany({
+      where: { visibility: 'PUBLIC', isDraft: false, ownerId: { not: viewerId } },
+      include: WITH_OWNER_NAME,
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+    });
+
+    return rows.map(toEntity);
   }
 
   async slugExistsForOwner(ownerId: string, slug: string): Promise<boolean> {
@@ -45,6 +84,7 @@ export class PrismaSpotsRepository extends SpotsRepository {
         youtubeVideoId: video?.youtubeId ?? null,
         youtubeStartS: video?.startS ?? null,
       },
+      include: WITH_OWNER_NAME,
     });
 
     return toEntity(row);
@@ -103,10 +143,11 @@ function toUpdateInput(data: UpdateSpotData): Prisma.SpotUpdateManyMutationInput
 }
 
 /** Coordinates are `numeric(9,6)` in the table and plain numbers everywhere above it. */
-function toEntity(row: Spot): SpotEntity {
+function toEntity(row: SpotRow): SpotEntity {
   return {
     id: row.id,
     ownerId: row.ownerId,
+    ownerName: row.owner.displayName,
     name: row.name,
     slug: row.slug,
     lat: row.lat.toNumber(),

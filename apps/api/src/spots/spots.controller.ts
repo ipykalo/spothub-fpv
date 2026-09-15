@@ -36,6 +36,16 @@ export class SpotsController {
     return this.spots.list(user.id);
   }
 
+  /**
+   * Public spots other pilots shared. Declared before `:id`, which would
+   * otherwise take "shared" as an id and refuse it as not a UUID.
+   */
+  @Get('shared')
+  listShared(@CurrentUser() user: AuthenticatedUser): Promise<SpotDto[]> {
+    return this.spots.listShared(user.id);
+  }
+
+  /** One of yours, or one someone shared as Public or Unlisted. */
   @Get(':id')
   getOne(
     @CurrentUser() user: AuthenticatedUser,

@@ -24,6 +24,9 @@
     <div class="min-w-0 flex-auto">
       <h3 class="m-0 truncate text-base leading-snug font-semibold" [title]="spot().name">{{ spot().name }}</h3>
       <p class="m-0 truncate text-sm text-muted tabular-nums" [title]="whereabouts()">{{ whereabouts() }}</p>
+      @if (!spot().ownedByViewer) {
+        <p class="m-0 truncate text-xs text-muted">Shared by {{ spot().ownerName ?? 'another pilot' }}</p>
+      }
     </div>
   </div>
 
@@ -69,7 +72,10 @@
       Map
     </button>
     <a matButton [routerLink]="['/spots', spot().id]">Open</a>
-    <a matButton [routerLink]="['/spots', spot().id, 'edit']">Edit</a>
+    <!-- Only its owner changes a spot; a shared one is read-only. -->
+    @if (spot().ownedByViewer) {
+      <a matButton [routerLink]="['/spots', spot().id, 'edit']">Edit</a>
+    }
     <!-- Icon only: a fifth labelled button wraps the row at card width. -->
     <a
       matIconButton
@@ -81,8 +87,10 @@
     >
       <mat-icon>directions_car</mat-icon>
     </a>
-    <button matButton type="button" [disabled]="deleting()" (click)="delete.emit(spot())">
-      {{ deleting() ? 'Deleting…' : 'Delete' }}
-    </button>
+    @if (spot().ownedByViewer) {
+      <button matButton type="button" [disabled]="deleting()" (click)="delete.emit(spot())">
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+    }
   </div>
 </mat-card>

@@ -19,7 +19,13 @@ import { SPOT_COVER_JOB } from './spot-cover.job';
 import type { SpotEntity, UpdateSpotData } from './spot.entity';
 import { toSpotDto } from './spots.mapper';
 
-/** Business rules for spots. Knows nothing about HTTP, Prisma or S3. */
+/**
+ * Business rules for spots. Knows nothing about HTTP, Prisma or S3.
+ *
+ * Reading and writing are asked differently on purpose. Anyone signed in may
+ * read a spot shared with them; only its owner may change or delete it, and
+ * those paths never go through the shared read.
+ */
 @Injectable()
 export class SpotsService {
   private readonly downloadTtl: number;
@@ -33,21 +39,25 @@ export class SpotsService {
     this.downloadTtl = config.get('S3_DOWNLOAD_URL_TTL', { infer: true });
   }
 
+  /** The viewer's own spots. */
   async list(ownerId: string): Promise<SpotDto[]> {
-    const spots = await this.spots.findManyForOwner(ownerId);
-
-    // Signing is a local computation, so a page of cards costs no extra round trips.
-    return Promise.all(spots.map(async (spot) => toSpotDto(spot, await this.coverUrlFor(spot))));
+    return this.toDtos(await this.spots.findManyForOwner(ownerId), ownerId);
   }
 
-  async getOne(ownerId: string, id: string): Promise<SpotDto> {
-    const spot = await this.spots.findOneForOwner(ownerId, id);
+  /** Other owners' Public spots. */
+  async listShared(viewerId: string): Promise<SpotDto[]> {
+    return this.toDtos(await this.spots.findSharedForViewer(viewerId), viewerId);
+  }
+
+  /** The viewer's own spot, or one shared with them. Anything else is not found. */
+  async getOne(viewerId: string, id: string): Promise<SpotDto> {
+    const spot = await this.spots.findVisibleForViewer(viewerId, id);
 
     if (!spot) {
       throw new NotFoundException('Spot not found');
     }
 
-    return toSpotDto(spot, await this.coverUrlFor(spot));
+    return toSpotDto(spot, await this.coverUrlFor(spot), viewerId);
   }
 
   async create(ownerId: string, input: CreateSpotDto): Promise<SpotDto> {
@@ -71,7 +81,7 @@ export class SpotsService {
 
     await this.queueCover(spot);
 
-    return toSpotDto(spot, null);
+    return toSpotDto(spot, null, ownerId);
   }
 
   /**
@@ -98,7 +108,7 @@ export class SpotsService {
       video: null,
     });
 
-    return toSpotDto(spot, null);
+    return toSpotDto(spot, null, ownerId);
   }
 
   async update(ownerId: string, id: string, input: UpdateSpotDto): Promise<SpotDto> {
@@ -143,7 +153,7 @@ export class SpotsService {
       await this.queueCover(spot);
     }
 
-    return toSpotDto(spot, await this.coverUrlFor(spot));
+    return toSpotDto(spot, await this.coverUrlFor(spot), ownerId);
   }
 
   async remove(ownerId: string, id: string): Promise<void> {
@@ -161,6 +171,13 @@ export class SpotsService {
 
   private slugFor(ownerId: string, name: string): Promise<string> {
     return uniqueSlug(name, (candidate) => this.spots.slugExistsForOwner(ownerId, candidate));
+  }
+
+  /** Signing is a local computation, so a page of cards costs no extra round trips. */
+  private toDtos(spots: readonly SpotEntity[], viewerId: string): Promise<SpotDto[]> {
+    return Promise.all(
+      spots.map(async (spot) => toSpotDto(spot, await this.coverUrlFor(spot), viewerId)),
+    );
   }
 
   /** The cover job fetches the video's thumbnail once; nothing asks YouTube per view. */

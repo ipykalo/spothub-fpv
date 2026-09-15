@@ -208,6 +208,10 @@ export const spotSchema = z.object({
    * YouTube. Null for a spot without a video, and until the cover is made.
    */
   coverUrl: z.string().nullable(),
+  /** Whether the person asking owns this spot. Only its owner can change or delete it. */
+  ownedByViewer: z.boolean(),
+  /** The owner's display name, for people opening a shared spot. Never their email. */
+  ownerName: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

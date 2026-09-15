@@ -2,6 +2,7 @@ import type { SpotDto } from '@spothub/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { PrismaService } from '../src/prisma';
 import { type TestApp, createTestApp } from './support/app';
 import { type TestUser, createTestUser, deleteTestUser } from './support/users';
 
@@ -282,6 +283,122 @@ describe('spots', () => {
         .set('Authorization', as(owner))
         .send({ video: { youtubeId: 'bad"><script', startS: null } })
         .expect(400);
+    });
+  });
+
+  describe('shared with other pilots', () => {
+    let publicSpot: SpotDto;
+    let unlistedSpot: SpotDto;
+
+    const createAs = async (user: TestUser, body: object): Promise<SpotDto> =>
+      (
+        await request(testApp.server)
+          .post('/api/spots')
+          .set('Authorization', as(user))
+          .send(body)
+          .expect(201)
+      ).body as SpotDto;
+
+    const sharedIdsFor = async (user: TestUser): Promise<string[]> =>
+      (
+        (
+          await request(testApp.server)
+            .get('/api/spots/shared')
+            .set('Authorization', as(user))
+            .expect(200)
+        ).body as SpotDto[]
+      ).map((entry) => entry.id);
+
+    beforeAll(async () => {
+      publicSpot = await createAs(owner, { name: 'Public ridge', lat: 49.1, lng: 11.1, visibility: 'PUBLIC' });
+      unlistedSpot = await createAs(owner, { name: 'Unlisted quarry', lat: 49.2, lng: 11.2, visibility: 'UNLISTED' });
+    });
+
+    it('a public spot is listed for other pilots and opens for them, read-only', async () => {
+      expect(await sharedIdsFor(intruder)).toContain(publicSpot.id);
+
+      const opened = await request(testApp.server)
+        .get(`/api/spots/${publicSpot.id}`)
+        .set('Authorization', as(intruder))
+        .expect(200);
+
+      const body = opened.body as SpotDto;
+      const ownerRow = await testApp.app
+        .get(PrismaService)
+        .user.findUniqueOrThrow({ where: { id: owner.id } });
+
+      expect(body.ownedByViewer).toBe(false);
+      expect(body.ownerName).toBe(ownerRow.displayName);
+      // The owner is named, never addressed.
+      expect(JSON.stringify(body)).not.toContain(ownerRow.email);
+
+      await request(testApp.server)
+        .patch(`/api/spots/${publicSpot.id}`)
+        .set('Authorization', as(intruder))
+        .send({ name: 'hijacked' })
+        .expect(404);
+
+      await request(testApp.server)
+        .delete(`/api/spots/${publicSpot.id}`)
+        .set('Authorization', as(intruder))
+        .expect(404);
+    });
+
+    it('an unlisted spot opens by its link but is never listed', async () => {
+      await request(testApp.server)
+        .get(`/api/spots/${unlistedSpot.id}`)
+        .set('Authorization', as(intruder))
+        .expect(200);
+
+      expect(await sharedIdsFor(intruder)).not.toContain(unlistedSpot.id);
+    });
+
+    it("the owner sees it as theirs, and their shared list leaves out their own spots", async () => {
+      const opened = await request(testApp.server)
+        .get(`/api/spots/${publicSpot.id}`)
+        .set('Authorization', as(owner))
+        .expect(200);
+
+      expect((opened.body as SpotDto).ownedByViewer).toBe(true);
+      expect(await sharedIdsFor(owner)).not.toContain(publicSpot.id);
+    });
+
+    it('making a spot private again takes it back from everyone else', async () => {
+      await request(testApp.server)
+        .patch(`/api/spots/${publicSpot.id}`)
+        .set('Authorization', as(owner))
+        .send({ visibility: 'PRIVATE' })
+        .expect(200);
+
+      await request(testApp.server)
+        .get(`/api/spots/${publicSpot.id}`)
+        .set('Authorization', as(intruder))
+        .expect(404);
+
+      expect(await sharedIdsFor(intruder)).not.toContain(publicSpot.id);
+    });
+
+    it('a draft is never shared, whatever its visibility says', async () => {
+      const draft = (
+        await request(testApp.server)
+          .post('/api/spots/drafts')
+          .set('Authorization', as(owner))
+          .send({ lat: 49.3, lng: 11.3 })
+          .expect(201)
+      ).body as SpotDto;
+
+      await request(testApp.server)
+        .patch(`/api/spots/${draft.id}`)
+        .set('Authorization', as(owner))
+        .send({ visibility: 'PUBLIC' })
+        .expect(200);
+
+      await request(testApp.server)
+        .get(`/api/spots/${draft.id}`)
+        .set('Authorization', as(intruder))
+        .expect(404);
+
+      expect(await sharedIdsFor(intruder)).not.toContain(draft.id);
     });
   });
 });

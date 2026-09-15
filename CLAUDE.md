@@ -554,6 +554,18 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   contract accepts only `false` there: a spot never goes back to being a
   draft. **Anything that lists spots publicly must filter out drafts.**
   Geolocation needs a secure context — HTTPS, or localhost in development.
+- **A spot's visibility is who can open it.** Private is the owner alone;
+  Unlisted is anyone signed in who has the link; Public is also listed at
+  `GET /spots/shared` (other owners' spots only). A draft is never shared,
+  whatever its visibility says. Reads of someone else's spot go through
+  `findVisibleForViewer` / `findSharedForViewer`, which name the rule they
+  apply; every write stays owner-scoped through `updateMany` / `deleteMany`,
+  so sharing opened reading and nothing else. The DTO carries
+  `ownedByViewer` — the same spot answers differently to its owner — and the
+  owner's display name, joined inside the spots repository, never their
+  email. The client keeps the two lists apart in `SpotsStore` and hides
+  Edit and Delete wherever `ownedByViewer` is false; `?scope=shared` on
+  `/spots` is the shared list.
 - **Every spot map carries its own controls**, in one column: full screen,
   zoom, show my location. They are view state, so they live in `spot-map`
   rather than in each container. Full screen uses the Fullscreen API on the

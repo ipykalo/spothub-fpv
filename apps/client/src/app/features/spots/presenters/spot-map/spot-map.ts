@@ -63,6 +63,12 @@ export class SpotMap {
   readonly picked = input<LatLng | null>(null);
   readonly pickable = input(false);
   readonly label = input('Map');
+  /**
+   * The map frames its spots once, then leaves the view to whoever is panning.
+   * A page that swaps one set of spots for another — mine, then shared —
+   * changes this, and the map frames the new set once too.
+   */
+  readonly frameKey = input('');
 
   readonly spotSelected = output<SpotDto>();
   readonly pointPicked = output<LatLng>();
@@ -83,8 +89,9 @@ export class SpotMap {
   private coveringPage = false;
   private noticeTimer = 0;
 
-  /** The view is framed once, on first data; after that the owner drives it. */
+  /** The view is framed once per `frameKey`, on first data; after that the owner drives it. */
   private framed = false;
+  private lastFrameKey: string | null = null;
   private lastSelectedId: string | null = null;
 
   constructor() {
@@ -162,8 +169,16 @@ export class SpotMap {
 
     effect(() => {
       const map = this.map();
+      const frameKey = this.frameKey();
 
       if (map) {
+        // Read in the same effect as the spots, so a new set and its key can
+        // never be drawn in the wrong order.
+        if (frameKey !== this.lastFrameKey) {
+          this.lastFrameKey = frameKey;
+          this.framed = false;
+        }
+
         this.drawSpots(map, this.spots(), this.selectedId());
       }
     });

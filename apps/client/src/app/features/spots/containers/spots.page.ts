@@ -3,15 +3,19 @@ import {
   Component,
   ElementRef,
   computed,
+  effect,
   inject,
+  input,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   SPOT_ACCESS_LABELS,
   SPOT_HAZARD_LABELS,
@@ -37,11 +41,15 @@ import { SpotsStore } from '../spots.store';
 
 type SpotSortKey = 'name' | 'updated' | 'difficulty';
 
+/** Whose spots the page shows: the viewer's own, or ones other pilots shared. */
+type SpotScope = 'mine' | 'shared';
+
 const SPOT_GRID: GridSpec<SpotDto, SpotSortKey> = {
   text: (spot) => [
     spot.name,
     spot.locality,
     spot.isDraft ? 'Draft' : null,
+    spot.ownedByViewer ? null : spot.ownerName,
     spot.terrain ? SPOT_TERRAIN_LABELS[spot.terrain] : null,
     SPOT_ACCESS_LABELS[spot.access],
     ...spot.hazards.map((hazard) => SPOT_HAZARD_LABELS[hazard]),
@@ -60,13 +68,13 @@ const SORTS: readonly SortOption<SpotSortKey>[] = [
 ];
 
 /**
- * Container: the map across the page and the collection beneath it. The
- * search and the terrain filter narrow both — a pin hidden from the list is
- * hidden from the map too.
+ * Container: the map across the page and the collection beneath it — the
+ * viewer's own spots, or, with `?scope=shared`, the ones other pilots shared.
+ * The search and the terrain filter narrow both the list and the map.
  *
- * Clicking a pin selects its card; clicking empty map offers to add a spot at
- * that point, which opens the form with the coordinates filled in. "Add
- * location" does the same from the device's GPS without asking anything first.
+ * On their own spots, clicking empty map offers to add a spot at that point,
+ * and "Add location" does the same from the device's GPS. Shared spots are
+ * read-only, so the map there only selects.
  */
 @Component({
   selector: 'sh-spots-page',
@@ -75,6 +83,7 @@ const SORTS: readonly SortOption<SpotSortKey>[] = [
     FilterChips,
     GridToolbar,
     MatButtonModule,
+    MatButtonToggleModule,
     MatIconModule,
     MatProgressBarModule,
     RouterLink,
@@ -85,8 +94,12 @@ const SORTS: readonly SortOption<SpotSortKey>[] = [
   styleUrl: './spots.page.scss',
 })
 export class SpotsPage {
+  /** `?scope=shared`, so the shared list is a link that can be sent. Bound via `withComponentInputBinding`. */
+  readonly scope = input<string | undefined>(undefined);
+
   protected readonly store = inject(SpotsStore);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly location = inject(DeviceLocation);
 
@@ -104,6 +117,22 @@ export class SpotsPage {
     SPOT_TERRAIN_ICONS,
   );
 
+  /** The query parameter, read as one of the two lists; anything unexpected is "mine". */
+  protected readonly activeScope = computed<SpotScope>(() =>
+    this.scope() === 'shared' ? 'shared' : 'mine',
+  );
+  protected readonly isShared = computed(() => this.activeScope() === 'shared');
+
+  protected readonly list = computed(() =>
+    this.isShared() ? this.store.shared() : this.store.spots(),
+  );
+  protected readonly loading = computed(() =>
+    this.isShared() ? this.store.sharedLoading() : this.store.loading(),
+  );
+  protected readonly failure = computed(() =>
+    this.isShared() ? this.store.sharedError() : this.store.error(),
+  );
+
   protected readonly selectedId = signal<string | null>(null);
   protected readonly picked = signal<LatLng | null>(null);
   protected readonly pendingDelete = signal<string | null>(null);
@@ -113,7 +142,7 @@ export class SpotsPage {
     const terrain = this.grid.filter();
 
     return gridView(
-      this.store.spots(),
+      this.list(),
       SPOT_GRID,
       this.grid.query(),
       this.grid.sort(),
@@ -121,11 +150,30 @@ export class SpotsPage {
     );
   });
 
-  /** Nothing saved at all, as opposed to nothing matching a search. */
-  protected readonly firstRun = computed(() => this.store.isEmpty());
+  /** Nothing in the chosen list at all, as opposed to nothing matching a search. */
+  protected readonly firstRun = computed(() => !this.loading() && this.list().length === 0);
 
   constructor() {
     void this.store.load();
+
+    // Loaded each time the shared list is opened, so it is never stale for long.
+    effect(() => {
+      if (this.isShared()) {
+        untracked(() => void this.store.loadShared());
+      }
+    });
+  }
+
+  protected async setScope(scope: SpotScope): Promise<void> {
+    this.selectedId.set(null);
+    this.picked.set(null);
+
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { scope: scope === 'shared' ? 'shared' : null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   protected coordinates(point: LatLng): string {

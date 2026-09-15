@@ -92,17 +92,24 @@ export class SpotFormPage {
   }
 
   private async hydrate(id: string): Promise<void> {
-    const cached = this.store.find(id);
+    let spot = this.store.find(id);
 
-    if (cached) {
-      this.spot.set(cached);
+    if (!spot) {
+      try {
+        spot = await firstValueFrom(this.api.getOne(id));
+      } catch {
+        this.failure.set('That spot could not be loaded.');
+        return;
+      }
+    }
+
+    // A shared spot opens for others, but only its owner edits it — the API
+    // would refuse the save anyway, so do not offer a form that cannot work.
+    if (!spot.ownedByViewer) {
+      await this.router.navigate(['/spots', id], { replaceUrl: true });
       return;
     }
 
-    try {
-      this.spot.set(await firstValueFrom(this.api.getOne(id)));
-    } catch {
-      this.failure.set('That spot could not be loaded.');
-    }
+    this.spot.set(spot);
   }
 }

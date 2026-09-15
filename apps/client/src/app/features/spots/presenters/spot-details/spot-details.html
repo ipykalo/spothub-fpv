@@ -82,7 +82,9 @@
     @if (spot().video; as video) {
       <sh-spot-video [video]="video" [cover]="spot().coverUrl" />
     } @else {
-      <p class="m-0 text-muted italic">No video yet. Edit the spot to add a YouTube link.</p>
+      <p class="m-0 text-muted italic">
+        {{ spot().ownedByViewer ? 'No video yet. Edit the spot to add a YouTube link.' : 'No flight video for this spot.' }}
+      </p>
     }
   </sh-section>
 

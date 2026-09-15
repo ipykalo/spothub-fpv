@@ -37,6 +37,7 @@ import {
   type LatLng,
   SPOT_ACCESS_STYLES,
   SPOT_TERRAIN_ICONS,
+  SPOT_VISIBILITY_HINTS,
 } from '../../spot-style';
 import { SpotMap } from '../spot-map/spot-map';
 
@@ -91,7 +92,14 @@ export class SpotForm {
     (value) => ({ value, label: DIFFICULTY_LABELS[value] ?? String(value) }),
   );
 
-  protected readonly visibilityOptions = choicesFrom(Object.values(Visibility), VISIBILITY_LABELS);
+  /** Each visibility says who can open the spot, now that others can. */
+  protected readonly visibilityOptions: readonly ChoiceOption<Visibility>[] = Object.values(
+    Visibility,
+  ).map((visibility) => ({
+    value: visibility,
+    label: VISIBILITY_LABELS[visibility],
+    hint: SPOT_VISIBILITY_HINTS[visibility],
+  }));
 
   protected readonly hazardOptions = Object.values(SpotHazard).map((hazard) => ({
     value: hazard,

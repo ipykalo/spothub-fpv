@@ -1,4 +1,4 @@
-import { SpotAccess, SpotTerrain } from '@spothub/shared';
+import { SpotAccess, SpotTerrain, Visibility } from '@spothub/shared';
 
 import type { StatusStyle } from '../../core/ui/status-style';
 
@@ -43,6 +43,13 @@ export const DIFFICULTY_LABELS: Readonly<Record<number, string>> = {
   3: '3 · some obstacles',
   4: '4 · technical',
   5: '5 · tight and unforgiving',
+};
+
+/** Who can open a spot at each visibility, said where the choice is made. */
+export const SPOT_VISIBILITY_HINTS: Readonly<Record<Visibility, string>> = {
+  [Visibility.Private]: 'Only you',
+  [Visibility.Unlisted]: 'Anyone signed in who has the link',
+  [Visibility.Public]: 'Listed under Shared for everyone signed in',
 };
 
 export function formatCoordinates(point: LatLng): string {

@@ -10,6 +10,8 @@ import type {
 export interface SpotEntity {
   readonly id: string;
   readonly ownerId: string;
+  /** The owner's display name, for people opening a spot they do not own. */
+  readonly ownerName: string | null;
   readonly name: string;
   readonly slug: string;
   readonly lat: number;
