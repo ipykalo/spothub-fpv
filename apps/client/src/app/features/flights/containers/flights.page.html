@@ -1,0 +1,123 @@
+<header class="mb-5 flex flex-wrap items-baseline gap-4">
+  <h1 class="m-0 text-2xl">Flights</h1>
+
+  @if (store.flightTotal()) {
+    <span class="text-sm text-muted tabular-nums">
+      {{ store.flightTotal() }} flight{{ store.flightTotal() === 1 ? '' : 's' }} in
+      {{ store.sessions().length }} session{{ store.sessions().length === 1 ? '' : 's' }}
+    </span>
+  }
+
+  <span class="flex-auto"></span>
+  <sh-collapse-all />
+</header>
+
+@if (store.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (store.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+<div class="flex flex-col gap-8">
+  <sh-section
+    heading="Import"
+    storageKey="flights.import"
+    addLabel="Import logs"
+    [adding]="addingImport()"
+    (addingChange)="onAddingChanged($event)"
+  >
+    <!-- Kept up while an import runs, even if the form was cancelled. -->
+    @if (addingImport() || imports.phase() !== 'idle') {
+      <sh-log-import-panel
+        [builds]="buildOptions()"
+        [phase]="imports.phase()"
+        [files]="imports.files()"
+        [batches]="imports.batches()"
+        [message]="imports.message()"
+        [importedFlights]="imports.importedFlights()"
+        (importRequested)="onImport($event)"
+        (resetRequested)="resetImport()"
+      />
+    } @else {
+      <p class="m-0 max-w-176 text-sm text-muted">
+        Flights come from the radio's EdgeTX telemetry logs and the flight controller's Betaflight blackbox logs. A
+        radio log gives link quality and signal, throttle and the radio's battery; pack voltage, current and capacity
+        used come when the quad sends telemetry, and the track when it carries GPS. Its times are as the radio's clock
+        recorded them. A blackbox log gives pack voltage, current, capacity used and throttle, but records no time of
+        day, so its flights keep their order under the day you pick. A GPX track from a phone or GPS logger adds
+        distance, height and speed — to the radio-log flight it overlaps, or as a flight of its own.
+      </p>
+    }
+  </sh-section>
+
+  @if (store.isEmpty()) {
+    <p class="m-0 py-8 text-center text-muted">
+      No flights yet. Import the LOGS folder from your radio's SD card to start the logbook.
+    </p>
+  } @else {
+    <sh-grid-toolbar
+      [(query)]="grid.query"
+      [(sort)]="grid.sort"
+      [sorts]="sorts"
+      [shown]="shown()"
+      [total]="store.flightTotal()"
+      searchLabel="Search flights"
+    >
+      @if (buildFilterOptions().length > 1) {
+        <sh-filter-chips
+          [options]="buildFilterOptions()"
+          [(selected)]="grid.filter"
+          ariaLabel="Filter by build"
+        />
+      }
+    </sh-grid-toolbar>
+
+    @if (!sessions().length) {
+      <p class="m-0 py-8 text-center text-muted">Nothing matches.</p>
+    }
+
+    @if (selectedShown().length) {
+      <!-- Sticky, so it stays in reach while ticking flights further down. -->
+      <sh-flight-bulk-bar
+        class="sticky top-4 z-10"
+        [count]="selectedShown().length"
+        [builds]="buildOptions()"
+        [batteries]="batteries()"
+        [saving]="bulkSaving()"
+        (applied)="onBulkApply($event)"
+        (cleared)="clearSelection()"
+      />
+    }
+  }
+
+  @for (session of sessions(); track session.id) {
+    <sh-section icon="event" [heading]="heading(session)" [count]="session.flights.length" [open]="$index < openSessions">
+      <span shSectionActions class="inline-flex flex-wrap items-center gap-x-4 text-sm text-muted tabular-nums">
+        @if (clockUnset(session)) {
+          <span
+            class="inline-flex items-center gap-1 text-status-stop"
+            title="The radio's clock was not set when these were logged, so this is not the real date. Set it on the radio under Radio Setup, Date/Time."
+          >
+            <mat-icon class="icon-sm" aria-hidden="true">schedule</mat-icon>
+            radio clock not set
+          </span>
+        }
+        <span>{{ airtime(session.totalDurationS) }} in the air</span>
+      </span>
+
+      <sh-session-flights
+        [session]="session"
+        [builds]="buildOptions()"
+        [batteries]="batteries()"
+        [selected]="selected()"
+        [pendingRemoval]="pendingRemoval()"
+        (buildChanged)="onBuildChanged($event)"
+        (batteryChanged)="onBatteryChanged($event)"
+        (selectionChanged)="onSelectionChanged($event)"
+        (removeRequested)="onRemove($event)"
+      />
+    </sh-section>
+  }
+</div>

@@ -18,7 +18,12 @@ import { type FittedUnitDto, PartsFacade } from '../parts';
 import { RepairsFacade } from '../repairs';
 import { BuildPartsRepository } from './abstract/build-parts.repository';
 import type { BuildPartEntity } from './build-part.entity';
-import { rollUpCost, toBuildCostDto, toBuildPartDto } from './build-parts.mapper';
+import {
+  rollUpCost,
+  toBuildCostDto,
+  toBuildPartDto,
+  withoutOwnersDetails,
+} from './build-parts.mapper';
 
 /**
  * Business rules for fitting parts. Knows nothing about HTTP or Prisma.
@@ -35,17 +40,29 @@ export class BuildPartsService {
     private readonly repairs: RepairsFacade,
   ) {}
 
+  /**
+   * What is fitted to a build the viewer may see. Someone it is shared with
+   * sees what each part is, never what it cost, where it came from or the
+   * owner's notes. A build they cannot see lists nothing, as before.
+   */
   async list(
-    ownerId: string,
+    viewerId: string,
     buildId: string,
     query: ListBuildPartsQuery,
   ): Promise<BuildPartDto[]> {
+    const ownerId = await this.installs.findBuildOwnerVisibleToViewer(viewerId, buildId);
+
+    if (ownerId === null) {
+      return [];
+    }
+
     const installs = await this.installs.findManyForOwner(ownerId, buildId, query);
     const fitted = await this.hydrate(ownerId, installs);
 
-    return installs.map((install) =>
-      toBuildPartDto(install, lookUp(fitted, install.unitId)),
-    );
+    return installs.map((install) => {
+      const dto = toBuildPartDto(install, lookUp(fitted, install.unitId));
+      return viewerId === ownerId ? dto : withoutOwnersDetails(dto);
+    });
   }
 
   /**

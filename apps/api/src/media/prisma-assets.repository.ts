@@ -131,6 +131,31 @@ export class PrismaAssetsRepository extends AssetsRepository {
     return this.subjectOwnership[subject](ownerId, subjectId);
   }
 
+  /** The same one-entry table, for reading a gallery someone shared. */
+  private readonly subjectVisibility: Record<
+    AssetSubject,
+    (viewerId: string, subjectId: string) => Promise<string | null>
+  > = {
+    [AssetSubject.Build]: async (viewerId, subjectId) => {
+      const build = await this.prisma.build.findFirst({
+        where: {
+          id: subjectId,
+          OR: [{ ownerId: viewerId }, { visibility: { in: ['PUBLIC', 'UNLISTED'] } }],
+        },
+        select: { ownerId: true },
+      });
+      return build?.ownerId ?? null;
+    },
+  };
+
+  findSubjectOwnerVisibleToViewer(
+    viewerId: string,
+    subject: AssetSubject,
+    subjectId: string,
+  ): Promise<string | null> {
+    return this.subjectVisibility[subject](viewerId, subjectId);
+  }
+
   async linkForOwner(
     ownerId: string,
     assetId: string,

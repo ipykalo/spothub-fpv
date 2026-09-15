@@ -1,0 +1,122 @@
+<header class="mb-4 flex flex-wrap items-center gap-4">
+  <h1 class="m-0 text-2xl">Spots</h1>
+
+  <mat-button-toggle-group
+    hideSingleSelectionIndicator
+    aria-label="Whose spots to show"
+    [value]="activeScope()"
+    (change)="setScope($event.value)"
+  >
+    <mat-button-toggle value="mine">My spots</mat-button-toggle>
+    <mat-button-toggle value="shared">Shared</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (list().length) {
+    <span class="text-sm text-muted tabular-nums">
+      {{ list().length }} spot{{ list().length === 1 ? '' : 's' }}
+    </span>
+  }
+
+  <span class="flex-auto"></span>
+
+  <!-- The at-the-field action: saves where the phone is now, details later. -->
+  <button matButton="outlined" type="button" [disabled]="locating()" (click)="addCurrentLocation()">
+    <mat-icon>my_location</mat-icon>
+    {{ locating() ? 'Getting a fix…' : 'Add location' }}
+  </button>
+
+  <a matButton="filled" routerLink="/spots/new">
+    <mat-icon>add_location_alt</mat-icon>
+    New spot
+  </a>
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (failure(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+<!-- The map across the full width, the collection beneath it. -->
+<div class="grid gap-6">
+  <div class="flex flex-col gap-3">
+    <sh-spot-map
+      class="h-[26rem] min-[64rem]:h-[34rem]"
+      [label]="isShared() ? 'Map of spots other pilots shared.' : 'Map of your spots. Click an empty place to add a spot there.'"
+      [spots]="shown()"
+      [frameKey]="activeScope()"
+      [selectedId]="selectedId()"
+      [picked]="picked()"
+      [pickable]="!isShared()"
+      (spotSelected)="onSpotSelected($event)"
+      (pointPicked)="onPointPicked($event)"
+    />
+
+    @if (picked(); as point) {
+      <div class="flex flex-wrap items-center gap-3 rounded bg-surface-container px-3.5 py-2 text-sm" role="status">
+        <mat-icon class="icon-sm text-primary" aria-hidden="true">add_location</mat-icon>
+        <span class="flex-auto tabular-nums">New spot at {{ coordinates(point) }}</span>
+        <button matButton="filled" type="button" (click)="addHere(point)">Add a spot here</button>
+        <button matButton type="button" (click)="picked.set(null)">Cancel</button>
+      </div>
+    } @else if (isShared()) {
+      <p class="m-0 text-sm text-muted">
+        Spots other pilots made Public. Share your own by setting a spot's visibility.
+      </p>
+    } @else {
+      <p class="m-0 text-sm text-muted">Click an empty place on the map to add a spot there.</p>
+    }
+  </div>
+
+  <div class="min-w-0">
+    @if (firstRun()) {
+      <div class="px-4 py-12 text-center text-muted">
+        @if (isShared()) {
+          <p>No one has shared a spot yet.</p>
+        } @else {
+          <p>No spots yet. Click the map where you fly, or add one by its coordinates.</p>
+          <a matButton routerLink="/spots/new">Add your first spot</a>
+        }
+      </div>
+    } @else {
+      <sh-grid-toolbar
+        [(query)]="grid.query"
+        [(sort)]="grid.sort"
+        [sorts]="sorts"
+        [shown]="shown().length"
+        [total]="list().length"
+        searchLabel="Search spots"
+      >
+        <sh-filter-chips
+          class="order-last basis-full"
+          ariaLabel="Filter by terrain"
+          [options]="terrainOptions"
+          [(selected)]="grid.filter"
+        />
+      </sh-grid-toolbar>
+
+      @if (!shown().length) {
+        @if (!loading()) {
+          <p class="py-8 text-muted">Nothing matches.</p>
+        }
+      } @else {
+        <ul class="m-0 mt-4 grid list-none grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-3 p-0">
+          @for (spot of shown(); track spot.id) {
+            <li [id]="'spot-' + spot.id">
+              <sh-spot-card
+                [spot]="spot"
+                [selected]="selectedId() === spot.id"
+                [deleting]="pendingDelete() === spot.id"
+                [unread]="spot.ownedByViewer ? comments.unreadFor(commentSubject, spot.id) : 0"
+                (showOnMap)="showOnMap($event)"
+                (delete)="remove($event)"
+              />
+            </li>
+          }
+        </ul>
+      }
+    }
+  </div>
+</div>

@@ -82,6 +82,11 @@ export class InstalledPartsList {
   /** Past installs render without a remove action and with their end date. */
   readonly history = input(false);
   readonly pendingRemoval = input<string | null>(null);
+  /**
+   * For someone the build is shared with: no Remove, and part names stay
+   * plain text — the link would lead into an inventory that is not theirs.
+   */
+  readonly readOnly = input(false);
 
   readonly removeRequested = output<BuildPartDto>();
 

@@ -1,0 +1,552 @@
+/**
+ * EdgeTX telemetry logs, read into flights.
+ *
+ * The radio writes one CSV per logging session: a header naming every sensor
+ * it discovered (`RxBt(V)`, `Capa(mAh)`, `GPS`, …), then a row per interval.
+ * Which columns exist depends on the receiver and the flight controller, so
+ * every one is optional except the clock. That is also why this works with no
+ * GPS at all — voltage, current and link quality are what a freestyle quad
+ * without a GPS module still reports, and they are what battery health needs.
+ *
+ * Some figures need nothing from the quad at all. The receiver reports its
+ * own link statistics and the radio logs its sticks, channels and battery, so
+ * a quad whose flight controller sends no telemetry still gives link quality,
+ * signal, throttle and — from the arm switch — how long it was armed.
+ *
+ * Pure: text in, flights out. No Nest, no storage, no shared imports, so it
+ * can be tested against real SD-card logs in isolation.
+ */
+
+import { type Fix, type TrackFigures, summariseTrack } from '../gps-track';
+import {
+  LogParseError,
+  MIN_FLIGHT_MS,
+  type ParsedFlight,
+  type ParsedLog,
+  SPLIT_GAP_MS,
+  maxOf,
+  meanOf,
+  minOf,
+  round,
+  values,
+} from '../parsed-log';
+
+/** Fewer satellites than this and a position is not worth trusting. */
+const MIN_SATELLITES = 4;
+
+/** A voltage at or below this means "no telemetry yet", not an empty pack. */
+const MIN_REAL_VOLTAGE = 0.5;
+
+/** EdgeTX logs a stick from -1024 (fully low) to 1024 (fully high). */
+const STICK_RANGE = 1024;
+
+/**
+ * Channel 5 above this reads as the arm switch on. ExpressLRS requires arming
+ * on AUX1, which is channel 5, and most other setups put it there too.
+ */
+const ARM_CHANNEL_ON_US = 1500;
+
+interface Sample {
+  readonly t: number;
+  readonly voltage: number | null;
+  readonly current: number | null;
+  readonly capacity: number | null;
+  readonly linkQuality: number | null;
+  readonly rssi: number | null;
+  readonly snr: number | null;
+  readonly downlinkQuality: number | null;
+  readonly txPower: number | null;
+  readonly throttlePct: number | null;
+  readonly radioVoltage: number | null;
+  /** From the flight-mode string; null when the log does not say. */
+  readonly armed: boolean | null;
+  /** From channel 5; null when the log has no channels. */
+  readonly armSwitch: boolean | null;
+  readonly lat: number | null;
+  readonly lon: number | null;
+  readonly altitude: number | null;
+  readonly speedKmh: number | null;
+  readonly satellites: number | null;
+}
+
+interface Columns {
+  /** How many fields the header line itself had — see `endIndex`. */
+  readonly width: number;
+  readonly date: number;
+  readonly time: number;
+  readonly voltage: number;
+  readonly current: number;
+  readonly capacity: number;
+  readonly linkQuality: number;
+  readonly rssi1: number;
+  readonly rssi2: number;
+  readonly snr: number;
+  readonly downlinkQuality: number;
+  readonly txPower: number;
+  readonly throttle: number;
+  readonly armChannel: number;
+  readonly radioVoltage: number;
+  readonly flightMode: number;
+  readonly gps: number;
+  readonly altitude: number;
+  readonly speed: number;
+  /** What the speed column is multiplied by to read in km/h — see `speedToKmh`. */
+  readonly speedToKmh: number;
+  readonly satellites: number;
+}
+
+export function parseEdgeTxCsv(text: string, fileName: string): ParsedLog {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const header = lines.at(0);
+
+  if (header === undefined) {
+    throw new LogParseError('The file is empty');
+  }
+
+  const columns = readHeader(header);
+  const samples: Sample[] = [];
+
+  for (const line of lines.slice(1)) {
+    const sample = readRow(line.split(','), columns);
+
+    if (sample) {
+      samples.push(sample);
+    }
+  }
+
+  samples.sort((a, b) => a.t - b.t);
+
+  const { segments, discarded } = segment(samples);
+
+  return {
+    modelName: modelNameFrom(fileName),
+    flights: segments.map(summarise),
+    discarded,
+    rowCount: samples.length,
+  };
+}
+
+/**
+ * Where each sensor sits. Headers carry the unit in brackets — `RxBt(V)` —
+ * and are matched without it, case-insensitively, so a renamed unit or an
+ * older EdgeTX spelling still lines up.
+ */
+function readHeader(header: string): Columns {
+  // Some editors and exports open a file with a byte-order mark.
+  const byteOrderMark = String.fromCharCode(0xfeff);
+  const headings = (header.startsWith(byteOrderMark) ? header.slice(1) : header).split(',');
+  const names = headings.map((name) =>
+    name
+      .replace(/\(.*\)\s*$/, '')
+      .trim()
+      .toLowerCase(),
+  );
+
+  const find = (...candidates: string[]): number => {
+    for (const candidate of candidates) {
+      const index = names.indexOf(candidate);
+
+      if (index !== -1) {
+        return index;
+      }
+    }
+
+    return -1;
+  };
+
+  const speed = find('gspd');
+
+  const columns: Columns = {
+    width: names.length,
+    date: find('date'),
+    time: find('time'),
+    // CRSF reports the flight pack as RxBt; FrSky Smart Port as VFAS.
+    voltage: find('rxbt', 'vfas'),
+    current: find('curr'),
+    capacity: find('capa'),
+    // CRSF link statistics: the receiver's side of the link, then the radio's.
+    linkQuality: find('rqly'),
+    rssi1: find('1rss'),
+    rssi2: find('2rss'),
+    snr: find('rsnr'),
+    downlinkQuality: find('tqly'),
+    txPower: find('tpwr'),
+    // The radio's own inputs, logged whatever the quad sends.
+    throttle: find('thr'),
+    armChannel: find('ch5'),
+    radioVoltage: find('txbat'),
+    flightMode: find('fm'),
+    gps: find('gps'),
+    altitude: find('alt', 'galt'),
+    speed,
+    speedToKmh: speed === -1 ? 1 : speedToKmh(headings[speed]),
+    satellites: find('sats'),
+  };
+
+  if (columns.date === -1 || columns.time === -1) {
+    throw new LogParseError('Not an EdgeTX log: there is no Date and Time column');
+  }
+
+  return columns;
+}
+
+/**
+ * Where a column sits, counted back from the end of the row instead of
+ * forward from the start of the header.
+ *
+ * The header reflects only the sensors known when logging began. A sensor
+ * that comes online mid-file — typically the flight controller's own
+ * telemetry, arriving a few seconds after the receiver's own link stats do —
+ * gets its columns inserted into every following row without the header
+ * ever being rewritten, which drags every fixed left-to-right index after
+ * it onto the wrong cell for the rest of the file. Nothing is ever inserted
+ * or removed after the receiver's link-quality block, the radio's stick
+ * block, or the channel/battery tail that follows them, so counting back
+ * from wherever a given row actually ends keeps landing on the right cell
+ * however many columns appeared earlier in that same row. Returns -1 — read
+ * by `cell` as "no reading" — when the column was never in the header at
+ * all, or when a row is short enough that even the far end has gone missing.
+ */
+function endIndex(columns: Pick<Columns, 'width'>, leftIndex: number, cells: readonly string[]): number {
+  if (leftIndex === -1) {
+    return -1;
+  }
+
+  const index = cells.length - (columns.width - leftIndex);
+  return index >= 0 && index < cells.length ? index : -1;
+}
+
+function readRow(cells: readonly string[], columns: Columns): Sample | null {
+  const t = timestamp(cells[columns.date], cells[columns.time]);
+
+  if (t === null) {
+    return null;
+  }
+
+  // Whether the columns before the receiver's link-quality reading still
+  // line up with the header — the one place a shift can be seen directly,
+  // since it is both left-anchored (declared, if at all, at a fixed spot in
+  // the header) and independently right-anchorable (nothing after it in its
+  // own block ever moves). Everything to its left — voltage, current,
+  // capacity, flight mode, the GPS fix — has no such anchor of its own, so a
+  // mismatch here is what stands in for "this row's layout has drifted" for
+  // all of them; trusting their header positions anyway would silently read
+  // whatever the drift left sitting there instead.
+  const linkQualityIndex = endIndex(columns, columns.linkQuality, cells);
+  const driftedBeforeLinkQuality =
+    columns.linkQuality !== -1 && linkQualityIndex !== columns.linkQuality;
+
+  const [lat, lon] = position(cell(cells, driftedBeforeLinkQuality ? -1 : columns.gps));
+  const speed = numeric(cell(cells, columns.speed));
+
+  return {
+    t,
+    voltage: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.voltage)),
+    current: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.current)),
+    capacity: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.capacity)),
+    linkQuality: percent(numeric(cell(cells, linkQualityIndex))),
+    rssi: strongest(
+      numeric(cell(cells, endIndex(columns, columns.rssi1, cells))),
+      numeric(cell(cells, endIndex(columns, columns.rssi2, cells))),
+    ),
+    snr: numeric(cell(cells, endIndex(columns, columns.snr, cells))),
+    downlinkQuality: percent(
+      numeric(cell(cells, endIndex(columns, columns.downlinkQuality, cells))),
+    ),
+    txPower: numeric(cell(cells, endIndex(columns, columns.txPower, cells))),
+    // Also anchored from the end, but the radio's stick block can itself
+    // vanish for a burst of rows independently of everything else — a rarer
+    // glitch than a new sensor coming online, and one this cannot tell apart
+    // from the block simply being there, so a throttle reading during such a
+    // burst can land on a neighbouring field. It is a handful of rows out of
+    // a whole flight either way.
+    throttlePct: stickPercent(numeric(cell(cells, endIndex(columns, columns.throttle, cells)))),
+    radioVoltage: numeric(cell(cells, endIndex(columns, columns.radioVoltage, cells))),
+    armed: driftedBeforeLinkQuality ? null : armedFrom(cell(cells, columns.flightMode)),
+    armSwitch: switchOn(numeric(cell(cells, endIndex(columns, columns.armChannel, cells)))),
+    lat,
+    lon,
+    altitude: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.altitude)),
+    speedKmh: driftedBeforeLinkQuality || speed === null ? null : speed * columns.speedToKmh,
+    satellites: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.satellites)),
+  };
+}
+
+/**
+ * One cell, trimmed and unquoted. EdgeTX writes text in quotes — a flight
+ * mode is `"ACRO*"`, and no flight mode at all is `""` — so read raw, the
+ * disarmed star would sit behind a quote and never be seen.
+ */
+function cell(cells: readonly string[], index: number): string | undefined {
+  return index === -1 ? undefined : cells[index]?.trim().replace(/^"(.*)"$/, '$1');
+}
+
+/**
+ * The radio's wall clock, taken as though it were UTC.
+ *
+ * The radio records no time zone. Reading these as local time on the server
+ * would shift every flight by the server's offset; reading them as UTC and
+ * rendering them in UTC shows exactly what the radio's clock said.
+ */
+function timestamp(date: string | undefined, time: string | undefined): number | null {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date?.trim() ?? '');
+  const clock = /^(\d{1,2}):(\d{2}):(\d{2})(?:\.(\d+))?$/.exec(time?.trim() ?? '');
+
+  if (!day || !clock) {
+    return null;
+  }
+
+  const [, year, month, dayOfMonth] = day.map(Number);
+  const [, hours, minutes, seconds] = clock.map(Number);
+  // A fraction of a second, whatever its number of digits: ".4" is 400 ms.
+  const millis = clock[4] ? Math.round(Number(`0.${clock[4]}`) * 1000) : 0;
+
+  const value = Date.UTC(year, month - 1, dayOfMonth, hours, minutes, seconds, millis);
+  return Number.isFinite(value) ? value : null;
+}
+
+function numeric(value: string | undefined): number | null {
+  if (value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** The stronger of two antennas. 0 dBm means "no reading", never a real signal. */
+function strongest(...readings: readonly (number | null)[]): number | null {
+  const real = readings.filter((dbm): dbm is number => dbm !== null && dbm !== 0);
+  return real.length > 0 ? Math.max(...real) : null;
+}
+
+/**
+ * RQly and TQly are link-quality percentages, 0–100. With no telemetry link
+ * at all, most CRSF fields write a clean `-1` for "no reading" — but a real
+ * Air65 log with telemetry off logged RQly as -1005 through -1024 instead,
+ * which is not a weak reading, it is the same "no reading" sentinel gone
+ * wrong. Treating anything outside the valid range as absent, rather than as
+ * the worst reading of the flight, is what keeps a session's "minimum link
+ * quality" a real number instead of a nonsense negative thousand percent.
+ */
+function percent(value: number | null): number | null {
+  return value !== null && value >= 0 && value <= 100 ? value : null;
+}
+
+function stickPercent(value: number | null): number | null {
+  if (value === null) {
+    return null;
+  }
+
+  const percent = ((value + STICK_RANGE) / (2 * STICK_RANGE)) * 100;
+  return Math.min(100, Math.max(0, percent));
+}
+
+function switchOn(microseconds: number | null): boolean | null {
+  return microseconds === null ? null : microseconds > ARM_CHANNEL_ON_US;
+}
+
+/** EdgeTX writes a fix as one cell, `lat lon`, space-separated. */
+function position(value: string | undefined): [number | null, number | null] {
+  const parts = value?.split(/\s+/).map(Number) ?? [];
+
+  if (parts.length < 2) {
+    return [null, null];
+  }
+
+  const [lat, lon] = parts;
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || (lat === 0 && lon === 0)) {
+    return [null, null];
+  }
+
+  return [lat, lon];
+}
+
+/**
+ * Betaflight appends `*` to its flight mode while disarmed — `ACRO*` on the
+ * bench, `ACRO` in the air. Other firmware may say nothing, hence the null.
+ */
+function armedFrom(flightMode: string | undefined): boolean | null {
+  if (!flightMode) {
+    return null;
+  }
+
+  return !flightMode.endsWith('*');
+}
+
+/**
+ * Splits samples into flights.
+ *
+ * Only armed rows count, so a minute on the bench before take-off does not
+ * pad the flight. A pause longer than `SPLIT_GAP_MS` — logging stopped, or a
+ * long disarm — ends one flight; a short disarm, like flipping out of a crash,
+ * does not.
+ */
+function segment(samples: readonly Sample[]): {
+  segments: Sample[][];
+  discarded: number;
+} {
+  const runs: Sample[][] = [];
+  let current: Sample[] = [];
+
+  for (const sample of armedSamples(samples)) {
+    const previous = current.at(-1);
+
+    if (previous && sample.t - previous.t > SPLIT_GAP_MS) {
+      runs.push(current);
+      current = [];
+    }
+
+    current.push(sample);
+  }
+
+  if (current.length > 0) {
+    runs.push(current);
+  }
+
+  const segments = runs.filter((run) => spanMs(run) >= MIN_FLIGHT_MS && run.length >= 2);
+
+  return { segments, discarded: runs.length - segments.length };
+}
+
+/**
+ * The rows the quad was armed for.
+ *
+ * Betaflight's flight mode is the authority. From a quad that sends no
+ * telemetry, the arm switch on channel 5 stands in — but only if it moved
+ * during the log: a channel held high the whole time, as it is when logging is
+ * started by the arm switch, says nothing about when the quad flew. With
+ * neither, every row counts.
+ */
+function armedSamples(samples: readonly Sample[]): readonly Sample[] {
+  if (samples.some((sample) => sample.armed === true)) {
+    return samples.filter((sample) => sample.armed === true);
+  }
+
+  const switchMoved =
+    samples.some((sample) => sample.armSwitch === true) &&
+    samples.some((sample) => sample.armSwitch === false);
+
+  return switchMoved ? samples.filter((sample) => sample.armSwitch === true) : samples;
+}
+
+function spanMs(run: readonly Sample[]): number {
+  const first = run.at(0);
+  const last = run.at(-1);
+  return first && last ? last.t - first.t : 0;
+}
+
+function summarise(run: readonly Sample[]): ParsedFlight {
+  const first = run[0];
+  const last = run[run.length - 1];
+
+  const voltages = values(run, (sample) => sample.voltage).filter(
+    (voltage) => voltage > MIN_REAL_VOLTAGE,
+  );
+  const capacities = values(run, (sample) => sample.capacity).filter((mah) => mah >= 0);
+  const currents = values(run, (sample) => sample.current).filter((amps) => amps >= 0);
+  const throttle = values(run, (sample) => sample.throttlePct);
+  const radioVoltages = values(run, (sample) => sample.radioVoltage).filter(
+    (voltage) => voltage > MIN_REAL_VOLTAGE,
+  );
+
+  // A current or capacity sensor that reads zero for a whole flight has
+  // nothing behind it — the quad sends no telemetry — and no quad flies on no
+  // current. Zero there would read as a measurement; it is an absence.
+  const peakCurrent = maxOf(currents) ?? 0;
+  const peakCapacity = maxOf(capacities) ?? 0;
+
+  const track = gpsSummary(run);
+
+  return {
+    startedAt: new Date(first.t),
+    endedAt: new Date(last.t),
+    durationS: Math.round((last.t - first.t) / 1000),
+    sampleCount: run.length,
+    startVoltage: round(voltages.at(0), 2),
+    minVoltage: round(minOf(voltages), 2),
+    endVoltage: round(voltages.at(-1), 2),
+    // Capacity is cumulative since the pack was plugged in, so what this
+    // flight used is the rise across it, not the last value.
+    mahUsed:
+      peakCapacity > 0 ? Math.round(peakCapacity - (minOf(capacities) ?? 0)) : null,
+    maxCurrentA: peakCurrent > 0 ? round(peakCurrent, 1) : null,
+    minLinkQuality: round(minOf(values(run, (sample) => sample.linkQuality)), 0),
+    minRssiDbm: round(minOf(values(run, (sample) => sample.rssi)), 0),
+    minSnrDb: round(minOf(values(run, (sample) => sample.snr)), 0),
+    minDownlinkQuality: round(minOf(values(run, (sample) => sample.downlinkQuality)), 0),
+    maxTxPowerMw: round(
+      maxOf(values(run, (sample) => sample.txPower).filter((mw) => mw > 0)),
+      0,
+    ),
+    avgThrottlePct: round(meanOf(throttle), 0),
+    maxThrottlePct: round(maxOf(throttle), 0),
+    minRadioVoltage: round(minOf(radioVoltages), 2),
+    // The radio's clock, even when it was never set: it still orders the day.
+    timeRecorded: true,
+    ...track,
+  };
+}
+
+/** The fixes worth trusting, summed by the same arithmetic every log's track gets. */
+function gpsSummary(run: readonly Sample[]): TrackFigures {
+  const fixes: Fix[] = [];
+
+  for (const sample of run) {
+    if (
+      sample.lat !== null &&
+      sample.lon !== null &&
+      (sample.satellites === null || sample.satellites >= MIN_SATELLITES)
+    ) {
+      fixes.push({
+        t: sample.t,
+        lat: sample.lat,
+        lon: sample.lon,
+        altitude: sample.altitude,
+      });
+    }
+  }
+
+  // The GPS module's own speed readings: the radio logs them, so nothing is
+  // measured from the positions.
+  return summariseTrack(
+    fixes,
+    values(run, (sample) => sample.speedKmh),
+  );
+}
+
+/**
+ * What a GPS speed reading is multiplied by to be km/h, from the unit in its
+ * heading. ExpressLRS logs `GSpd(km/h)`, but FrSky and other telemetry log
+ * knots — read as km/h, every top speed came out at about half.
+ */
+function speedToKmh(heading: string): number {
+  const unit = (/\(([^)]*)\)\s*$/.exec(heading)?.[1] ?? '').trim().toLowerCase();
+
+  switch (unit) {
+    case 'kts':
+    case 'kt':
+    case 'knots':
+      return 1.852;
+    case 'm/s':
+      return 3.6;
+    case 'mph':
+      return 1.609344;
+    default:
+      return 1;
+  }
+}
+
+/**
+ * The model name, from the file name EdgeTX gives a log:
+ * `<model>-<YYYY-MM-DD>-<HHMMSS>.csv`, or `<model>-<YYYY-MM-DD>.csv` from
+ * older firmware that appended a whole day to one file.
+ */
+export function modelNameFrom(fileName: string): string | null {
+  const base = fileName.split(/[\\/]/).at(-1) ?? fileName;
+  const match = /^(.+?)-\d{4}-\d{2}-\d{2}(?:-\d{6})?\.csv$/i.exec(base);
+  const name = (match?.[1] ?? base.replace(/\.csv$/i, '')).trim();
+
+  return name.length > 0 ? name : null;
+}

@@ -1,0 +1,9 @@
+<sh-spot-form
+  [spot]="spot()"
+  [initialPoint]="initialPoint()"
+  [isEdit]="isEdit()"
+  [saving]="saving()"
+  [errorMessage]="failure()"
+  (saved)="save($event)"
+  (cancelled)="cancel()"
+/>

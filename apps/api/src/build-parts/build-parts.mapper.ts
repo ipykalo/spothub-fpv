@@ -37,6 +37,26 @@ export function toBuildPartDto(
   };
 }
 
+/**
+ * A fitted part as someone the build is shared with sees it: what it is and
+ * where it sits, never what it cost, where it was bought, when the unit was
+ * acquired, the owner's notes, or the other units of that part on the shelf.
+ */
+export function withoutOwnersDetails(install: BuildPartDto): BuildPartDto {
+  return {
+    ...install,
+    unit: { ...install.unit, acquiredOn: null, notes: null },
+    part: {
+      ...install.part,
+      notesMd: null,
+      units: [],
+      sources: [],
+      purchasePrice: null,
+      purchaseCurrency: null,
+    },
+  };
+}
+
 export function toBuildCostDto(cost: BuildCost): BuildCostDto {
   return {
     totals: cost.totals.map(toMoneyDto),

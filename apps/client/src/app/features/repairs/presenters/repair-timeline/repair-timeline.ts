@@ -55,6 +55,8 @@ const SORTS: readonly SortOption<RepairSortKey>[] = [
 export class RepairTimeline {
   readonly repairs = input.required<readonly RepairDto[]>();
   readonly pendingRemoval = input<string | null>(null);
+  /** For someone the build is shared with: the history without a Delete. */
+  readonly readOnly = input(false);
 
   readonly removeRequested = output<RepairDto>();
 

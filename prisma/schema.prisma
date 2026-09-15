@@ -38,6 +38,14 @@ model User {
   builds        Build[]
   parts         Part[]
   assets        Asset[]
+  logImports    LogImport[]
+  logFiles      LogFile[]
+  sessions      Session[]
+  flights       Flight[]
+
+  spots        Spot[]
+  comments     Comment[]
+  commentReads CommentRead[]
 
   @@map("users")
 }
@@ -133,11 +141,14 @@ model Build {
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
-  owner   User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  cover   Asset?      @relation("BuildCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
-  parts   BuildPart[]
-  repairs Repair[]
-  configs Config[]
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cover        Asset?        @relation("BuildCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  parts        BuildPart[]
+  repairs      Repair[]
+  configs      Config[]
+  flights      Flight[]
+  comments     Comment[]
+  commentReads CommentRead[]
 
   @@unique([ownerId, slug])
   @@index([ownerId, status])
@@ -218,6 +229,8 @@ model PartUnit {
 
   part     Part        @relation(fields: [partId], references: [id], onDelete: Cascade)
   installs BuildPart[]
+  /// Flights flown on this unit, when it is a battery pack.
+  flights  Flight[]
 
   @@index([partId])
   @@map("part_units")
@@ -454,4 +467,351 @@ model Config {
 
   @@index([buildId, capturedAt])
   @@map("configs")
+}
+
+// -------------------------------------------------------------------- jobs
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+/// Background work, queued in Postgres rather than in Redis.
+///
+/// One process, one worker, a handful of jobs a day: a table claimed with
+/// `FOR UPDATE SKIP LOCKED` does everything a broker would, and ships as a
+/// migration rather than as another container to run and back up. Not owned by
+/// a user — the owner travels in the payload with everything else a handler
+/// needs.
+model Job {
+  id          String    @id @default(uuid()) @db.Uuid
+  /// Which handler runs it, e.g. `flight-log.import`.
+  type        String
+  payload     Json      @default("{}")
+  status      JobStatus @default(QUEUED)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3) @map("max_attempts")
+  /// Not picked up before this. A failed attempt pushes it out as backoff.
+  runAfter    DateTime  @default(now()) @map("run_after")
+  /// When a worker claimed it. A RUNNING job with a stale lock belonged to a
+  /// process that died, and is claimed again.
+  lockedAt    DateTime? @map("locked_at")
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, runAfter])
+  @@map("jobs")
+}
+
+// ----------------------------------------------------------------- flights
+
+/// Which parser reads a log: the radio's EdgeTX CSV, a flight controller's
+/// Betaflight blackbox, or a GPX track from any GPS.
+enum LogFormat {
+  EDGETX_CSV
+  BETAFLIGHT_BBL
+  GPX
+}
+
+enum LogFileStatus {
+  /// Reserved and signed; the bytes may not have arrived yet.
+  PENDING
+  PARSED
+  FAILED
+}
+
+enum LogImportStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+/// One batch: everything dropped in at once, processed by one job.
+model LogImport {
+  id          String          @id @default(uuid()) @db.Uuid
+  ownerId     String          @map("owner_id") @db.Uuid
+  /// The build every flight in the batch belongs to. Null means match each
+  /// log's model name against the build names, and leave the rest unassigned.
+  /// No foreign key: this records what was asked for, and the worker checks
+  /// the build still exists before using it.
+  buildId     String?         @map("build_id") @db.Uuid
+  /// The day the batch's blackbox logs were flown. A flight controller records
+  /// no date, so whoever imports says; EdgeTX logs keep the radio's own.
+  flownOn     DateTime?       @map("flown_on") @db.Date
+  status      LogImportStatus @default(QUEUED)
+  flightCount Int             @default(0) @map("flight_count")
+  error       String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  finishedAt  DateTime?       @map("finished_at")
+
+  owner User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  files LogFile[]
+
+  @@index([ownerId, createdAt])
+  @@map("log_imports")
+}
+
+/// One log file, kept verbatim in object storage, so a parser fix can re-run
+/// over it rather than asking for the SD card again.
+model LogFile {
+  id          String        @id @default(uuid()) @db.Uuid
+  ownerId     String        @map("owner_id") @db.Uuid
+  importId    String?       @map("import_id") @db.Uuid
+  format      LogFormat     @default(EDGETX_CSV)
+  status      LogFileStatus @default(PENDING)
+  storageKey  String        @unique @map("storage_key")
+  /// What the radio called it. Display only — never used to build the key.
+  fileName    String        @map("file_name")
+  sizeBytes   Int           @map("size_bytes")
+  /// SHA-256 of the bytes. The whole LOGS folder is dropped in every time, so
+  /// this is what makes the second drop import only what is new.
+  checksum    String
+  /// The radio model the log was recorded under, from the file name.
+  modelName   String?       @map("model_name")
+  flightCount Int           @default(0) @map("flight_count")
+  error       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  owner          User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  import         LogImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  flights        Flight[]   @relation("FlightLog")
+  /// Flights a GPX track from this file was added to, rather than stored as.
+  trackedFlights Flight[]   @relation("FlightTrack")
+
+  @@unique([ownerId, checksum])
+  @@index([importId])
+  @@map("log_files")
+}
+
+/// One outing: flights less than 90 minutes apart.
+///
+/// Derived from the flights on every import, so it holds nothing of its own
+/// yet — the spot and the notes arrive with V2 Places.
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  ownerId   String   @map("owner_id") @db.Uuid
+  startedAt DateTime @map("started_at")
+  endedAt   DateTime @map("ended_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  flights Flight[]
+
+  @@index([ownerId, startedAt])
+  @@map("sessions")
+}
+
+/// One pack: a stretch of a log from arming to landing.
+///
+/// Times are the radio's wall clock, stored as though they were UTC. The radio
+/// records no time zone, and guessing one would shift every flight by the
+/// difference.
+model Flight {
+  id             String   @id @default(uuid()) @db.Uuid
+  ownerId        String   @map("owner_id") @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  buildId        String?  @map("build_id") @db.Uuid
+  /// The battery pack flown. A log never says which pack was plugged in, so
+  /// this is only ever set by hand.
+  batteryUnitId  String?  @map("battery_unit_id") @db.Uuid
+  logFileId      String   @map("log_file_id") @db.Uuid
+  /// The GPX file whose track was added to this flight, when one was: a
+  /// track that overlaps a flight from a radio log joins it instead of being
+  /// stored as a second flight. SetNull, so deleting that log keeps the flight.
+  trackLogFileId String?  @map("track_log_file_id") @db.Uuid
+  startedAt      DateTime @map("started_at")
+  endedAt        DateTime @map("ended_at")
+  durationS      Int      @map("duration_s")
+  sampleCount    Int      @map("sample_count")
+  /// False for a blackbox log: it records no time of day, only the day it was
+  /// said to be flown, so its times order its flights and nothing more.
+  timeRecorded   Boolean  @default(true) @map("time_recorded")
+
+  // --- battery and link: these need no GPS
+  startVoltage   Float? @map("start_voltage")
+  minVoltage     Float? @map("min_voltage")
+  endVoltage     Float? @map("end_voltage")
+  mahUsed        Int?   @map("mah_used")
+  maxCurrentA    Float? @map("max_current_a")
+  minLinkQuality Int?   @map("min_link_quality")
+
+  // --- link, sticks and radio: logged by the receiver and the radio
+  // themselves, so these arrive even from a quad that sends no telemetry
+  minRssiDbm         Int?   @map("min_rssi_dbm")
+  minSnrDb           Int?   @map("min_snr_db")
+  minDownlinkQuality Int?   @map("min_downlink_quality")
+  maxTxPowerMw       Int?   @map("max_tx_power_mw")
+  avgThrottlePct     Int?   @map("avg_throttle_pct")
+  maxThrottlePct     Int?   @map("max_throttle_pct")
+  minRadioVoltage    Float? @map("min_radio_voltage")
+
+  // --- track: only when the quad carries GPS
+  hasGps           Boolean @default(false) @map("has_gps")
+  distanceM        Float?  @map("distance_m")
+  maxAltitudeM     Float?  @map("max_altitude_m")
+  maxSpeedKmh      Float?  @map("max_speed_kmh")
+  maxHomeDistanceM Float?  @map("max_home_distance_m")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  owner        User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  session      Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// SetNull: deleting a quad must not delete the record of having flown it.
+  build        Build?    @relation(fields: [buildId], references: [id], onDelete: SetNull)
+  /// SetNull for the same reason: deleting a pack keeps the flights.
+  batteryUnit  PartUnit? @relation(fields: [batteryUnitId], references: [id], onDelete: SetNull)
+  logFile      LogFile   @relation("FlightLog", fields: [logFileId], references: [id], onDelete: Cascade)
+  trackLogFile LogFile?  @relation("FlightTrack", fields: [trackLogFileId], references: [id], onDelete: SetNull)
+
+  /// Re-running an import over the same file cannot duplicate a flight.
+  @@unique([logFileId, startedAt])
+  @@index([ownerId, startedAt])
+  @@index([sessionId])
+  @@index([buildId])
+  @@index([batteryUnitId])
+  @@index([trackLogFileId])
+  @@map("flights")
+}
+
+// ------------------------------------------------------------------ spots
+
+/// The ground a spot is. Chosen from a short list rather than typed, so the
+/// map can be filtered by it.
+enum SpotTerrain {
+  FIELD
+  PARK
+  BANDO
+  FOREST
+  QUARRY
+  MOUNTAIN
+  WATER
+  URBAN
+  TRACK
+  OTHER
+}
+
+enum SpotHazard {
+  POWERLINES
+  PEOPLE
+  TRAFFIC
+  TREES
+  WATER
+  ANIMALS
+  AIRSPACE
+  PRIVATE_LAND
+}
+
+/// Whether flying there is allowed, as far as the owner knows.
+enum SpotAccess {
+  OPEN
+  ASK_FIRST
+  RESTRICTED
+  UNKNOWN
+}
+
+/// A place to fly, written by hand.
+///
+/// Kept apart from flights on purpose: a spot is somewhere, a flight is
+/// something that happened. Nothing here is derived from a log.
+model Spot {
+  id            String       @id @default(uuid()) @db.Uuid
+  ownerId       String       @map("owner_id") @db.Uuid
+  name          String
+  slug          String
+  /// Plain numerics rather than PostGIS: nothing queries by distance yet, and
+  /// Prisma cannot read a geography column without raw SQL. Six decimal
+  /// places is about 11 cm.
+  lat           Decimal      @db.Decimal(9, 6)
+  lng           Decimal      @db.Decimal(9, 6)
+  /// Nearest town or region, as the owner would say it.
+  locality      String?
+  terrain       SpotTerrain?
+  access        SpotAccess   @default(UNKNOWN)
+  /// 1 (wide open, easy) to 5 (tight and unforgiving).
+  difficulty    Int?         @db.SmallInt
+  hazards       SpotHazard[] @default([])
+  descriptionMd String?      @map("description_md")
+  /// Parking, the way in, who to ask.
+  accessNotesMd String?      @map("access_notes_md")
+  visibility    Visibility   @default(PRIVATE)
+  /// Captured from a GPS fix with nothing filled in yet. Created private, and
+  /// anything that lists spots publicly must skip drafts.
+  isDraft       Boolean      @default(false) @map("is_draft")
+  /// A flight video on YouTube: its 11-character id and an optional start
+  /// time, never the pasted URL. One per spot, by being these two columns.
+  youtubeVideoId String?     @map("youtube_video_id") @db.VarChar(11)
+  youtubeStartS  Int?        @map("youtube_start_s")
+  /// The video's thumbnail, fetched once by the `spot.cover` job and kept in
+  /// our own bucket, so a card showing it never contacts YouTube. A key, never
+  /// a URL: every read is a short-lived presigned GET.
+  coverStorageKey String?    @unique @map("cover_storage_key")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  comments     Comment[]
+  commentReads CommentRead[]
+
+  @@unique([ownerId, slug])
+  @@index([ownerId, updatedAt])
+  @@map("spots")
+}
+
+// ---------------------------------------------------------------- comments
+
+/// A question on a spot or a build, or a reply to one. Belongs to exactly one
+/// subject — `spot_id` or `build_id` — which a CHECK constraint in the
+/// migration enforces, since Prisma cannot express it; and goes when its
+/// subject does. Replies go one level deep: a reply's parent is always a
+/// question, never another reply.
+model Comment {
+  id        String    @id @default(uuid()) @db.Uuid
+  spotId    String?   @map("spot_id") @db.Uuid
+  buildId   String?   @map("build_id") @db.Uuid
+  authorId  String    @map("author_id") @db.Uuid
+  /// Null for a question; the question's id for a reply.
+  parentId  String?   @map("parent_id") @db.Uuid
+  body      String
+  /// Set by the question's asker or the subject's owner, on at most one reply per question.
+  isAnswer  Boolean   @default(false) @map("is_answer")
+  /// When its author last reworded it; null if never.
+  editedAt  DateTime? @map("edited_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  spot    Spot?     @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  build   Build?    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  /// Deleting a question takes its replies with it.
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([spotId, createdAt])
+  @@index([buildId, createdAt])
+  @@index([parentId])
+  @@map("comments")
+}
+
+/// When a user last read a subject's comments — what the unread badges count
+/// from. One subject per row, as for comments; its own id, since a composite
+/// key cannot include a nullable column.
+model CommentRead {
+  id      String   @id @default(uuid()) @db.Uuid
+  spotId  String?  @map("spot_id") @db.Uuid
+  buildId String?  @map("build_id") @db.Uuid
+  userId  String   @map("user_id") @db.Uuid
+  readAt  DateTime @default(now()) @map("read_at")
+
+  spot  Spot?  @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  build Build? @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spotId, userId])
+  @@unique([buildId, userId])
+  @@map("comment_reads")
 }

@@ -12,35 +12,44 @@ import { RepairCause } from './enums';
 
 const isoDate = z.iso.date();
 
+/**
+ * The writable fields, without defaults; create adds them. zod 4 applies a
+ * `.default()` even inside `.partial()`, so an update derived from defaulted
+ * fields would turn every repair described after the fact back into a crash
+ * with no cost.
+ */
 export const repairFields = z.object({
   occurredOn: isoDate,
-  cause: z.enum(RepairCause).default(RepairCause.Crash),
+  cause: z.enum(RepairCause),
   descriptionMd: z
     .union([z.string().max(20_000), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value))
-    .default(null),
+    .transform((value) => (value === null || value === '' ? null : value)),
   /**
    * What the repair cost beyond the parts themselves — a shop bill, or a
    * replacement bought without being catalogued. Ordered so `z.coerce` cannot
    * turn an unfilled field into a real zero.
    */
-  cost: z
-    .union([
-      z.null(),
-      z.literal('').transform(() => null),
-      z.coerce.number().nonnegative('Cost cannot be negative').max(1_000_000),
-    ])
-    .default(null),
+  cost: z.union([
+    z.null(),
+    z.literal('').transform(() => null),
+    z.coerce.number().nonnegative('Cost cannot be negative').max(1_000_000),
+  ]),
   currency: z
     .union([z.string().trim().length(3, 'Use a three-letter code, e.g. EUR'), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value.toUpperCase()))
-    .default(null),
+    .transform((value) => (value === null || value === '' ? null : value.toUpperCase())),
 });
 
-export const createRepairSchema = repairFields.refine(
-  (value) => value.cost === null || value.currency !== null,
-  { message: 'A cost needs a currency', path: ['currency'] },
-);
+export const createRepairSchema = repairFields
+  .extend({
+    cause: repairFields.shape.cause.default(RepairCause.Crash),
+    descriptionMd: repairFields.shape.descriptionMd.default(null),
+    cost: repairFields.shape.cost.default(null),
+    currency: repairFields.shape.currency.default(null),
+  })
+  .refine((value) => value.cost === null || value.currency !== null, {
+    message: 'A cost needs a currency',
+    path: ['currency'],
+  });
 
 export const updateRepairSchema = repairFields
   .partial()

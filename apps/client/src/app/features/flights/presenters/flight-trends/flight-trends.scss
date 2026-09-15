@@ -1,0 +1,152 @@
+/*
+ * Chart marks are the one thing here a Tailwind utility cannot express: a
+ * validated categorical hue, not a theme color, carries a metric's identity
+ * across all four charts. Everything else — layout, spacing, text — is
+ * Tailwind in the template. Colors follow `light-dark()` the same way
+ * `styles.scss`'s status tones do, so the toolbar's theme toggle (which sets
+ * `color-scheme` on the root) repaints them with no extra wiring.
+ */
+.viz {
+  --voltage-start: light-dark(#86b6ef, #9ec5f4);
+  --voltage-min: light-dark(#2a78d6, #3987e5);
+  --link-quality: light-dark(#eb6834, #d95926);
+  --airtime: light-dark(#1baf7a, #199e70);
+  --scatter: light-dark(#eda100, #c98500);
+  --chart-gridline: light-dark(#e1e0d9, #2c2c2a);
+  --chart-stem: light-dark(#c3c2b7, #383835);
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.gridline {
+  stroke: var(--chart-gridline);
+  stroke-width: 1;
+}
+
+.axis-label {
+  fill: var(--mat-sys-on-surface-variant, #898781);
+  font-size: 10px;
+}
+
+.readout {
+  margin: 0.375rem 0 0;
+  min-height: 2.5em;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+
+  strong {
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.readout--empty {
+  font-style: italic;
+}
+
+/* Voltage dumbbell: one hue, two shades — the stem itself carries no color. */
+.voltage-stem {
+  stroke: var(--chart-stem);
+  stroke-width: 2;
+}
+
+.voltage-dot {
+  stroke: var(--mat-sys-surface);
+  stroke-width: 2;
+}
+
+.voltage-dot--start {
+  fill: var(--voltage-start);
+}
+
+.voltage-dot--min {
+  fill: var(--voltage-min);
+}
+
+.voltage-key {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+}
+
+.voltage-key--start {
+  background: var(--voltage-start);
+}
+
+.voltage-key--min {
+  background: var(--voltage-min);
+}
+
+/* Link-quality trend. */
+.link-line {
+  fill: none;
+  stroke: var(--link-quality);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.link-area {
+  fill: var(--link-quality);
+  opacity: 0.1;
+  stroke: none;
+}
+
+.link-dot {
+  fill: var(--link-quality);
+  stroke: var(--mat-sys-surface);
+  stroke-width: 2;
+}
+
+/* Cumulative airtime. */
+.airtime-line {
+  fill: none;
+  stroke: var(--airtime);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.airtime-area {
+  fill: var(--airtime);
+  opacity: 0.1;
+  stroke: none;
+}
+
+.airtime-dot {
+  fill: var(--airtime);
+  stroke: var(--mat-sys-surface);
+  stroke-width: 2;
+}
+
+/* Throttle vs. current scatter. */
+.scatter-dot {
+  fill: var(--scatter);
+  stroke: var(--mat-sys-surface);
+  stroke-width: 2;
+}
+
+/*
+ * The hit target is bigger than the mark on purpose — a 4px dot is not a
+ * reliable pointer or keyboard-focus target on its own.
+ */
+.hit {
+  fill: transparent;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    fill: var(--mat-sys-on-surface);
+    opacity: 0.06;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 1px;
+  }
+}

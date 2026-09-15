@@ -1,0 +1,39 @@
+:host {
+  display: block;
+}
+
+.play {
+  cursor: pointer;
+  font: inherit;
+}
+
+.play:disabled {
+  cursor: default;
+}
+
+/* The stored cover behind the button, dimmed so its words stay readable. */
+.play.has-cover {
+  position: relative;
+  background-position: center;
+  background-size: cover;
+}
+
+.play.has-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 45%);
+}
+
+.play.has-cover > * {
+  position: relative;
+  color: #fff;
+}
+
+/* MatIcon injects its own 24px rule at runtime, so the size cannot be a utility. */
+.play-icon {
+  width: 64px;
+  height: 64px;
+  font-size: 64px;
+  color: var(--mat-sys-primary);
+}

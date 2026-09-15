@@ -16,8 +16,8 @@ import {
 import sharp from 'sharp';
 
 import type { Env } from '../config';
+import { StorageGateway } from '../storage';
 import { AssetsRepository } from './abstract/assets.repository';
-import { StorageGateway } from './abstract/storage.gateway';
 import { type AssetEntity, AssetSubject } from './asset.entity';
 import { toAssetDto } from './assets.mapper';
 
@@ -126,17 +126,29 @@ export class AssetsService {
     }
   }
 
-  async list(ownerId: string, buildId: string): Promise<AssetDto[]> {
-    await this.assertSubject(ownerId, buildId);
-
-    const assets = await this.assets.findManyForSubject(
-      ownerId,
+  /**
+   * A build's gallery, for its owner or anyone it is shared with. The photos
+   * are already safe to show — EXIF went on commit — but the name a file had
+   * on the owner's phone is theirs, so someone else sees none.
+   */
+  async list(viewerId: string, buildId: string): Promise<AssetDto[]> {
+    const ownerId = await this.assets.findSubjectOwnerVisibleToViewer(
+      viewerId,
       AssetSubject.Build,
       buildId,
     );
 
+    if (ownerId === null) {
+      throw new NotFoundException('Build not found');
+    }
+
+    const assets = await this.assets.findManyForSubject(ownerId, AssetSubject.Build, buildId);
+
     return Promise.all(
-      assets.map(async (asset) => toAssetDto(asset, await this.signUrls(asset))),
+      assets.map(async (asset) => {
+        const dto = toAssetDto(asset, await this.signUrls(asset));
+        return viewerId === ownerId ? dto : { ...dto, fileName: null };
+      }),
     );
   }
 

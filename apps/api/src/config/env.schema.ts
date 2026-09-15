@@ -68,6 +68,15 @@ export const envSchema = z.object({
   /** How long a presigned upload or download URL stays valid. */
   S3_UPLOAD_URL_TTL: seconds.default(300),
   S3_DOWNLOAD_URL_TTL: seconds.default(3600),
+
+  /**
+   * Betaflight's blackbox_decode, which turns a .bbl log into CSV. The API
+   * image builds it in. On a machine without it — Windows has no C compiler
+   * to build it with — name a Docker image built from the Dockerfile's
+   * `blackbox-decode` stage instead, and the decoder runs through Docker.
+   */
+  BLACKBOX_DECODE_PATH: z.string().min(1).default('blackbox_decode'),
+  BLACKBOX_DECODE_DOCKER_IMAGE: z.string().default(''),
 });
 
 export type Env = z.output<typeof envSchema>;

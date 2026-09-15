@@ -20,19 +20,15 @@ export class BuildsApi {
   private readonly url = `${inject(API_BASE_URL)}/builds`;
 
   list(query: ListBuildsQuery = {}): Observable<BuildDto[]> {
-    let params = new HttpParams();
-
-    if (query.status) {
-      params = params.set('status', query.status);
-    }
-
-    if (query.search) {
-      params = params.set('search', query.search);
-    }
-
-    return this.http.get<BuildDto[]>(this.url, { params });
+    return this.http.get<BuildDto[]>(this.url, { params: toParams(query) });
   }
 
+  /** Public builds other pilots shared. */
+  listShared(query: ListBuildsQuery = {}): Observable<BuildDto[]> {
+    return this.http.get<BuildDto[]>(`${this.url}/shared`, { params: toParams(query) });
+  }
+
+  /** One of the viewer's own builds, or one shared with them. */
   getOne(id: string): Observable<BuildDto> {
     return this.http.get<BuildDto>(`${this.url}/${id}`);
   }
@@ -49,4 +45,18 @@ export class BuildsApi {
   remove(id: string): Observable<null> {
     return this.http.delete<null>(`${this.url}/${id}`);
   }
+}
+
+function toParams(query: ListBuildsQuery): HttpParams {
+  let params = new HttpParams();
+
+  if (query.status) {
+    params = params.set('status', query.status);
+  }
+
+  if (query.search) {
+    params = params.set('search', query.search);
+  }
+
+  return params;
 }

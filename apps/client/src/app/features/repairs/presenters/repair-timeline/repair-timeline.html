@@ -53,14 +53,16 @@
           }
         </span>
 
-        <button
-          matButton
-          type="button"
-          [disabled]="pendingRemoval() === repair.id"
-          (click)="removeRequested.emit(repair)"
-        >
-          {{ pendingRemoval() === repair.id ? 'Deleting…' : 'Delete' }}
-        </button>
+        @if (!readOnly()) {
+          <button
+            matButton
+            type="button"
+            [disabled]="pendingRemoval() === repair.id"
+            (click)="removeRequested.emit(repair)"
+          >
+            {{ pendingRemoval() === repair.id ? 'Deleting…' : 'Delete' }}
+          </button>
+        }
       </li>
     }
   </ol>

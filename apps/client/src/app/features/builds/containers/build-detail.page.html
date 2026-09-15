@@ -1,11 +1,19 @@
 @if (build(); as quad) {
   <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
     <div class="min-w-0">
-      <a class="inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline" routerLink="/hangar">
+      <!-- Back to the list the build came from: someone else's build lives under Shared. -->
+      <a
+        class="inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline"
+        routerLink="/hangar"
+        [queryParams]="quad.ownedByViewer ? null : { scope: 'shared' }"
+      >
         <mat-icon class="icon-sm">arrow_back</mat-icon>
         Hangar
       </a>
       <h1 class="mt-1.5 mb-2 text-2xl wrap-anywhere">{{ quad.name }}</h1>
+      @if (!quad.ownedByViewer) {
+        <p class="m-0 mb-2 text-sm text-muted">Shared by {{ quad.ownerName ?? 'another pilot' }}</p>
+      }
       <!-- Matches the card chip: same tokens, same shape. -->
       <span
         class="tone-{{
@@ -19,10 +27,13 @@
 
     <div class="flex items-center gap-2">
       <sh-collapse-all />
-      <a matButton="outlined" [routerLink]="['/hangar', quad.id, 'edit']">
-        <mat-icon>edit</mat-icon>
-        Edit build
-      </a>
+      <!-- Only its owner changes a build; a shared one is read-only. -->
+      @if (quad.ownedByViewer) {
+        <a matButton="outlined" [routerLink]="['/hangar', quad.id, 'edit']">
+          <mat-icon>edit</mat-icon>
+          Edit build
+        </a>
+      }
     </div>
   </header>
 } @else {
@@ -65,17 +76,20 @@
           <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">GPS</dt>
           <dd class="m-0">{{ quad.hasGps ? 'Fitted' : 'None' }}</dd>
         </div>
-        <div>
-          <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Firmware</dt>
-          <dd class="m-0 inline-flex items-center gap-1 tabular-nums">
-            @if (configs.current()?.fwVersion; as version) {
-              <mat-icon class="icon-sm text-muted" aria-hidden="true">memory</mat-icon>
-              <span title="From the most recent capture">Betaflight {{ version }}</span>
-            } @else {
-              <span class="text-muted italic">No capture yet</span>
-            }
-          </dd>
-        </div>
+        <!-- Firmware comes from the owner's captures, which are theirs alone. -->
+        @if (quad.ownedByViewer) {
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Firmware</dt>
+            <dd class="m-0 inline-flex items-center gap-1 tabular-nums">
+              @if (configs.current()?.fwVersion; as version) {
+                <mat-icon class="icon-sm text-muted" aria-hidden="true">memory</mat-icon>
+                <span title="From the most recent capture">Betaflight {{ version }}</span>
+              } @else {
+                <span class="text-muted italic">No capture yet</span>
+              }
+            </dd>
+          </div>
+        }
         <div>
           <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Visibility</dt>
           <dd class="m-0">{{ visibilityLabels[quad.visibility] }}</dd>
@@ -95,7 +109,10 @@
       </dl>
     }
 
-    <sh-build-cost-summary [cost]="installs.cost()" />
+    <!-- What it cost is the owner's business. -->
+    @if (owned()) {
+      <sh-build-cost-summary [cost]="installs.cost()" />
+    }
 
     @if (build()?.descriptionMd; as notes) {
       <h3 class="mt-5 mb-2 text-sm font-semibold tracking-wider text-muted uppercase">Notes</h3>
@@ -106,7 +123,7 @@
   <sh-section
     heading="Photos"
     storageKey="build.photos"
-    addLabel="Add photos"
+    [addLabel]="owned() ? 'Add photos' : null"
     [count]="photos.photos().length"
     [(adding)]="addingPhotos"
   >
@@ -114,6 +131,7 @@
       [photos]="photos.photos()"
       [pending]="photos.pending()"
       [coverAssetId]="build()?.coverAssetId ?? null"
+      [readonlyMode]="!owned()"
       [showUploader]="addingPhotos()"
       (filesChosen)="uploadPhotos($event)"
       (removeRequested)="removePhoto($event)"
@@ -122,25 +140,28 @@
     />
   </sh-section>
 
-  <sh-section heading="Fit a part" storageKey="build.fit" addLabel="Add part" [(adding)]="addingFit">
-    @if (addingFit()) {
-      <sh-install-part-form
-        [units]="fittable()"
-        [repairs]="repairs.repairs()"
-        [saving]="saving()"
-        (installed)="install($event)"
-      />
-    } @else {
-      <p class="m-0 text-sm text-muted">
-        {{ fittable().length }} unit{{ fittable().length === 1 ? '' : 's' }} on the shelf ready to fit.
-      </p>
-    }
-  </sh-section>
+  @if (owned()) {
+    <sh-section heading="Fit a part" storageKey="build.fit" addLabel="Add part" [(adding)]="addingFit">
+      @if (addingFit()) {
+        <sh-install-part-form
+          [units]="fittable()"
+          [repairs]="repairs.repairs()"
+          [saving]="saving()"
+          (installed)="install($event)"
+        />
+      } @else {
+        <p class="m-0 text-sm text-muted">
+          {{ fittable().length }} unit{{ fittable().length === 1 ? '' : 's' }} on the shelf ready to fit.
+        </p>
+      }
+    </sh-section>
+  }
 
   <sh-section heading="Components" storageKey="build.components" [count]="installs.fitted().length">
     <sh-installed-parts-list
       [installs]="installs.fitted()"
       [pendingRemoval]="pendingRemoval()"
+      [readOnly]="!owned()"
       (removeRequested)="remove($event)"
     />
   </sh-section>
@@ -153,14 +174,14 @@
       [count]="installs.removed().length"
       [open]="false"
     >
-      <sh-installed-parts-list [installs]="installs.removed()" [history]="true" />
+      <sh-installed-parts-list [installs]="installs.removed()" [history]="true" [readOnly]="!owned()" />
     </sh-section>
   }
 
   <sh-section
     heading="Repairs and crashes"
     storageKey="build.repairs"
-    addLabel="Add repair"
+    [addLabel]="owned() ? 'Add repair' : null"
     [count]="repairs.repairs().length"
     [(adding)]="addingRepair"
   >
@@ -177,46 +198,63 @@
     <sh-repair-timeline
       [repairs]="repairs.repairs()"
       [pendingRemoval]="removingRepairId()"
+      [readOnly]="!owned()"
       (removeRequested)="removeRepair($event)"
     />
   </sh-section>
 
-  <sh-section
-    heading="Firmware"
-    storageKey="build.firmware"
-    addLabel="Add capture"
-    [count]="configs.configs().length"
-    [(adding)]="addingConfig"
-  >
-    @if (configs.configs().length >= 2) {
-      <a shSectionActions matButton [routerLink]="['/hangar', id(), 'compare']">
-        <mat-icon>compare_arrows</mat-icon>
-        Compare captures
-      </a>
-    }
+  <!-- Firmware captures and the logbook are the owner's alone. -->
+  @if (owned()) {
+    <sh-section
+      heading="Firmware"
+      storageKey="build.firmware"
+      addLabel="Add capture"
+      [count]="configs.configs().length"
+      [(adding)]="addingConfig"
+    >
+      @if (configs.configs().length >= 2) {
+        <a shSectionActions matButton [routerLink]="['/hangar', id(), 'compare']">
+          <mat-icon>compare_arrows</mat-icon>
+          Compare captures
+        </a>
+      }
 
-    @if (addingConfig()) {
-      <div class="mb-4">
-        <sh-config-paste-form
-          [saving]="savingConfig()"
-          [knownMcuId]="configs.current()?.mcuId ?? null"
-          (pasted)="saveConfig($event)"
-        />
-      </div>
-    }
+      @if (addingConfig()) {
+        <div class="mb-4">
+          <sh-config-paste-form
+            [saving]="savingConfig()"
+            [knownMcuId]="configs.current()?.mcuId ?? null"
+            (pasted)="saveConfig($event)"
+          />
+        </div>
+      }
 
-    @if (configs.error(); as message) {
-      <p role="alert">{{ message }}</p>
-    }
+      @if (configs.error(); as message) {
+        <p role="alert">{{ message }}</p>
+      }
 
-    <sh-config-list
-      [configs]="configs.configs()"
-      [pendingRemoval]="removingConfigId()"
-      [busyId]="fetchingConfigId()"
-      [copiedId]="copiedConfigId()"
-      (copyRequested)="copyConfig($event)"
-      (downloadRequested)="downloadConfig($event)"
-      (removeRequested)="removeConfig($event)"
+      <sh-config-list
+        [configs]="configs.configs()"
+        [pendingRemoval]="removingConfigId()"
+        [busyId]="fetchingConfigId()"
+        [copiedId]="copiedConfigId()"
+        (copyRequested)="copyConfig($event)"
+        (downloadRequested)="downloadConfig($event)"
+        (removeRequested)="removeConfig($event)"
+      />
+    </sh-section>
+
+    <sh-section heading="Flight trends" storageKey="build.flights" [count]="buildFlights().length">
+      <sh-flight-trends [flights]="buildFlights()" />
+    </sh-section>
+  }
+
+  <!-- Open to anyone the build is shared with: they ask, its owner answers. -->
+  @if (build(); as quad) {
+    <sh-comments-section
+      [subject]="commentSubject"
+      [subjectId]="quad.id"
+      [ownedByViewer]="quad.ownedByViewer"
     />
-  </sh-section>
+  }
 </div>

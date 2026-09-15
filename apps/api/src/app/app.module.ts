@@ -5,14 +5,20 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuthModule } from '../auth';
 import { BuildPartsModule } from '../build-parts';
 import { BuildsModule } from '../builds';
+import { CommentsModule } from '../comments';
 import { AllExceptionsFilter, JwtAuthGuard } from '../common';
 import { validateEnv } from '../config';
 import { ConfigsModule } from '../configs';
+import { FlightLogsModule } from '../flight-logs';
+import { FlightsModule } from '../flights';
 import { HealthModule } from '../health';
+import { JobsModule } from '../jobs';
 import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
+import { SpotsModule } from '../spots';
+import { StorageModule } from '../storage';
 import { UsersModule } from '../users';
 
 /**
@@ -28,6 +34,8 @@ import { UsersModule } from '../users';
       validate: validateEnv,
     }),
     PrismaModule,
+    StorageModule,
+    JobsModule,
     UsersModule,
     AuthModule,
     BuildsModule,
@@ -36,6 +44,10 @@ import { UsersModule } from '../users';
     ConfigsModule,
     PartsModule,
     MediaModule,
+    FlightsModule,
+    FlightLogsModule,
+    SpotsModule,
+    CommentsModule,
     HealthModule,
   ],
   providers: [

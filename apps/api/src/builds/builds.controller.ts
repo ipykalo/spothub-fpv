@@ -45,6 +45,19 @@ export class BuildsController {
     return this.builds.list(user.id, query);
   }
 
+  /**
+   * Public builds other pilots shared. Declared before `:id`, which would
+   * otherwise take "shared" as an id and refuse it as not a UUID.
+   */
+  @Get('shared')
+  listShared(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodValidationPipe(listBuildsQuerySchema)) query: ListBuildsQuery,
+  ): Promise<BuildDto[]> {
+    return this.builds.listShared(user.id, query);
+  }
+
+  /** One of yours, or one someone shared as Public or Unlisted. */
   @Get(':id')
   getOne(
     @CurrentUser() user: AuthenticatedUser,

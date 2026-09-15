@@ -32,6 +32,16 @@ export abstract class AssetsRepository {
 
   abstract markFailedForOwner(ownerId: string, id: string): Promise<void>;
 
+  /**
+   * The subject's owner, when the viewer may see it — for a build, their own
+   * or one shared as Public or Unlisted. Null otherwise.
+   */
+  abstract findSubjectOwnerVisibleToViewer(
+    viewerId: string,
+    subject: AssetSubject,
+    subjectId: string,
+  ): Promise<string | null>;
+
   /** True when the subject row exists and belongs to this owner. */
   abstract subjectBelongsToOwner(
     ownerId: string,

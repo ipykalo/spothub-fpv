@@ -91,6 +91,13 @@ export class BuildFormPage {
       return;
     }
 
+    // A shared build opens for others, but only its owner edits it — the API
+    // would refuse the save anyway, so do not offer a form that cannot work.
+    if (!build.ownedByViewer) {
+      await this.router.navigate(['/hangar', id], { replaceUrl: true });
+      return;
+    }
+
     this.build.set(build);
   }
 

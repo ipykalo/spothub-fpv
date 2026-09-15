@@ -28,6 +28,8 @@ import { BUILD_STATUS_STYLES } from '../../build-status';
 export class BuildCard {
   readonly build = input.required<BuildDto>();
   readonly deleting = input(false);
+  /** Questions by other pilots waiting unread on this build; only ever set for the viewer's own. */
+  readonly unread = input(0);
 
   readonly delete = output<BuildDto>();
 

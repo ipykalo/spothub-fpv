@@ -36,3 +36,8 @@ Thumbs.db
 docker-compose.yml
 .claude
 .agents
+
+# Test fixtures. The image builds the API, it does not test it — and a
+# blackbox fixture folder can hold hundreds of MB of local logs that are never
+# committed.
+**/__fixtures__

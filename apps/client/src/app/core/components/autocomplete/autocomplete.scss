@@ -1,16 +1,21 @@
 @use '@angular/material' as mat;
 
 /*
- * `compact`: a label-less 40px field for a list row, such as a unit's
- * condition. Material sizes the field from its own tokens, unlayered, so this
- * is an override of Material and has to live here rather than as a utility.
- * Only the form-field tokens are touched, not a whole density theme.
+ * `compact`: a label-less field for a list row, such as a unit's condition or
+ * a flight's build. Material sizes the field from its own tokens, unlayered,
+ * so this is an override of Material and has to live here rather than as a
+ * utility. The height and padding match Material's own minimum density step
+ * (-5); the text size drops with them, from the default `body-large` (16px)
+ * to something closer to the row's own text, or the field reads oversized
+ * next to it.
  */
 :host(.compact) {
   @include mat.form-field-overrides(
     (
-      container-height: 40px,
-      container-vertical-padding: 8px,
+      container-height: 36px,
+      container-vertical-padding: 6px,
+      container-text-size: 13px,
+      container-text-line-height: 18px,
     )
   );
 }

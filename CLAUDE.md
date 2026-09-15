@@ -24,10 +24,15 @@ whole public surface:
 
 ```
 apps/api/src/
-  app/  common/  config/  prisma/          infrastructure
-  auth/  users/                            sign-in and accounts
-  builds/  build-parts/  repairs/  configs/   the hangar
-  parts/                                    inventory (catalogue, units, sources)
+  app/  common/  config/  prisma/  storage/  jobs/   infrastructure
+  auth/  users/                              sign-in and accounts
+  builds/  build-parts/  repairs/  configs/  the hangar
+  parts/                                     inventory (catalogue, units, sources)
+  media/                                     build photos
+  flights/                                   the logbook: flights, sessions
+  flight-logs/                               log import, a reader per format
+  spots/                                     flying spots on a map
+  comments/                                  questions and replies on spots and builds
   health/
 ```
 
@@ -78,8 +83,21 @@ contract: it marks the module's contract surface — the abstract repository and
 facade classes that are also the DI tokens — rather than being another pile of
 implementation files.
 
-`common/`, `config/`, `prisma/` and `app/` are infrastructure, not feature
-modules, and keep their own shape.
+`common/`, `config/`, `prisma/`, `storage/`, `jobs/` and `app/` are
+infrastructure, not feature modules, and keep their own shape.
+
+**Object storage and the job queue are infrastructure, not features.**
+`StorageGateway` (presign, get, put) began inside `media` and moved to
+`storage/` when flight logs needed the same presigned rails — a port private to
+one feature could only have been shared through that feature's facade, which
+would have made `media` everyone's storage service. `JobQueue` runs anything
+too slow for a request: the request enqueues and answers 202, and a worker in
+the API process claims rows from the `jobs` table with `FOR UPDATE SKIP
+LOCKED`, retrying with backoff and reclaiming a lock left by a process that
+died. A module registers its handlers in `onModuleInit`; the worker starts on
+application bootstrap, so no job can run before its handler exists. No Redis:
+at a handful of jobs a day a table does everything a broker would, and ships
+as a migration rather than another container to run and back up.
 
 **A module's `index.ts` is its entire public API.** Cross-module imports name
 the barrel (`../../repairs`), never a file inside it. `no-restricted-imports`
@@ -93,8 +111,10 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are three: `UsersFacade` (consumed by auth),
-`PartsFacade` and `RepairsFacade` (both consumed by build-parts). A facade
+that module's `exports`. There are six: `UsersFacade` (consumed by auth),
+`PartsFacade` and `RepairsFacade` (both consumed by build-parts),
+`FlightsFacade` (consumed by flight-logs), and `SpotsFacade` and
+`BuildsFacade` (both consumed by comments). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -155,6 +175,10 @@ features/
   configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
   photos/       photos.api/store, photo-gallery presenter
   parts/        catalogue, units, sources
+  flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends presenters
+  flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
+  spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
+  comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot and build pages)
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -269,6 +293,12 @@ The rules that keep Tailwind and Angular Material from fighting:
   `NX_LOAD_DOT_ENV_FILES=false` on the dev scripts. Nothing is lost:
   `@nestjs/config` and the Prisma CLI both read `.env` themselves. Setting
   `port` in the serve target does not help — the env var wins.
+- **On Windows, run the tests from PowerShell or cmd, not Git Bash.** Git Bash
+  starts child processes in `d:\…` with a lowercase drive letter while
+  `node_modules` resolves under `D:\…`, so Vitest loads its runner twice and
+  every suite dies with "Cannot read properties of undefined (reading
+  'config')" before a single test runs. Nothing is wrong with the tests; CI on
+  Linux is unaffected.
 - **Lint must go through Nx.** ESLint flat config does not cascade, so
   `eslint apps libs` applies only the root config and silently skips every
   Angular and template rule. Use `nx run-many -t lint`, which is what
@@ -294,6 +324,8 @@ npm run db:seed        # demo inventory, one real part per category
 npm run db:seed:undo   # remove it again
 npm run lint           # type-aware, zero warnings tolerated
 npm run typecheck
+npm test               # API unit tests (Vitest) — from PowerShell on Windows
+npm run test:e2e       # API end-to-end, needs db:up first
 npm run build
 ```
 
@@ -305,6 +337,19 @@ delete a part whose units are fitted to a build.
 Lint uses `strictTypeChecked` + `stylisticTypeChecked`. If a rule fires, fix
 the code rather than disabling the rule; the few existing inline disables each
 carry a comment explaining why.
+
+**`npm test` is unit tests; `npm run test:e2e` is a separate suite.** The
+former (`apps/api/src/**/*.spec.ts`) covers pure parsers and planners with no
+I/O. The latter (`apps/api/e2e/`) boots the real `AppModule` through
+`@nestjs/testing` and drives it with real HTTP requests, against a real
+Postgres and MinIO — no mocked repositories, because repositories, services,
+the import job and cross-tenant ownership had no coverage at all until this
+suite. `scripts/run-e2e-tests.mjs` derives a separate database and bucket
+(`<name>_test`, `<bucket>-test`) from `.env` so a run never touches your own
+logbook, and CI gives it its own Postgres and MinIO service containers. The
+one production seam it swaps is `BlackboxDecoder`, for a stub that reads
+already-decoded fixtures, so no test needs the native decoder or Docker. Full
+rationale and how a test is put together: `apps/api/e2e/README.md`.
 
 ## State
 
@@ -324,6 +369,133 @@ verifies and publishes images to GHCR. **Every V1 feature:**
 - Config diff viewer — side by side, virtual-scrolled, caveats stated up front
 - Build photos — presigned PUT straight to storage, EXIF stripped and a
   thumbnail made on commit, carousel with a full-size viewer, cover image
+
+**V3, first slice — flight log import (EdgeTX CSV).** Drop the radio's whole
+LOGS folder: the client hashes every file, asks which checksums the server
+already has, and uploads only the new ones, each straight to storage on a
+presigned PUT. `POST /flight-logs/imports` answers 202 and the
+`flight-log.import` job parses in the background; the client polls. A file that
+is not a readable log fails on its own; anything unexpected fails the attempt
+so the job retries, and a retry skips what was already parsed.
+
+- `edgetx-csv.parser.ts` is pure and tested. Columns are matched by name
+  without their unit, so every sensor is optional except the clock. A pause of
+  more than 30 s splits a file into flights; when Betaflight's flight mode is
+  logged, only armed rows count (`ACRO*` means disarmed), so bench time is not
+  flight time.
+- **A quad that sends no telemetry still gives a useful flight.** The receiver
+  logs its own link statistics (RQly, 1RSS/2RSS, RSNR, TQly, TPWR) and the
+  radio logs its sticks, channels and battery, so those need nothing from the
+  flight controller. Without a flight mode, the arm switch on CH5 times the
+  flight — ExpressLRS requires arming on AUX1 — but only if it moved during
+  the log. Three things the first real log (an Air65 with telemetry off)
+  turned up: EdgeTX **quotes text cells** (`""`, `"ACRO*"`), which hid the
+  disarmed star; current and capacity **read 0, not blank**, when nothing
+  sends them, so a flight-long zero is stored as null; and the date was
+  **2000-01-01** — a radio whose clock is unset. The flights page flags any
+  session before 2015 as "radio clock not set".
+- **EdgeTX writes its header once, but a row's columns change** when a sensor
+  comes online or its link goes stale mid-log — the flight controller's
+  telemetry arriving a few seconds late inserts columns into every later row,
+  and the header is never rewritten. A fixed header index then reads the wrong
+  cell (current came through as link quality: "LQ −1006%"). Link stats, sticks
+  and channels are read counting back from each row's own end; the columns
+  before them are trusted only on a row whose layout still matches the header.
+- **Times are the radio's wall clock stored as UTC** — the radio records no
+  zone. Render them with `timeZone: 'UTC'` or every flight shifts.
+- Sessions group flights less than 90 minutes apart and keep their ids across
+  re-imports: `session-planner.ts` (pure, tested) reuses a group's existing
+  session, merges ones a new flight bridges, and splits one a deletion gaps.
+- Without a chosen build, a flight goes to the build named like the radio
+  model, case-insensitively — most radios name the model after the quad.
+- **A flight's battery pack is set by hand** — a log never says which pack was
+  plugged in. It is a unit of a `BATTERY` part (`flights.battery_unit_id`, SET
+  NULL), set on one flight or on many at once through `PATCH /flights`, which
+  changes every named flight or none of them. A battery part's page lists each
+  pack's cycles, airtime, average sag and lowest voltage, and charts its
+  flights one pack at a time, which is where a pack's wear shows. A cycle is a
+  flight — counted from the flights, never stored, as `fitted` is for units.
+- **A log counts as imported while a flight from it is still in the
+  logbook** (or if it never held one). Delete every flight a log gave and the
+  next drop imports it again; delete only some and the rest keep it imported,
+  so a flight deleted as "not really a flight" stays deleted. The first cut
+  keyed this on `status = PARSED` alone, and a log whose flights had all been
+  deleted could never be brought back.
+- Real SD-card logs go in `apps/api/src/flight-logs/formats/edgetx/__fixtures__/`;
+  the spec parses every one. `npm test` runs the API suite.
+
+**Betaflight blackbox logs** come in on the same pipeline, and carry what a
+quad with telemetry off never sends the radio: pack voltage and current.
+
+- **Decoded by Betaflight's own `blackbox_decode`** (GPL-3.0, run as a separate
+  program, never linked). The API image builds it from source at a pinned
+  commit; where it is not installed, `BLACKBOX_DECODE_DOCKER_IMAGE` runs it
+  through Docker — build that image with `npm run decoder:build`, since Windows
+  has no C compiler. The npm `blackbox-log` parser refuses Betaflight 4.5 logs
+  outright. `blackbox-csv.parser.ts` is pure and tested on decoded CSV from
+  real logs (`flight-logs/formats/blackbox/__fixtures__/`).
+- **One `.bbl` is one power-on, with a log per arm.** Logs less than 30 s apart
+  join into one flight, as EdgeTX rows do, so a crash and a re-arm do not split
+  a pack's flying. Charge is counted from current over time: the decoder's
+  `energyCumulative` carried on across logs and read double within one.
+- **A blackbox records no date.** A flight controller's clock is almost never
+  set (`0000-01-01`), so the import asks which day the logs were flown. Files
+  land on that day in `btfl_NNN` order, ten minutes apart, stored with
+  `time_recorded = false`: those times only order the day, and the logbook
+  says "time not recorded" instead of showing them.
+- A flight controller's USB drive also offers `btfl_all.bbl`, the whole flash
+  repeating every log, and a `padding.txt` of zeros. Both are skipped.
+- Builds match a craft name or radio model ignoring case and spaces, so the
+  flight controller's "Cinelog  20" finds the build Cinelog20.
+
+**Import and the logbook are two modules.** `flight-logs` owns uploads, the
+import job and the log formats; `flights` owns flights and sessions, and
+`flight-logs` reaches it only through `FlightsFacade` — sessions regroup on
+every flight write, and only `flights` knows how. They were one module until
+the second format arrived, with the import job injecting the flights
+repository and branching on format.
+
+- **Each format is a `LogReader`** under `flight-logs/formats/<format>/`: its
+  content type, its storage extension, and how its bytes become flights, with
+  the pure parser and its fixtures beside it. `LogReaders` holds them as a
+  `Record<LogFormat, LogReader>`, so a format added to the shared enum without
+  a reader fails to compile, and neither the upload nor the job branches on
+  format.
+- The parsers import `FlightFigures` from `flights` as a type only, which the
+  compiler erases. Keep them that way: **Vitest cannot resolve
+  `@spothub/shared`**, so a pure file under test must not import it — which is
+  why `SESSION_GAP_MS` sits in `flights.constants.ts`, not in
+  `session-planner.ts`.
+- The client splits the same way. `FlightLogsStore` never reloads the
+  logbook; `flights.page` composes both stores and reloads `FlightsStore` once
+  an import is over.
+
+**GPX tracks** from a phone, goggles or GPS logger complete the formats. A GPX
+file has positions, heights and true UTC times, and nothing else, so it adds
+a track to a flight rather than being one.
+
+- **A track joins the radio-log flight it lines up with.** `track-matcher.ts`
+  (pure, tested) tries the track's times as recorded, then shifted by whole
+  quarter hours, nearest first: a radio's clock is usually local time, and
+  every real zone offset is a quarter-hour multiple. A flight is chosen only
+  when exactly one flight's take-off and landing are both within 30 s at the
+  first shift where any is; blackbox flights never match, their times being
+  invented. A flight that already has GPS from its radio log keeps it; one
+  without takes the track's figures. A track that lines up with nothing is
+  stored as a GPS-only flight.
+- **A joined track is linked, not stored.** `flights.track_log_file_id` (SET
+  NULL) points at the GPX file, and "still imported" counts those links as it
+  counts flights — without that, a GPX that only joined a flight would look
+  new on every folder drop.
+- GPX has no speed, so speed is measured from positions over windows of at
+  least a second. `formats/gps-track.ts` sums distance, height, speed and
+  home distance for both GPX and EdgeTX, which passes its GPS module's own
+  speed readings instead.
+- **EdgeTX logs speed in the unit its sensor sends** — `GSpd(km/h)` from
+  ExpressLRS, `GSpd(kts)` from FrSky — and the parser converts from the unit
+  in the heading. It once read knots as km/h and halved every top speed.
+- The GPS fixtures are synthetic (a supplied EdgeTX log with GPS, and a GPX
+  generated from it two hours earlier, as UTC); see their `README.md`s.
 
 The API was restructured into one module per bounded context — `builds` used to
 hold four, and `parts` held its catalogue, units, sources and URL preview in one
@@ -357,6 +529,131 @@ worth remembering:
 
 The GHCR packages are **private** by default, so the first deploy needs a pull
 secret unless they are made public.
+
+**Spots** are places to fly, kept apart from flights on purpose: a spot is
+something you plan around and describe, not something a log proves. A spot has
+its own page and a Leaflet map (`/spots`), where clicking an empty place offers
+"Add a spot here", and the form's pin and its coordinate fields move each other.
+
+- **Coordinates are `Decimal(9, 6)`** — about 11 cm — and the contract rounds
+  to six places, so what the form shows is what is stored. The repository hands
+  them out as numbers.
+- **Leaflet is touched in one presenter, `spot-map`.** Pins are `divIcon`s
+  holding a Material Icons glyph: Leaflet's default marker images are URLs a
+  bundler rewrites into paths that do not exist. **`leaflet.css` is `@use`d
+  from `styles.scss`.** Without it the panes lose their absolute positioning,
+  and tiles land scattered with dark gaps and no zoom buttons. It is not in
+  `project.json`'s styles list, because a running dev server reads that list
+  only at start-up and kept serving maps without it; from the map component it
+  blew the 8 kB per-component style budget. `invalidateSize` runs a frame
+  after the ResizeObserver fires; calling it inside the callback is a layout
+  loop.
+- **"Add location" is the at-the-field action.** One tap asks the browser's
+  Geolocation API for a fresh fix (`DeviceLocation`, the one place `navigator`
+  is asked), `POST /spots/drafts` saves it as a private draft named "Unnamed
+  location", and the edit form opens on it. Saving that form sends
+  `isDraft: false`, which is also the one time a slug is rewritten — the
+  placeholder's `unnamed-location-3` was never an address worth keeping. The
+  contract accepts only `false` there: a spot never goes back to being a
+  draft. **Anything that lists spots publicly must filter out drafts.**
+  Geolocation needs a secure context — HTTPS, or localhost in development.
+- **A spot's visibility is who can open it.** Private is the owner alone;
+  Unlisted is anyone signed in who has the link; Public is also listed at
+  `GET /spots/shared` (other owners' spots only). A draft is never shared,
+  whatever its visibility says. Reads of someone else's spot go through
+  `findVisibleForViewer` / `findSharedForViewer`, which name the rule they
+  apply; every write stays owner-scoped through `updateMany` / `deleteMany`,
+  so sharing opened reading and nothing else. The DTO carries
+  `ownedByViewer` — the same spot answers differently to its owner — and the
+  owner's display name, joined inside the spots repository, never their
+  email. The client keeps the two lists apart in `SpotsStore` and hides
+  Edit and Delete wherever `ownedByViewer` is false; `?scope=shared` on
+  `/spots` is the shared list.
+- **Comments are their own module, `comments`, reaching spots through
+  `SpotsFacade.ownerIfVisible` and builds through `BuildsFacade.ownerIfVisible`.**
+  One `comments` table serves both: each row has a `spot_id` or a `build_id`
+  — exactly one, by a CHECK constraint Prisma cannot express, so it lives in
+  the migration — and cascades with its subject. `comment_reads` is shaped
+  the same way. The routes are the same six under `spots/:id/comments` and
+  `builds/:id/comments`, plus `GET /comments/unread`, which counts spots and
+  builds apart for the Spots and Hangar badges. Anyone who can open a spot can ask
+  a question, and anyone who can open it can reply; replies go one level
+  deep. The question's asker or the spot's owner marks at most one reply per
+  question as the answer — never a reply the asker wrote, since a follow-up
+  or a thank-you cannot answer their own question (`canMarkAnswer`). Authors reword their own words; a
+  comment's author or the spot's owner deletes it, and a question takes its
+  replies with it (FK cascade). Those rules are not checks before a write —
+  they are the writes' own `where` clauses (`updateBodyForAuthor`,
+  `deleteForViewer`'s `OR [author, spot.owner]`, `setAnswerForAskerOrOwner`), so
+  a stranger's edit cannot be expressed. A spot someone cannot open answers
+  404 for its comments too, never 403. Every change returns the whole
+  conversation, with per-viewer flags (`byViewer`, `canDelete`,
+  `viewerOwnsSubject`) the client renders rather than re-derives. Unread is
+  per owner: `comment_reads` records when the owner last opened a spot or a
+  build, and one grouped query counts others' comments since, for the Spots
+  and Hangar badges and each card's "N new". The client's
+  `sh-comments-section` container carries the whole section, so the spot and
+  build pages each drop it in rather than holding the handlers themselves.
+- **Every spot map carries its own controls**, in one column: full screen,
+  zoom, show my location. They are view state, so they live in `spot-map`
+  rather than in each container. Full screen uses the Fullscreen API on the
+  map's host and falls back to the host covering the page (`map-covers-page`,
+  Escape to leave) where the API is missing, as on iPhone Safari. "Show my
+  location" takes one fresh fix through `DeviceLocation`, draws the blue dot
+  and its accuracy circle, and forgets it — nothing is saved or handed up. The
+  buttons sit in a Leaflet bar that stops click propagation, so pressing one
+  never also picks a point.
+- **Navigating to a spot is a plain link** to
+  `google.com/maps/dir/?api=1&destination=lat,lng` (`googleDirectionsUrl`),
+  which opens directions from the phone's position in the Maps app. No API
+  key, and nothing is sent until someone taps it.
+- **A spot's flight video is a YouTube link, not an upload** — no storage and
+  no transcoding. `libs/shared/src/lib/youtube.ts` parses any YouTube link
+  (watch, youtu.be, shorts, live, embed, with `t=` or `start=`) into an
+  11-character id and a start time, and those two columns are all that is
+  stored: never the pasted URL, and one video per spot by construction. The
+  spot page loads nothing from Google until play is pressed, then embeds the
+  youtube-nocookie player; `bypassSecurityTrustResourceUrl` is only ever given
+  a URL built from an id re-checked against YouTube's alphabet. Uploaded,
+  transcoded clips are a possible later extension.
+- **A spot's cover is its video's thumbnail, stored, not linked.** Pointing a
+  card at `i.ytimg.com` would tell Google who browsed which spots. Instead,
+  setting a video queues `spot.cover`: the job asks the `YouTubeThumbnails`
+  port for the largest thumbnail (`maxresdefault`, else `hqdefault`), crops it
+  to a 640×360 WebP with sharp, puts it at
+  `<owner>/spots/<spot>/cover-<videoId>.webp`, and records the key only while
+  the spot still has that video (`setCoverForOwner` is scoped by it), deleting
+  what it made otherwise. A new video, no video, or a deleted spot deletes the
+  old image by its exact key; the same video with a new start time keeps it.
+  The DTO carries a presigned `coverUrl`, never the key. The e2e suite swaps
+  the port for `StubYouTubeThumbnails`, which generates a 4:3 image so the
+  crop is tested too.
+- Tiles come from OpenStreetMap, and nothing else sends a spot's coordinates
+  anywhere. Weather was deliberately deferred for that reason.
+- **zod 4 applies `.default()` inside `.partial()`.** An update schema built as
+  `fields.partial()` over fields with defaults resets every field a PATCH does
+  not name. It was live in builds, parts, part units, part sources and repairs
+  from the start: renaming a build reset its status to PLANNING, a note on a
+  part wiped its spec, relabelling a unit marked it serviceable again. **Every
+  `*Fields` object in `libs/shared` carries no defaults; the create schema
+  adds them with `.extend()`.** `apps/api/e2e/partial-updates.e2e.spec.ts`
+  holds each entity to it — add a case there for any new update schema.
+
+**Shared builds** follow the spots rule for who can open one — Private is the
+owner alone, Unlisted anyone signed in with the link, Public also listed at
+`GET /builds/shared` — but a build page reads from four modules, so the rule
+is applied in each. `media` sits beneath `builds` (a card's cover), so no
+builds facade can be asked; instead `build-parts`, `repairs` and `media` each
+ask their own repository `findBuildOwnerVisibleToViewer` /
+`findSubjectOwnerVisibleToViewer` — a join on `builds` — and then run their
+existing owner-scoped read against that owner. What a shared reader never
+gets: purchase prices, sources, part and unit notes, other units, the cost
+rollup, repair cost and currency, a photo's original file name, firmware
+captures, flights and packs. The redaction is in the service, next to the
+read (`withoutOwnersDetails`); every write stays owner-scoped and untouched.
+The client hides every owner section and control where `ownedByViewer` is
+false, and does not even request configs, the inventory or the logbook;
+`?scope=shared` on `/hangar` is the shared list.
 
 **Next, in order:** VPS + Caddy first deploy, then database backups with a
 tested restore. V1 is feature-complete; what is left is getting it off the

@@ -1,0 +1,36 @@
+<sh-section
+  heading="Questions"
+  icon="forum"
+  [storageKey]="subjectLabel() + '.questions'"
+  [count]="comments.comments()?.questions?.length ?? null"
+  [addLabel]="ownedByViewer() ? null : 'Ask a question'"
+  [(adding)]="asking"
+>
+  @if (asking()) {
+    <div class="mb-4">
+      <sh-comment-form
+        label="Your question"
+        submitLabel="Ask"
+        [saving]="comments.saving()"
+        (submitted)="ask($event)"
+        (cancelled)="asking.set(false)"
+      />
+    </div>
+  }
+
+  @if (comments.loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (comments.comments(); as conversation) {
+    <sh-questions
+      [comments]="conversation"
+      [subjectLabel]="subjectLabel()"
+      [saving]="comments.saving()"
+      (replied)="reply($event)"
+      (edited)="edit($event)"
+      (deleted)="remove($event)"
+      (answerMarked)="markAnswer($event)"
+    />
+  }
+</sh-section>

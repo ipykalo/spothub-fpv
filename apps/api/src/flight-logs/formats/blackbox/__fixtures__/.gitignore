@@ -1,0 +1,10 @@
+# What a quad's USB mass-storage mode also exposes: padding.txt is hundreds of
+# MB of zeros, and btfl_all.bbl is the whole flash, repeating every log.
+padding.txt
+btfl_all.bbl
+
+# Real logs stay local. Two small ones are committed as fixtures, with the
+# columns the parser reads decoded from them under decoded/.
+*/btfl_*.bbl
+!cinelog20/btfl_001.bbl
+!air65/btfl_007.bbl

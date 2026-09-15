@@ -1,5 +1,13 @@
 @use '@angular/material' as mat;
 @use 'styles/theme-colors' as theme;
+/*
+ * Leaflet's own stylesheet: without it the map's panes and tiles lose their
+ * absolute positioning, and tiles land scattered with dark gaps between them.
+ * Imported here rather than listed in project.json's styles, because a running
+ * dev server rebuilds this file but only reads that list when it starts — and
+ * from the map component it overran the 8 kB per-component style budget.
+ */
+@use 'leaflet/dist/leaflet';
 
 /*
  * Cascade-layer order, established before anything uses a layer.
@@ -142,4 +150,21 @@ html {
   font-size: 1.25rem;
   width: 1.25rem;
   height: 1.25rem;
+}
+
+/*
+ * `sh-autocomplete`'s `compact` variant shrinks the closed field from its own
+ * stylesheet, but the open panel is CDK overlay content — moved out to a pane
+ * near the end of `<body>`, so `:host(.compact) .mat-mdc-option` in that
+ * stylesheet would need it to still be a DOM descendant of the host, which it
+ * no longer is. `class.sh-autocomplete-compact-panel` on `<mat-autocomplete>`
+ * reaches it anyway: Material carries a component's own `class` bindings onto
+ * the panel element it renders, wherever the overlay places it. Two classes
+ * deep beats Material's own single-class `min-height` rule on specificity
+ * alone, the same reason the icon sizes above are.
+ */
+.sh-autocomplete-compact-panel .mat-mdc-option {
+  min-height: 36px;
+  --mat-option-label-text-size: 0.8125rem;
+  --mat-option-label-text-line-height: 1.125rem;
 }

@@ -1,0 +1,25 @@
+<form class="grid gap-2" [formGroup]="form" (ngSubmit)="submit()">
+  <mat-form-field class="w-full" subscriptSizing="dynamic">
+    <mat-label>{{ label() }}</mat-label>
+    <textarea
+      matInput
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="2"
+      cdkAutosizeMaxRows="10"
+      formControlName="body"
+      [maxlength]="maxLength"
+    ></textarea>
+    <mat-hint align="end">{{ form.controls.body.value.length }} / {{ maxLength }}</mat-hint>
+  </mat-form-field>
+
+  @if (error(); as message) {
+    <p class="m-0 text-sm text-(--mat-sys-error)" role="alert">{{ message }}</p>
+  }
+
+  <div class="flex flex-wrap gap-2">
+    <button matButton="filled" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Posting…' : submitLabel() }}
+    </button>
+    <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</form>

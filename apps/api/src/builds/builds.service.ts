@@ -12,7 +12,13 @@ import { BuildsRepository } from './abstract/builds.repository';
 import type { BuildEntity, UpdateBuildData } from './build.entity';
 import { toBuildDto } from './builds.mapper';
 
-/** Business rules for builds. Knows nothing about HTTP, Prisma or storage. */
+/**
+ * Business rules for builds. Knows nothing about HTTP, Prisma or storage.
+ *
+ * Reading and writing are asked differently on purpose. Anyone signed in may
+ * read a build shared with them; only its owner may change or delete it, and
+ * those paths never go through the shared read.
+ */
 @Injectable()
 export class BuildsService {
   constructor(
@@ -20,19 +26,27 @@ export class BuildsService {
     private readonly media: MediaFacade,
   ) {}
 
+  /** The viewer's own builds. */
   async list(ownerId: string, query: ListBuildsQuery): Promise<BuildDto[]> {
     const builds = await this.builds.findManyForOwner(ownerId, query);
     return this.withCovers(ownerId, builds);
   }
 
-  async getOne(ownerId: string, id: string): Promise<BuildDto> {
-    const build = await this.builds.findOneForOwner(ownerId, id);
+  /** Other owners' Public builds. */
+  async listShared(viewerId: string, query: ListBuildsQuery): Promise<BuildDto[]> {
+    const builds = await this.builds.findSharedForViewer(viewerId, query);
+    return this.withCovers(viewerId, builds);
+  }
+
+  /** The viewer's own build, or one shared with them. Anything else is not found. */
+  async getOne(viewerId: string, id: string): Promise<BuildDto> {
+    const build = await this.builds.findVisibleForViewer(viewerId, id);
 
     if (!build) {
       throw new NotFoundException('Build not found');
     }
 
-    return this.withCover(ownerId, build);
+    return this.withCover(viewerId, build);
   }
 
   async create(ownerId: string, input: CreateBuildDto): Promise<BuildDto> {
@@ -76,34 +90,46 @@ export class BuildsService {
   }
 
   /**
-   * One batched call to the media facade, whatever the length of the list —
-   * signing is local, so a page of cards costs one query rather than one each.
+   * One batched call to the media facade per owner — signing is local, so a
+   * page of the viewer's own cards costs one query, and the shared list one
+   * per pilot on it. A cover photo belongs to its build's owner, so that is
+   * whose assets are looked up; whether the viewer may see the build was
+   * settled by the read that found it.
    */
   private async withCovers(
-    ownerId: string,
+    viewerId: string,
     builds: readonly BuildEntity[],
   ): Promise<BuildDto[]> {
-    const ids = builds
-      .map((build) => build.coverAssetId)
-      .filter((id): id is string => id !== null);
+    const coversByOwner = new Map<string, string[]>();
 
-    const urls = await this.media.urlsFor(ownerId, ids);
+    for (const build of builds) {
+      if (build.coverAssetId !== null) {
+        const ids = coversByOwner.get(build.ownerId) ?? [];
+        ids.push(build.coverAssetId);
+        coversByOwner.set(build.ownerId, ids);
+      }
+    }
+
+    const urls = new Map<string, string>();
+
+    for (const [ownerId, ids] of coversByOwner) {
+      for (const [id, url] of await this.media.urlsFor(ownerId, ids)) {
+        urls.set(id, url);
+      }
+    }
 
     return builds.map((build) =>
       toBuildDto(
         build,
         build.coverAssetId === null ? null : (urls.get(build.coverAssetId) ?? null),
+        viewerId,
       ),
     );
   }
 
-  private async withCover(ownerId: string, build: BuildEntity): Promise<BuildDto> {
-    if (build.coverAssetId === null) {
-      return toBuildDto(build, null);
-    }
-
-    const urls = await this.media.urlsFor(ownerId, [build.coverAssetId]);
-    return toBuildDto(build, urls.get(build.coverAssetId) ?? null);
+  private async withCover(viewerId: string, build: BuildEntity): Promise<BuildDto> {
+    const [dto] = await this.withCovers(viewerId, [build]);
+    return dto;
   }
 }
 

@@ -1,5 +1,17 @@
 <div class="mb-4 flex flex-wrap items-center gap-4">
-  <h1 class="m-0 flex-auto text-2xl">Hangar</h1>
+  <h1 class="m-0 text-2xl">Hangar</h1>
+
+  <mat-button-toggle-group
+    hideSingleSelectionIndicator
+    aria-label="Whose builds to show"
+    [value]="activeScope()"
+    (change)="setScope($event.value)"
+  >
+    <mat-button-toggle value="mine">My builds</mat-button-toggle>
+    <mat-button-toggle value="shared">Shared</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <span class="flex-auto"></span>
 
   <button matButton="filled" routerLink="/hangar/new">
     <mat-icon>add</mat-icon>
@@ -13,7 +25,7 @@
     [(sort)]="grid.sort"
     [sorts]="sorts"
     [shown]="rows().length"
-    [total]="store.builds().length"
+    [total]="list().length"
     searchLabel="Search builds"
   >
     <sh-filter-chips
@@ -25,27 +37,37 @@
   </sh-grid-toolbar>
 }
 
-@if (store.loading()) {
+@if (loading()) {
   <mat-progress-bar mode="indeterminate" />
 }
 
-@if (store.error(); as message) {
+@if (failure(); as message) {
   <p role="alert">{{ message }}</p>
 }
 
 @if (firstRun()) {
   <div class="px-4 py-12 text-center text-muted">
-    <p>No builds yet.</p>
-    <button matButton routerLink="/hangar/new">Add your first quad</button>
+    @if (isShared()) {
+      <p>No one has shared a build yet.</p>
+      <p class="text-sm">Share one of yours by setting its visibility to Public.</p>
+    } @else {
+      <p>No builds yet.</p>
+      <button matButton routerLink="/hangar/new">Add your first quad</button>
+    }
   </div>
 } @else if (!rows().length) {
-  @if (!store.loading()) {
+  @if (!loading()) {
     <p class="py-8 text-muted">Nothing matches.</p>
   }
 } @else {
   <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
     @for (build of rows(); track build.id) {
-      <sh-build-card [build]="build" [deleting]="pendingDelete() === build.id" (delete)="remove($event)" />
+      <sh-build-card
+        [build]="build"
+        [deleting]="pendingDelete() === build.id"
+        [unread]="build.ownedByViewer ? comments.unreadFor(commentSubject, build.id) : 0"
+        (delete)="remove($event)"
+      />
     }
   </div>
 }
