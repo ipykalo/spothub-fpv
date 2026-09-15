@@ -25,11 +25,13 @@ export interface SpotEntity {
   readonly isDraft: boolean;
   /** The spot's one flight video on YouTube, if it has one. */
   readonly video: YouTubeVideo | null;
+  /** The storage key of the cover made from the video's thumbnail, once made. */
+  readonly coverStorageKey: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
 
-/** Fields the persistence layer accepts on create. */
+/** Fields the persistence layer accepts on create. A new spot has no cover yet. */
 export interface CreateSpotData {
   readonly ownerId: string;
   readonly slug: string;
@@ -52,5 +54,9 @@ export interface CreateSpotData {
  * A sparse patch: only the keys present are written. The slug is normally
  * left as it was created, so a renamed spot keeps its address — the one
  * exception is finishing a draft, whose placeholder slug is replaced once.
+ * `coverStorageKey` is only ever cleared here, when the video changes; the
+ * cover job records a new one through `setCoverForOwner`.
  */
-export type UpdateSpotData = Partial<Omit<CreateSpotData, 'ownerId'>>;
+export type UpdateSpotData = Partial<Omit<CreateSpotData, 'ownerId'>> & {
+  readonly coverStorageKey?: null;
+};

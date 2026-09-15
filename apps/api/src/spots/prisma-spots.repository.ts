@@ -67,6 +67,22 @@ export class PrismaSpotsRepository extends SpotsRepository {
     return count === 0 ? null : this.findOneForOwner(ownerId, id);
   }
 
+  async setCoverForOwner(
+    ownerId: string,
+    id: string,
+    youtubeId: string,
+    coverStorageKey: string,
+  ): Promise<boolean> {
+    // Scoped by the video as well as the owner: a cover made for a video the
+    // spot no longer has must never be recorded against it.
+    const { count } = await this.prisma.spot.updateMany({
+      where: { id, ownerId, youtubeVideoId: youtubeId },
+      data: { coverStorageKey },
+    });
+
+    return count > 0;
+  }
+
   async deleteForOwner(ownerId: string, id: string): Promise<boolean> {
     const { count } = await this.prisma.spot.deleteMany({ where: { id, ownerId } });
     return count > 0;
@@ -108,6 +124,7 @@ function toEntity(row: Spot): SpotEntity {
       row.youtubeVideoId === null
         ? null
         : { youtubeId: row.youtubeVideoId, startS: row.youtubeStartS },
+    coverStorageKey: row.coverStorageKey,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

@@ -576,6 +576,18 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   youtube-nocookie player; `bypassSecurityTrustResourceUrl` is only ever given
   a URL built from an id re-checked against YouTube's alphabet. Uploaded,
   transcoded clips are a possible later extension.
+- **A spot's cover is its video's thumbnail, stored, not linked.** Pointing a
+  card at `i.ytimg.com` would tell Google who browsed which spots. Instead,
+  setting a video queues `spot.cover`: the job asks the `YouTubeThumbnails`
+  port for the largest thumbnail (`maxresdefault`, else `hqdefault`), crops it
+  to a 640×360 WebP with sharp, puts it at
+  `<owner>/spots/<spot>/cover-<videoId>.webp`, and records the key only while
+  the spot still has that video (`setCoverForOwner` is scoped by it), deleting
+  what it made otherwise. A new video, no video, or a deleted spot deletes the
+  old image by its exact key; the same video with a new start time keeps it.
+  The DTO carries a presigned `coverUrl`, never the key. The e2e suite swaps
+  the port for `StubYouTubeThumbnails`, which generates a 4:3 image so the
+  crop is tested too.
 - Tiles come from OpenStreetMap, and nothing else sends a spot's coordinates
   anywhere. Weather was deliberately deferred for that reason.
 - **zod 4 applies `.default()` inside `.partial()`.** An update schema built as

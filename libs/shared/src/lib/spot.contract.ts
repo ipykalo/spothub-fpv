@@ -202,6 +202,12 @@ export const spotSchema = z.object({
   isDraft: z.boolean(),
   /** The spot's flight video on YouTube, if it has one. */
   video: youTubeVideoSchema.nullable(),
+  /**
+   * The video's thumbnail, fetched once by the server and served from our own
+   * storage as a short-lived presigned URL — showing it never contacts
+   * YouTube. Null for a spot without a video, and until the cover is made.
+   */
+  coverUrl: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

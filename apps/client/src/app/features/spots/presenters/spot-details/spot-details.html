@@ -80,7 +80,7 @@
 
   <sh-section heading="Flight video" storageKey="spot.video">
     @if (spot().video; as video) {
-      <sh-spot-video [video]="video" />
+      <sh-spot-video [video]="video" [cover]="spot().coverUrl" />
     } @else {
       <p class="m-0 text-muted italic">No video yet. Edit the spot to add a YouTube link.</p>
     }

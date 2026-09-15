@@ -22,5 +22,16 @@ export abstract class SpotsRepository {
     data: UpdateSpotData,
   ): Promise<SpotEntity | null>;
 
+  /**
+   * Records a cover made for `youtubeId` — only while the spot still has that
+   * video. False when it does not, so the job can throw away what it made.
+   */
+  abstract setCoverForOwner(
+    ownerId: string,
+    id: string,
+    youtubeId: string,
+    coverStorageKey: string,
+  ): Promise<boolean>;
+
   abstract deleteForOwner(ownerId: string, id: string): Promise<boolean>;
 }

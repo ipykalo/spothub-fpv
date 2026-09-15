@@ -3,6 +3,11 @@
   class="tone-{{ access().tone }} flex h-full flex-col gap-2 px-4 pt-3 pb-2"
   [class.selected]="selected()"
 >
+  @if (spot().coverUrl; as cover) {
+    <!-- Decorative: the name below says what it is. Served from our storage, never YouTube. -->
+    <img class="cover" [src]="cover" alt="" loading="lazy" decoding="async" />
+  }
+
   <div class="flex items-start gap-2">
     <mat-icon class="icon-md mt-0.5 shrink-0 text-muted" [attr.aria-label]="terrainLabel()">{{
       terrainIcon()

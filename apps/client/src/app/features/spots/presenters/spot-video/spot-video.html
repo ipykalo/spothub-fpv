@@ -18,6 +18,8 @@
       <button
         type="button"
         class="play flex size-full flex-col items-center justify-center gap-1.5 border-0 bg-transparent px-4 text-inherit"
+        [class.has-cover]="posterImage()"
+        [style.background-image]="posterImage()"
         [disabled]="!embedUrl()"
         (click)="playing.set(true)"
       >

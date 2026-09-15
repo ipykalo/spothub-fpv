@@ -742,6 +742,10 @@ model Spot {
   /// time, never the pasted URL. One per spot, by being these two columns.
   youtubeVideoId String?     @map("youtube_video_id") @db.VarChar(11)
   youtubeStartS  Int?        @map("youtube_start_s")
+  /// The video's thumbnail, fetched once by the `spot.cover` job and kept in
+  /// our own bucket, so a card showing it never contacts YouTube. A key, never
+  /// a URL: every read is a short-lived presigned GET.
+  coverStorageKey String?    @unique @map("cover_storage_key")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 

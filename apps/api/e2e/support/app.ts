@@ -6,7 +6,9 @@ import cookieParser from 'cookie-parser';
 
 import { AppModule } from '../../src/app';
 import { BlackboxDecoder } from '../../src/flight-logs/abstract/blackbox-decoder';
+import { YouTubeThumbnails } from '../../src/spots/abstract/youtube-thumbnails';
 import { StubBlackboxDecoder } from './stub-blackbox-decoder';
+import { StubYouTubeThumbnails } from './stub-youtube-thumbnails';
 
 const GLOBAL_PREFIX = 'api';
 
@@ -24,14 +26,18 @@ export interface TestApp {
  * database and bucket before the suite starts; this file does not know or
  * care that it is being pointed anywhere unusual.
  *
- * The one override is `BlackboxDecoder`: real blackbox logs need Betaflight's
- * native decoder or Docker, neither guaranteed on a test runner, so it is
- * replaced with a stub that reads already-decoded fixtures instead.
+ * Two seams are swapped, both for something outside this repository. Real
+ * blackbox logs need Betaflight's native decoder or Docker, neither
+ * guaranteed on a test runner, so `BlackboxDecoder` reads already-decoded
+ * fixtures instead. And a spot cover would otherwise be fetched from YouTube,
+ * so `YouTubeThumbnails` generates its image locally.
  */
 export async function createTestApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BlackboxDecoder)
     .useClass(StubBlackboxDecoder)
+    .overrideProvider(YouTubeThumbnails)
+    .useClass(StubYouTubeThumbnails)
     .compile();
 
   const app = moduleRef.createNestApplication();

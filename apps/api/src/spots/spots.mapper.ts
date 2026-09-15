@@ -4,9 +4,10 @@ import type { SpotEntity } from './spot.entity';
 
 /**
  * The single place a spot becomes a wire object. Explicit rather than a
- * spread, so a column added to the table is not silently published.
+ * spread, so a column added to the table is not silently published — the
+ * cover's storage key stays inside; only a signed URL for it goes out.
  */
-export function toSpotDto(spot: SpotEntity): SpotDto {
+export function toSpotDto(spot: SpotEntity, coverUrl: string | null): SpotDto {
   return {
     id: spot.id,
     name: spot.name,
@@ -23,6 +24,7 @@ export function toSpotDto(spot: SpotEntity): SpotDto {
     visibility: spot.visibility,
     isDraft: spot.isDraft,
     video: spot.video ? { youtubeId: spot.video.youtubeId, startS: spot.video.startS } : null,
+    coverUrl,
     createdAt: spot.createdAt.toISOString(),
     updatedAt: spot.updatedAt.toISOString(),
   };

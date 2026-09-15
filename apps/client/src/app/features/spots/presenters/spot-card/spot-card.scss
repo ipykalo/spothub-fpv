@@ -7,7 +7,22 @@
  * card's own border, which Material sets unlayered, so it cannot be a utility.
  */
 mat-card {
+  overflow: hidden;
   border-left: 3px solid var(--tone);
+}
+
+/*
+ * The video's cover, full bleed across the card's own padding (px-4, pt-3),
+ * cropped to the player's 16:9.
+ */
+.cover {
+  display: block;
+  width: calc(100% + 2rem);
+  max-width: none;
+  margin: -0.75rem -1rem 0.25rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--mat-sys-surface-container);
 }
 
 /* The card whose pin is lit on the map. */

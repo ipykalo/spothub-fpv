@@ -27,6 +27,13 @@ import { type YouTubeVideo, youTubeEmbedUrl, youTubeWatchUrl } from '@spothub/sh
 })
 export class SpotVideo {
   readonly video = input.required<YouTubeVideo>();
+  /** The spot's stored cover, shown behind the play button. From our storage, never YouTube. */
+  readonly cover = input<string | null>(null);
+
+  protected readonly posterImage = computed(() => {
+    const cover = this.cover();
+    return cover === null ? null : `url("${cover}")`;
+  });
 
   private readonly sanitizer = inject(DomSanitizer);
 
