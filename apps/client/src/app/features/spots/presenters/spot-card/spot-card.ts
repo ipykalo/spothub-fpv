@@ -33,6 +33,8 @@ export class SpotCard {
   readonly spot = input.required<SpotDto>();
   readonly selected = input(false);
   readonly deleting = input(false);
+  /** Comments by other pilots waiting unread on this spot; only ever set for the viewer's own. */
+  readonly unread = input(0);
 
   readonly showOnMap = output<SpotDto>();
   readonly delete = output<SpotDto>();

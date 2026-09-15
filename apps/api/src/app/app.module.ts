@@ -16,6 +16,7 @@ import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
+import { SpotCommentsModule } from '../spot-comments';
 import { SpotsModule } from '../spots';
 import { StorageModule } from '../storage';
 import { UsersModule } from '../users';
@@ -46,6 +47,7 @@ import { UsersModule } from '../users';
     FlightsModule,
     FlightLogsModule,
     SpotsModule,
+    SpotCommentsModule,
     HealthModule,
   ],
   providers: [

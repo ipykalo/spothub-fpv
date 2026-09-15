@@ -31,6 +31,16 @@
   </div>
 
   <div class="flex flex-wrap items-center gap-1.5">
+    @if (unread() > 0) {
+      <span
+        class="tone-work inline-flex items-center gap-1 rounded-full bg-(--tone-surface) py-0.5 pr-2 pl-1 text-xs font-bold tracking-wide text-(--tone) uppercase"
+        [attr.aria-label]="unread() + (unread() === 1 ? ' new comment' : ' new comments')"
+      >
+        <mat-icon class="icon-xs" aria-hidden="true">forum</mat-icon>
+        {{ unread() }} new
+      </span>
+    }
+
     @if (spot().isDraft) {
       <span
         class="tone-work inline-flex items-center gap-1 rounded-full bg-(--tone-surface) py-0.5 pr-2 pl-1 text-xs font-bold tracking-wide text-(--tone) uppercase"

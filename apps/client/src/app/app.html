@@ -12,7 +12,17 @@
       <a matButton routerLink="/hangar">Hangar</a>
       <a matButton routerLink="/parts">Parts</a>
       <a matButton routerLink="/flights">Flights</a>
-      <a matButton routerLink="/spots">Spots</a>
+      <a matButton routerLink="/spots">
+        Spots
+        @if (comments.unread().total; as unread) {
+          <span
+            class="ml-1 inline-grid min-w-5 place-items-center rounded-full bg-(--mat-sys-primary) px-1.5 text-xs leading-5 font-bold text-(--mat-sys-on-primary)"
+            [attr.aria-label]="unread + (unread === 1 ? ' unread comment' : ' unread comments')"
+          >
+            {{ unread }}
+          </span>
+        }
+      </a>
     </nav>
     <span class="flex-1"></span>
     <span class="max-[40rem]:hidden">{{ auth.displayName() }}</span>

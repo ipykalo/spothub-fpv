@@ -47,4 +47,42 @@
   <sh-spot-map class="mb-8 h-80" [label]="'Map showing ' + found.name" [spots]="[found]" [selectedId]="found.id" />
 
   <sh-spot-details [spot]="found" (coordinatesCopied)="onCopied($event)" />
+
+  <!-- The owner answers here; everyone else it is shared with asks. -->
+  <sh-section
+    class="mt-8"
+    heading="Questions"
+    icon="forum"
+    storageKey="spot.questions"
+    [count]="comments.comments()?.questions?.length ?? null"
+    [addLabel]="found.ownedByViewer ? null : 'Ask a question'"
+    [(adding)]="asking"
+  >
+    @if (asking()) {
+      <div class="mb-4">
+        <sh-comment-form
+          label="Your question"
+          submitLabel="Ask"
+          [saving]="comments.saving()"
+          (submitted)="ask($event)"
+          (cancelled)="asking.set(false)"
+        />
+      </div>
+    }
+
+    @if (comments.loading()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+
+    @if (comments.comments(); as conversation) {
+      <sh-spot-questions
+        [comments]="conversation"
+        [saving]="comments.saving()"
+        (replied)="reply($event)"
+        (edited)="edit($event)"
+        (deleted)="removeComment($event)"
+        (answerMarked)="markAnswer($event)"
+      />
+    }
+  </sh-section>
 }

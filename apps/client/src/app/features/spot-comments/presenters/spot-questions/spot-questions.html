@@ -1,0 +1,119 @@
+@let conversation = comments();
+
+@if (!conversation.questions.length) {
+  <p class="m-0 text-muted italic">
+    {{
+      conversation.viewerOwnsSpot
+        ? 'No questions yet. Pilots who can open this spot can ask here.'
+        : 'No questions yet. Ask about access, parking or the best time to fly.'
+    }}
+  </p>
+} @else {
+  <ol class="m-0 grid list-none gap-4 p-0">
+    @for (question of conversation.questions; track question.id) {
+      <li class="grid gap-3 rounded border border-outline-variant p-4">
+        <ng-container *ngTemplateOutlet="entry; context: { $implicit: question, isReply: false }" />
+
+        @if (question.replies.length) {
+          <ol class="m-0 grid list-none gap-3 border-l-2 border-outline-variant py-0 pr-0 pl-4" aria-label="Replies">
+            @for (reply of question.replies; track reply.id) {
+              <li>
+                <ng-container *ngTemplateOutlet="entry; context: { $implicit: reply, isReply: true }" />
+              </li>
+            }
+          </ol>
+        }
+
+        @if (replyingTo() === question.id) {
+          <div class="pl-4">
+            <sh-comment-form
+              label="Your reply"
+              submitLabel="Reply"
+              [saving]="saving()"
+              (submitted)="replied.emit({ questionId: question.id, body: $event })"
+              (cancelled)="replyingTo.set(null)"
+            />
+          </div>
+        }
+      </li>
+    }
+  </ol>
+}
+
+<!-- One comment, question or reply: who, when, what was said, and what the viewer may do. -->
+<ng-template #entry let-comment let-isReply="isReply">
+  <article class="grid gap-1.5" [attr.aria-label]="(isReply ? 'Reply by ' : 'Question by ') + author(comment)">
+    <header class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <span class="font-semibold">{{ author(comment) }}</span>
+
+      @if (comment.byOwner) {
+        <span class="tone-idle rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase">
+          Owner
+        </span>
+      }
+
+      @if (comment.isAnswer) {
+        <span
+          class="tone-go inline-flex items-center gap-1 rounded-full bg-(--tone-surface) py-0.5 pr-2 pl-1 text-xs font-bold tracking-wide text-(--tone) uppercase"
+        >
+          <mat-icon class="icon-xs" aria-hidden="true">check_circle</mat-icon>
+          Answer
+        </span>
+      }
+
+      @if (!isReply && comment.answered) {
+        <span class="tone-go rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase">
+          Answered
+        </span>
+      }
+
+      <time class="text-muted" [attr.datetime]="comment.createdAt">{{ comment.createdAt | date: 'd MMM y, HH:mm' }}</time>
+
+      @if (comment.editedAt) {
+        <span class="text-muted">· edited</span>
+      }
+    </header>
+
+    @if (editing() === comment.id) {
+      <sh-comment-form
+        label="Edit"
+        submitLabel="Save"
+        [initial]="comment.body"
+        [saving]="saving()"
+        (submitted)="edited.emit({ commentId: comment.id, body: $event })"
+        (cancelled)="editing.set(null)"
+      />
+    } @else {
+      <p class="m-0 text-base leading-relaxed whitespace-pre-wrap wrap-anywhere">{{ comment.body }}</p>
+    }
+
+    <div class="-ml-2 flex flex-wrap gap-0.5">
+      @if (!isReply) {
+        <button matButton type="button" (click)="startReply(comment.id)">
+          <mat-icon>reply</mat-icon>
+          Reply
+        </button>
+      }
+
+      @if (isReply && conversation.viewerOwnsSpot) {
+        <button
+          matButton
+          type="button"
+          [disabled]="saving()"
+          (click)="answerMarked.emit({ commentId: comment.id, isAnswer: !comment.isAnswer })"
+        >
+          <mat-icon>{{ comment.isAnswer ? 'remove_done' : 'check_circle' }}</mat-icon>
+          {{ comment.isAnswer ? 'Not the answer' : 'Mark as answer' }}
+        </button>
+      }
+
+      @if (comment.byViewer && editing() !== comment.id) {
+        <button matButton type="button" (click)="startEdit(comment.id)">Edit</button>
+      }
+
+      @if (comment.canDelete) {
+        <button matButton type="button" [disabled]="saving()" (click)="deleted.emit(comment)">Delete</button>
+      }
+    </div>
+  </article>
+</ng-template>

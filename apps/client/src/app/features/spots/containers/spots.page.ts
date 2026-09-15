@@ -33,6 +33,7 @@ import {
   type SortOption,
   gridView,
 } from '../../../core/components/grid-toolbar/grid-view';
+import { SpotCommentsStore } from '../../spot-comments/spot-comments.store';
 import { DeviceLocation, LocationError } from '../device-location';
 import { SpotCard } from '../presenters/spot-card/spot-card';
 import { SpotMap } from '../presenters/spot-map/spot-map';
@@ -74,7 +75,8 @@ const SORTS: readonly SortOption<SpotSortKey>[] = [
  *
  * On their own spots, clicking empty map offers to add a spot at that point,
  * and "Add location" does the same from the device's GPS. Shared spots are
- * read-only, so the map there only selects.
+ * read-only, so the map there only selects. The viewer's own cards also say
+ * how many new comments wait on each.
  */
 @Component({
   selector: 'sh-spots-page',
@@ -98,6 +100,7 @@ export class SpotsPage {
   readonly scope = input<string | undefined>(undefined);
 
   protected readonly store = inject(SpotsStore);
+  protected readonly comments = inject(SpotCommentsStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
@@ -155,6 +158,7 @@ export class SpotsPage {
 
   constructor() {
     void this.store.load();
+    void this.comments.loadUnread();
 
     // Loaded each time the shared list is opened, so it is never stale for long.
     effect(() => {

@@ -32,6 +32,7 @@ apps/api/src/
   flights/                                   the logbook: flights, sessions
   flight-logs/                               log import, a reader per format
   spots/                                     flying spots on a map
+  spot-comments/                             questions and replies on spots
   health/
 ```
 
@@ -110,9 +111,10 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are four: `UsersFacade` (consumed by auth),
-`PartsFacade` and `RepairsFacade` (both consumed by build-parts), and
-`FlightsFacade` (consumed by flight-logs). A facade
+that module's `exports`. There are five: `UsersFacade` (consumed by auth),
+`PartsFacade` and `RepairsFacade` (both consumed by build-parts),
+`FlightsFacade` (consumed by flight-logs), and `SpotsFacade` (consumed by
+spot-comments). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -176,6 +178,7 @@ features/
   flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
+  spot-comments/ spot-comments.api/store, comment-form + spot-questions presenters (composed into spot-detail.page)
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -566,6 +569,21 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   email. The client keeps the two lists apart in `SpotsStore` and hides
   Edit and Delete wherever `ownedByViewer` is false; `?scope=shared` on
   `/spots` is the shared list.
+- **Comments are their own module, `spot-comments`, reaching spots only
+  through `SpotsFacade.ownerIfVisible`.** Anyone who can open a spot can ask
+  a question; replies go one level deep, and the spot's owner marks at most
+  one reply per question as the answer. Authors reword their own words; a
+  comment's author or the spot's owner deletes it, and a question takes its
+  replies with it (FK cascade). Those rules are not checks before a write —
+  they are the writes' own `where` clauses (`updateBodyForAuthor`,
+  `deleteForViewer`'s `OR [author, spot.owner]`, `setAnswerForSpotOwner`), so
+  a stranger's edit cannot be expressed. A spot someone cannot open answers
+  404 for its comments too, never 403. Every change returns the whole
+  conversation, with per-viewer flags (`byViewer`, `canDelete`,
+  `viewerOwnsSpot`) the client renders rather than re-derives. Unread is
+  per owner: `spot_comment_reads` records when the owner last opened a spot,
+  and one grouped query counts others' comments since, for the Spots menu
+  badge and each card's "N new".
 - **Every spot map carries its own controls**, in one column: full screen,
   zoom, show my location. They are view state, so they live in `spot-map`
   rather than in each container. Full screen uses the Fullscreen API on the

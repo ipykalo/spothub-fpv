@@ -43,7 +43,9 @@ model User {
   sessions      Session[]
   flights       Flight[]
 
-  spots Spot[]
+  spots            Spot[]
+  spotComments     SpotComment[]
+  spotCommentReads SpotCommentRead[]
 
   @@map("users")
 }
@@ -749,9 +751,51 @@ model Spot {
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner        User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  comments     SpotComment[]
+  commentReads SpotCommentRead[]
 
   @@unique([ownerId, slug])
   @@index([ownerId, updatedAt])
   @@map("spots")
+}
+
+/// A question on a spot, or a reply to one. Replies go one level deep: a
+/// reply's parent is always a question, never another reply.
+model SpotComment {
+  id        String    @id @default(uuid()) @db.Uuid
+  spotId    String    @map("spot_id") @db.Uuid
+  authorId  String    @map("author_id") @db.Uuid
+  /// Null for a question; the question's id for a reply.
+  parentId  String?   @map("parent_id") @db.Uuid
+  body      String
+  /// Set by the spot's owner, on at most one reply per question.
+  isAnswer  Boolean   @default(false) @map("is_answer")
+  /// When its author last reworded it; null if never.
+  editedAt  DateTime? @map("edited_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  spot    Spot          @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  author  User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  /// Deleting a question takes its replies with it.
+  parent  SpotComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies SpotComment[] @relation("CommentReplies")
+
+  @@index([spotId, createdAt])
+  @@index([parentId])
+  @@map("spot_comments")
+}
+
+/// When a user last read a spot's comments — what the unread badge counts from.
+model SpotCommentRead {
+  spotId String   @map("spot_id") @db.Uuid
+  userId String   @map("user_id") @db.Uuid
+  readAt DateTime @default(now()) @map("read_at")
+
+  spot Spot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([spotId, userId])
+  @@map("spot_comment_reads")
 }
