@@ -8,3 +8,4 @@ export * from './lib/asset.contract';
 export * from './lib/flight.contract';
 export * from './lib/betaflight';
 export * from './lib/user.contract';
+export * from './lib/spot.contract';

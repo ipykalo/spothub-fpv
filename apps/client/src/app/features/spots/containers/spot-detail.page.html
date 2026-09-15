@@ -1,0 +1,37 @@
+<header class="mb-5 flex flex-wrap items-start justify-between gap-4">
+  <div class="min-w-0">
+    <a class="inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline" routerLink="/spots">
+      <mat-icon class="icon-sm">arrow_back</mat-icon>
+      Spots
+    </a>
+    <h1 class="mt-1.5 mb-0 text-2xl leading-tight wrap-anywhere">{{ spot()?.name ?? 'Spot' }}</h1>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <sh-collapse-all />
+    @if (spot(); as found) {
+      <a matButton="outlined" [routerLink]="['/spots', found.id, 'edit']">
+        <mat-icon>edit</mat-icon>
+        Edit
+      </a>
+      <button matButton type="button" [disabled]="deleting()" (click)="remove(found)">
+        <mat-icon>delete</mat-icon>
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+    }
+  </div>
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (failure(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+@if (spot(); as found) {
+  <sh-spot-map class="mb-8 h-80" [label]="'Map showing ' + found.name" [spots]="[found]" [selectedId]="found.id" />
+
+  <sh-spot-details [spot]="found" (coordinatesCopied)="onCopied($event)" />
+}

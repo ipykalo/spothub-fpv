@@ -109,5 +109,35 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('./features/flights/containers/flights.page').then((m) => m.FlightsPage),
   },
+  {
+    // Places to fly: a map of them, and the collection beside it.
+    path: 'spots',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/spots/containers/spots.page').then((m) => m.SpotsPage),
+      },
+      {
+        // `?lat=&lng=` when a point was picked on the map first.
+        path: 'new',
+        loadComponent: () =>
+          import('./features/spots/containers/spot-form.page').then((m) => m.SpotFormPage),
+      },
+      {
+        path: ':id',
+        loadComponent: () =>
+          import('./features/spots/containers/spot-detail.page').then(
+            (m) => m.SpotDetailPage,
+          ),
+      },
+      {
+        path: ':id/edit',
+        loadComponent: () =>
+          import('./features/spots/containers/spot-form.page').then((m) => m.SpotFormPage),
+      },
+    ],
+  },
   { path: '**', redirectTo: 'hangar' },
 ];

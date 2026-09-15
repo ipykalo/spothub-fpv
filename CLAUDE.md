@@ -31,6 +31,7 @@ apps/api/src/
   media/                                     build photos
   flights/                                   the logbook: flights, sessions
   flight-logs/                               log import, a reader per format
+  spots/                                     flying spots on a map
   health/
 ```
 
@@ -174,6 +175,7 @@ features/
   parts/        catalogue, units, sources
   flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
+  spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -524,6 +526,28 @@ worth remembering:
 
 The GHCR packages are **private** by default, so the first deploy needs a pull
 secret unless they are made public.
+
+**Spots** are places to fly, kept apart from flights on purpose: a spot is
+something you plan around and describe, not something a log proves. A spot has
+its own page and a Leaflet map (`/spots`), where clicking an empty place offers
+"Add a spot here", and the form's pin and its coordinate fields move each other.
+
+- **Coordinates are `Decimal(9, 6)`** — about 11 cm — and the contract rounds
+  to six places, so what the form shows is what is stored. The repository hands
+  them out as numbers.
+- **Leaflet is touched in one presenter, `spot-map`.** Pins are `divIcon`s
+  holding a Material Icons glyph: Leaflet's default marker images are URLs a
+  bundler rewrites into paths that do not exist. `leaflet.css` is a global
+  style in `project.json` — loaded from the component it blew the 8 kB
+  per-component style budget — so a running dev server must be restarted to
+  pick it up. `invalidateSize` runs a frame after the ResizeObserver fires;
+  calling it inside the callback is a layout loop.
+- Tiles come from OpenStreetMap, and nothing else sends a spot's coordinates
+  anywhere. Weather was deliberately deferred for that reason.
+- **zod 4 applies `.default()` inside `.partial()`.** An update schema built as
+  `fields.partial()` over fields with defaults resets every field a PATCH does
+  not name. `spot.contract.ts` keeps its defaults on the create schema only; the
+  e2e spec asserts a partial PATCH leaves the rest alone.
 
 **Next, in order:** VPS + Caddy first deploy, then database backups with a
 tested restore. V1 is feature-complete; what is left is getting it off the

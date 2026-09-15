@@ -1,0 +1,96 @@
+<header class="mb-4 flex flex-wrap items-baseline gap-4">
+  <h1 class="m-0 text-2xl">Spots</h1>
+
+  @if (store.total()) {
+    <span class="text-sm text-muted tabular-nums">
+      {{ store.total() }} spot{{ store.total() === 1 ? '' : 's' }}
+    </span>
+  }
+
+  <span class="flex-auto"></span>
+
+  <a matButton="filled" routerLink="/spots/new">
+    <mat-icon>add_location_alt</mat-icon>
+    New spot
+  </a>
+</header>
+
+@if (store.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (store.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+<div class="grid items-start gap-6 min-[64rem]:grid-cols-[3fr_2fr]">
+  <!-- Sticky on wide screens, so the map stays in view while the list scrolls. -->
+  <div class="flex flex-col gap-3 min-[64rem]:sticky min-[64rem]:top-4">
+    <sh-spot-map
+      class="h-[26rem] min-[64rem]:h-[34rem]"
+      label="Map of your spots. Click an empty place to add a spot there."
+      [spots]="shown()"
+      [selectedId]="selectedId()"
+      [picked]="picked()"
+      [pickable]="true"
+      (spotSelected)="onSpotSelected($event)"
+      (pointPicked)="onPointPicked($event)"
+    />
+
+    @if (picked(); as point) {
+      <div class="flex flex-wrap items-center gap-3 rounded bg-surface-container px-3.5 py-2 text-sm" role="status">
+        <mat-icon class="icon-sm text-primary" aria-hidden="true">add_location</mat-icon>
+        <span class="flex-auto tabular-nums">New spot at {{ coordinates(point) }}</span>
+        <button matButton="filled" type="button" (click)="addHere(point)">Add a spot here</button>
+        <button matButton type="button" (click)="picked.set(null)">Cancel</button>
+      </div>
+    } @else {
+      <p class="m-0 text-sm text-muted">Click an empty place on the map to add a spot there.</p>
+    }
+  </div>
+
+  <div class="min-w-0">
+    @if (firstRun()) {
+      <div class="px-4 py-12 text-center text-muted">
+        <p>No spots yet. Click the map where you fly, or add one by its coordinates.</p>
+        <a matButton routerLink="/spots/new">Add your first spot</a>
+      </div>
+    } @else {
+      <sh-grid-toolbar
+        [(query)]="grid.query"
+        [(sort)]="grid.sort"
+        [sorts]="sorts"
+        [shown]="shown().length"
+        [total]="store.total()"
+        searchLabel="Search spots"
+      >
+        <sh-filter-chips
+          class="order-last basis-full"
+          ariaLabel="Filter by terrain"
+          [options]="terrainOptions"
+          [(selected)]="grid.filter"
+        />
+      </sh-grid-toolbar>
+
+      @if (!shown().length) {
+        @if (!store.loading()) {
+          <p class="py-8 text-muted">Nothing matches.</p>
+        }
+      } @else {
+        <ul class="m-0 mt-4 grid list-none gap-3 p-0">
+          @for (spot of shown(); track spot.id) {
+            <li [id]="'spot-' + spot.id">
+              <sh-spot-card
+                [spot]="spot"
+                [selected]="selectedId() === spot.id"
+                [deleting]="pendingDelete() === spot.id"
+                (showOnMap)="onSpotSelected($event)"
+                (delete)="remove($event)"
+              />
+            </li>
+          }
+        </ul>
+      }
+    }
+  </div>
+</div>

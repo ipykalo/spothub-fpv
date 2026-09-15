@@ -17,6 +17,9 @@
         "browser": "apps/client/src/main.ts",
         "tsConfig": "apps/client/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
+        "allowedCommonJsDependencies": [
+          "leaflet"
+        ],
         "assets": [
           {
             "glob": "**/*",
@@ -25,6 +28,7 @@
         ],
         "styles": [
           "node_modules/@fontsource-variable/open-sans/index.css",
+          "node_modules/leaflet/dist/leaflet.css",
           "apps/client/src/styles.scss",
           "apps/client/src/styles/tailwind.css"
         ]

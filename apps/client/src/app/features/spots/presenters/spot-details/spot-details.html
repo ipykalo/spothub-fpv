@@ -1,0 +1,119 @@
+<div class="flex flex-col gap-8">
+  <sh-section heading="Details" storageKey="spot.details">
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <dl class="m-0 grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-x-6 gap-y-4">
+          <div class="col-span-full">
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Coordinates</dt>
+            <dd class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span class="text-base tabular-nums">{{ coordinates() }}</span>
+              <button
+                matButton
+                type="button"
+                [cdkCopyToClipboard]="coordinates()"
+                (cdkCopyToClipboardCopied)="coordinatesCopied.emit($event)"
+              >
+                <mat-icon>content_copy</mat-icon>
+                Copy
+              </button>
+              <a matButton [href]="googleUrl()" target="_blank" rel="noopener noreferrer">
+                <mat-icon>directions</mat-icon>
+                Google Maps
+              </a>
+              <a matButton [href]="osmUrl()" target="_blank" rel="noopener noreferrer">
+                <mat-icon>map</mat-icon>
+                OpenStreetMap
+              </a>
+            </dd>
+          </div>
+
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Area</dt>
+            <dd class="m-0 text-base wrap-anywhere">
+              @if (spot().locality; as locality) {
+                {{ locality }}
+              } @else {
+                <span class="text-muted italic">Not recorded</span>
+              }
+            </dd>
+          </div>
+
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Terrain</dt>
+            <dd class="m-0 flex items-center gap-1.5 text-base">
+              @if (terrain(); as found) {
+                <mat-icon class="icon-md text-muted" aria-hidden="true">{{ found.icon }}</mat-icon>
+                {{ found.label }}
+              } @else {
+                <span class="text-muted italic">Not set</span>
+              }
+            </dd>
+          </div>
+
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Access</dt>
+            <dd class="tone-{{ access().tone }} m-0 flex items-center gap-1.5 text-base">
+              <mat-icon class="icon-md text-(--tone)" aria-hidden="true">{{ access().icon }}</mat-icon>
+              {{ accessLabel() }}
+            </dd>
+          </div>
+
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Difficulty</dt>
+            <dd class="m-0 text-base">
+              @if (difficulty(); as label) {
+                {{ label }}
+              } @else {
+                <span class="text-muted italic">Not rated</span>
+              }
+            </dd>
+          </div>
+
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Visibility</dt>
+            <dd class="m-0 text-base">{{ visibilityLabel() }}</dd>
+          </div>
+        </dl>
+      </mat-card-content>
+    </mat-card>
+  </sh-section>
+
+  <sh-section heading="Hazards" storageKey="spot.hazards" [count]="hazards().length">
+    @if (hazards().length) {
+      <ul class="m-0 flex list-none flex-wrap gap-2 p-0">
+        @for (entry of hazards(); track entry.hazard) {
+          <li
+            class="tone-stop inline-flex items-center gap-1 rounded-full bg-(--tone-surface) py-1 pr-3 pl-2 text-sm text-(--tone)"
+          >
+            <mat-icon class="icon-sm" aria-hidden="true">warning_amber</mat-icon>
+            {{ entry.label }}
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="m-0 text-muted italic">None recorded.</p>
+    }
+  </sh-section>
+
+  <sh-section heading="Description" storageKey="spot.description">
+    @if (spot().descriptionMd; as description) {
+      <pre
+        class="m-0 max-h-96 overflow-auto rounded bg-surface-container px-4.5 py-4 text-sm leading-[1.55] whitespace-pre-wrap wrap-anywhere [font-family:inherit]"
+        >{{ description }}</pre
+      >
+    } @else {
+      <p class="m-0 text-muted italic">Nothing written yet.</p>
+    }
+  </sh-section>
+
+  <sh-section heading="Getting there" storageKey="spot.access">
+    @if (spot().accessNotesMd; as notes) {
+      <pre
+        class="m-0 max-h-72 overflow-auto rounded bg-surface-container px-4.5 py-4 text-sm leading-[1.55] whitespace-pre-wrap wrap-anywhere [font-family:inherit]"
+        >{{ notes }}</pre
+      >
+    } @else {
+      <p class="m-0 text-muted italic">No parking or access notes.</p>
+    }
+  </sh-section>
+</div>

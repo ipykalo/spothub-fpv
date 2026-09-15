@@ -1,13 +1,15 @@
 @if (auth.isAuthenticated()) {
   <mat-toolbar>
-    <a class="font-semibold text-inherit no-underline" routerLink="/hangar">SpotHub FPV</a>
-    <nav class="ml-6 flex gap-1">
+    <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/hangar">SpotHub FPV</a>
+    <!-- On a phone the links scroll sideways rather than pushing the page wider than the screen. -->
+    <nav class="ml-2 flex min-w-0 gap-1 overflow-x-auto min-[40rem]:ml-6">
       <a matButton routerLink="/hangar">Hangar</a>
       <a matButton routerLink="/parts">Parts</a>
       <a matButton routerLink="/flights">Flights</a>
+      <a matButton routerLink="/spots">Spots</a>
     </nav>
     <span class="flex-1"></span>
-    <span>{{ auth.displayName() }}</span>
+    <span class="max-[40rem]:hidden">{{ auth.displayName() }}</span>
     <button
       matIconButton
       type="button"

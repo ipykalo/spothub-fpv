@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+
+/*
+ * The access stripe, matching build and part cards. It overrides the outlined
+ * card's own border, which Material sets unlayered, so it cannot be a utility.
+ */
+mat-card {
+  border-left: 3px solid var(--tone);
+}
+
+/* The card whose pin is lit on the map. */
+mat-card.selected {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
