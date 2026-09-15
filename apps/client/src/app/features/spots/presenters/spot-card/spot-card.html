@@ -56,6 +56,17 @@
     </button>
     <a matButton [routerLink]="['/spots', spot().id]">Open</a>
     <a matButton [routerLink]="['/spots', spot().id, 'edit']">Edit</a>
+    <!-- Icon only: a fifth labelled button wraps the row at card width. -->
+    <a
+      matIconButton
+      [href]="directionsUrl()"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Navigate with Google Maps"
+      [attr.aria-label]="'Navigate to ' + spot().name + ' with Google Maps'"
+    >
+      <mat-icon>directions_car</mat-icon>
+    </a>
     <button matButton type="button" [disabled]="deleting()" (click)="delete.emit(spot())">
       {{ deleting() ? 'Deleting…' : 'Delete' }}
     </button>

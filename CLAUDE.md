@@ -554,6 +554,19 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   contract accepts only `false` there: a spot never goes back to being a
   draft. **Anything that lists spots publicly must filter out drafts.**
   Geolocation needs a secure context — HTTPS, or localhost in development.
+- **Every spot map carries its own controls**, in one column: full screen,
+  zoom, show my location. They are view state, so they live in `spot-map`
+  rather than in each container. Full screen uses the Fullscreen API on the
+  map's host and falls back to the host covering the page (`map-covers-page`,
+  Escape to leave) where the API is missing, as on iPhone Safari. "Show my
+  location" takes one fresh fix through `DeviceLocation`, draws the blue dot
+  and its accuracy circle, and forgets it — nothing is saved or handed up. The
+  buttons sit in a Leaflet bar that stops click propagation, so pressing one
+  never also picks a point.
+- **Navigating to a spot is a plain link** to
+  `google.com/maps/dir/?api=1&destination=lat,lng` (`googleDirectionsUrl`),
+  which opens directions from the phone's position in the Maps app. No API
+  key, and nothing is sent until someone taps it.
 - **A spot's flight video is a YouTube link, not an upload** — no storage and
   no transcoding. `libs/shared/src/lib/youtube.ts` parses any YouTube link
   (watch, youtu.be, shorts, live, embed, with `t=` or `start=`) into an

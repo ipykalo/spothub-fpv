@@ -23,7 +23,7 @@ import {
   SPOT_ACCESS_STYLES,
   SPOT_TERRAIN_ICONS,
   formatCoordinates,
-  googleMapsUrl,
+  googleDirectionsUrl,
   openStreetMapUrl,
 } from '../../spot-style';
 import { SpotVideo } from '../spot-video/spot-video';
@@ -43,7 +43,7 @@ export class SpotDetails {
 
   protected readonly coordinates = computed(() => formatCoordinates(this.spot()));
   protected readonly osmUrl = computed(() => openStreetMapUrl(this.spot()));
-  protected readonly googleUrl = computed(() => googleMapsUrl(this.spot()));
+  protected readonly directionsUrl = computed(() => googleDirectionsUrl(this.spot()));
 
   protected readonly access = computed(() => SPOT_ACCESS_STYLES[this.spot().access]);
   protected readonly accessLabel = computed(() => SPOT_ACCESS_LABELS[this.spot().access]);

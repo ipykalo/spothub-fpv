@@ -1,1 +1,5 @@
 <div #map class="spot-map" role="region" [attr.aria-label]="label()"></div>
+
+@if (notice(); as message) {
+  <p class="map-notice" role="status">{{ message }}</p>
+}

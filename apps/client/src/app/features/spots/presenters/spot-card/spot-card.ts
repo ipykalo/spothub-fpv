@@ -15,6 +15,7 @@ import {
   SPOT_ACCESS_STYLES,
   SPOT_TERRAIN_ICONS,
   formatCoordinates,
+  googleDirectionsUrl,
 } from '../../spot-style';
 
 /**
@@ -53,4 +54,7 @@ export class SpotCard {
   protected readonly whereabouts = computed(
     () => this.spot().locality ?? formatCoordinates(this.spot()),
   );
+
+  /** Directions from the phone's position, in Google Maps. */
+  protected readonly directionsUrl = computed(() => googleDirectionsUrl(this.spot()));
 }

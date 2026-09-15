@@ -54,7 +54,11 @@ export function openStreetMapUrl(point: LatLng): string {
   return `https://www.openstreetmap.org/?mlat=${String(point.lat)}&mlon=${String(point.lng)}#map=16/${String(point.lat)}/${String(point.lng)}`;
 }
 
-/** Google Maps, mostly for directions on a phone. */
-export function googleMapsUrl(point: LatLng): string {
-  return `https://www.google.com/maps/search/?api=1&query=${String(point.lat)},${String(point.lng)}`;
+/**
+ * Turn-by-turn directions to the point from wherever the phone is — in the
+ * Google Maps app when it is installed, the website otherwise. A plain URL
+ * Google documents for exactly this, so no API key is involved.
+ */
+export function googleDirectionsUrl(point: LatLng): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${String(point.lat)},${String(point.lng)}`;
 }
