@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type {
-  BuildDto,
-  CreateBuildDto,
-  ListBuildsQuery,
-  UpdateBuildDto,
+import {
+  type BuildDto,
+  type CreateBuildDto,
+  type ListBuildsQuery,
+  NO_LIKES,
+  type UpdateBuildDto,
 } from '@spothub/shared';
 
 import { fromDateOnly, uniqueSlug } from '../common';
+import { LikesFacade } from '../likes';
 import { MediaFacade } from '../media';
 import { BuildsRepository } from './abstract/builds.repository';
 import type { BuildEntity, UpdateBuildData } from './build.entity';
@@ -24,6 +26,7 @@ export class BuildsService {
   constructor(
     private readonly builds: BuildsRepository,
     private readonly media: MediaFacade,
+    private readonly likes: LikesFacade,
   ) {}
 
   /** The viewer's own builds. */
@@ -51,9 +54,15 @@ export class BuildsService {
    * The builds among these the viewer may open, in the order asked — what a
    * post shows of the builds it links. The rest are left out silently.
    */
-  async listVisible(viewerId: string | null, ids: readonly string[]): Promise<BuildDto[]> {
+  async listVisible(
+    viewerId: string | null,
+    ids: readonly string[],
+  ): Promise<BuildDto[]> {
     const found = new Map(
-      (await this.builds.findManyVisibleForViewer(viewerId, ids)).map((build) => [build.id, build]),
+      (await this.builds.findManyVisibleForViewer(viewerId, ids)).map((build) => [
+        build.id,
+        build,
+      ]),
     );
     const ordered = ids.flatMap((id) => {
       const build = found.get(id);
@@ -146,16 +155,26 @@ export class BuildsService {
       }
     }
 
+    // One batch for the likes on the whole list, too.
+    const likes = await this.likes.forBuilds(
+      viewerId,
+      builds.map((build) => build.id),
+    );
+
     return builds.map((build) =>
       toBuildDto(
         build,
         build.coverAssetId === null ? null : (urls.get(build.coverAssetId) ?? null),
         viewerId,
+        likes.get(build.id) ?? NO_LIKES,
       ),
     );
   }
 
-  private async withCover(viewerId: string | null, build: BuildEntity): Promise<BuildDto> {
+  private async withCover(
+    viewerId: string | null,
+    build: BuildEntity,
+  ): Promise<BuildDto> {
     const [dto] = await this.withCovers(viewerId, [build]);
     return dto;
   }

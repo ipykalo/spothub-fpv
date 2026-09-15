@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { BuildClass, BuildStatus, Visibility } from './enums';
+import { likesSchema } from './like.contract';
 
 /**
  * The build contract, defined once.
@@ -105,6 +106,7 @@ export const buildSchema = z.object({
   ownedByViewer: z.boolean(),
   /** The owner's display name, for people opening a shared build. Never their email. */
   ownerName: z.string().nullable(),
+  likes: likesSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
 });

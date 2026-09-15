@@ -19,6 +19,7 @@ import { AuthStore } from '../../../core/auth/auth.store';
 import { Markdown } from '../../../core/components/markdown/markdown';
 import { injectPageMeta } from '../../../core/seo/page-meta';
 import { BuildCard } from '../../builds/presenters/build-card/build-card';
+import { LikeButton } from '../../likes/containers/like-button';
 import { PostsApi } from '../posts.api';
 
 /**
@@ -32,7 +33,15 @@ import { PostsApi } from '../posts.api';
 @Component({
   selector: 'sh-post-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BuildCard, DatePipe, Markdown, MatButtonModule, MatIconModule, RouterLink],
+  imports: [
+    BuildCard,
+    DatePipe,
+    LikeButton,
+    Markdown,
+    MatButtonModule,
+    MatIconModule,
+    RouterLink,
+  ],
   templateUrl: './post.page.html',
   styleUrl: './post.page.scss',
 })

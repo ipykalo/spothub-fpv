@@ -7,6 +7,7 @@ import {
   output,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { type PostSummaryDto, VISIBILITY_LABELS, Visibility } from '@spothub/shared';
 
@@ -19,7 +20,7 @@ import { type PostSummaryDto, VISIBILITY_LABELS, Visibility } from '@spothub/sha
 @Component({
   selector: 'sh-post-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatButtonModule, RouterLink],
+  imports: [DatePipe, MatButtonModule, MatIconModule, RouterLink],
   templateUrl: './post-card.html',
   styleUrl: './post-card.scss',
 })

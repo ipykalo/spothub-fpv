@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import {
   type CreatePostDto,
   type ListPublishedPostsQuery,
+  NO_LIKES,
   type PostDto,
   type PostSummaryDto,
   type UpdatePostDto,
@@ -11,6 +12,7 @@ import {
 
 import { BuildsFacade } from '../builds';
 import { uniqueSlug } from '../common';
+import { LikesFacade } from '../likes';
 import { MediaFacade } from '../media';
 import { PostsRepository } from './abstract/posts.repository';
 import type { PostEntity, UpdatePostData } from './post.entity';
@@ -34,6 +36,7 @@ export class PostsService {
     private readonly posts: PostsRepository,
     private readonly builds: BuildsFacade,
     private readonly media: MediaFacade,
+    private readonly likes: LikesFacade,
   ) {}
 
   /** The author's own posts, drafts included. */
@@ -57,12 +60,13 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    const [builds, images] = await Promise.all([
+    const [builds, images, likes] = await Promise.all([
       this.builds.visibleToViewer(viewerId, post.buildIds),
       this.media.postImages(post.authorId, post.id),
+      this.likes.forPosts(viewerId, [post.id]),
     ]);
 
-    return toPostDto(post, builds, images, viewerId);
+    return toPostDto(post, builds, images, viewerId, likes.get(post.id) ?? NO_LIKES);
   }
 
   async create(authorId: string, input: CreatePostDto): Promise<PostDto> {
@@ -169,6 +173,11 @@ export class PostsService {
       }
     }
 
+    const likes = await this.likes.forPosts(
+      viewerId,
+      posts.map((post) => post.id),
+    );
+
     const buildIds = [...new Set(posts.flatMap((post) => post.buildIds))];
     const tags = new Map(
       (await this.builds.visibleToViewer(viewerId, buildIds)).map((build) => [
@@ -186,6 +195,7 @@ export class PostsService {
           const tag = tags.get(buildId);
           return tag ? [tag] : [];
         }),
+        likes.get(post.id) ?? NO_LIKES,
       ),
     );
   }

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { buildSchema } from './build.contract';
 import { Visibility } from './enums';
+import { likesSchema } from './like.contract';
 
 /**
  * Blog posts, defined once for both sides of the wire.
@@ -135,6 +136,7 @@ export const postSummarySchema = z.object({
   readingMinutes: z.number().int(),
   /** The linked builds the person asking may open, as tags, in the author's order. */
   tags: z.array(postTagSchema),
+  likes: likesSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
 });

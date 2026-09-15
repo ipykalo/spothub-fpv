@@ -49,7 +49,7 @@
     }
   </div>
 
-  <div class="border-t border-outline-variant pt-1.5">
+  <div class="flex items-center border-t border-outline-variant pt-1.5">
     <div class="-ml-2 flex gap-0.5">
       <a matButton [routerLink]="[link(), build().id]">Open</a>
       <!-- Only its owner changes a build; a shared one is read-only. -->
@@ -60,5 +60,17 @@
         </button>
       }
     </div>
+
+    @if (build().likes.count > 0) {
+      <span
+        class="ml-auto inline-flex items-center gap-1 text-sm text-muted"
+        [attr.aria-label]="build().likes.count + (build().likes.count === 1 ? ' like' : ' likes')"
+      >
+        <mat-icon class="icon-sm" aria-hidden="true">{{
+          build().likes.likedByViewer ? 'favorite' : 'favorite_border'
+        }}</mat-icon>
+        {{ build().likes.count }}
+      </span>
+    }
   </div>
 </mat-card>

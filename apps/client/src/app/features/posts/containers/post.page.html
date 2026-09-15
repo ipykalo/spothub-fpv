@@ -35,12 +35,16 @@
             </p>
           </div>
 
-          @if (post.ownedByViewer) {
-            <a class="ml-auto" matButton="outlined" [routerLink]="['/posts', post.id, 'edit']">
-              <mat-icon>edit</mat-icon>
-              Edit
-            </a>
-          }
+          <div class="ml-auto flex items-center gap-2">
+            <sh-like-button target="posts" [subjectId]="post.id" [likes]="post.likes" />
+
+            @if (post.ownedByViewer) {
+              <a matButton="outlined" [routerLink]="['/posts', post.id, 'edit']">
+                <mat-icon>edit</mat-icon>
+                Edit
+              </a>
+            }
+          </div>
         </div>
 
         <h1

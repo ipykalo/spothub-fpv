@@ -26,6 +26,7 @@ import { Section } from '../../../core/components/section/section';
 import { injectPageMeta } from '../../../core/seo/page-meta';
 import { InstalledPartsList } from '../../build-parts/presenters/installed-parts-list/installed-parts-list';
 import { CommentsSection } from '../../comments/containers/comments-section';
+import { LikeButton } from '../../likes/containers/like-button';
 import { PhotoGallery } from '../../photos/presenters/photo-gallery/photo-gallery';
 import { PostCard } from '../../posts/presenters/post-card/post-card';
 import { RepairTimeline } from '../../repairs/presenters/repair-timeline/repair-timeline';
@@ -52,6 +53,7 @@ import type { PublicBuildView } from '../public-build.resolvers';
   imports: [
     CommentsSection,
     InstalledPartsList,
+    LikeButton,
     Markdown,
     MatButtonModule,
     MatIconModule,

@@ -47,6 +47,7 @@ model User {
   comments     Comment[]
   commentReads CommentRead[]
   posts        Post[]
+  likes        Like[]
 
   @@map("users")
 }
@@ -151,6 +152,7 @@ model Build {
   comments     Comment[]
   commentReads CommentRead[]
   postLinks    PostBuild[]
+  likes        Like[]
 
   @@unique([ownerId, slug])
   @@index([ownerId, status])
@@ -850,6 +852,7 @@ model Post {
   author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   cover  Asset?      @relation("PostCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
   builds PostBuild[]
+  likes  Like[]
 
   @@unique([authorId, slug])
   @@index([authorId, updatedAt])
@@ -870,4 +873,26 @@ model PostBuild {
   @@id([postId, buildId])
   @@index([buildId])
   @@map("post_builds")
+}
+
+// ------------------------------------------------------------------- likes
+
+/// One pilot liking a post or a build. Belongs to exactly one subject —
+/// `post_id` or `build_id`, which a CHECK constraint in the migration enforces
+/// as for comments — and goes when the subject or the user does.
+model Like {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  postId    String?  @map("post_id") @db.Uuid
+  buildId   String?  @map("build_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  build Build? @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  /// One like per pilot per subject.
+  @@unique([postId, userId])
+  @@unique([buildId, userId])
+  @@map("likes")
 }

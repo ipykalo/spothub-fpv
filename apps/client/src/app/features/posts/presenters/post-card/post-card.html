@@ -58,6 +58,15 @@
             </button>
           </div>
         }
+        <span
+          class="inline-flex items-center gap-1"
+          [attr.aria-label]="post().likes.count + (post().likes.count === 1 ? ' like' : ' likes')"
+        >
+          <mat-icon class="icon-sm" aria-hidden="true">{{
+            post().likes.likedByViewer ? 'favorite' : 'favorite_border'
+          }}</mat-icon>
+          {{ post().likes.count }}
+        </span>
         <span class="ml-auto">{{ post().readingMinutes }} min read</span>
       </div>
     </div>

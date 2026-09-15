@@ -1,5 +1,6 @@
 import {
   type BuildDto,
+  type LikesDto,
   type PostDto,
   type PostImageDto,
   type PostSummaryDto,
@@ -14,14 +15,15 @@ import type { PostEntity } from './post.entity';
  * spread of the entity, so a column added to the table is not silently
  * published. `viewerId` is whoever asked — null for a signed-out visitor.
  * Image URLs are signed per response by the media module, and the tags are
- * the linked builds the builds module says this viewer may open; both are
- * passed in.
+ * the linked builds the builds module says this viewer may open; those and
+ * the likes are passed in.
  */
 export function toPostSummaryDto(
   post: PostEntity,
   viewerId: string | null,
   coverUrl: string | null,
   tags: readonly PostTagDto[],
+  likes: LikesDto,
 ): PostSummaryDto {
   return {
     id: post.id,
@@ -35,6 +37,7 @@ export function toPostSummaryDto(
     coverUrl,
     readingMinutes: readingMinutes(post.bodyMd),
     tags: [...tags],
+    likes,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
   };
@@ -55,6 +58,7 @@ export function toPostDto(
   builds: readonly BuildDto[],
   images: readonly PostImageDto[],
   viewerId: string | null,
+  likes: LikesDto,
 ): PostDto {
   const ownedByViewer = post.authorId === viewerId;
   const cover = images.find((image) => image.id === post.coverAssetId) ?? null;
@@ -65,6 +69,7 @@ export function toPostDto(
       viewerId,
       cover ? (cover.thumbUrl ?? cover.url) : null,
       builds.map(toPostTag),
+      likes,
     ),
     bodyMd: post.bodyMd,
     coverAssetId: cover?.id ?? null,

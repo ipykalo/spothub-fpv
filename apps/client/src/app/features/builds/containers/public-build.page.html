@@ -17,13 +17,17 @@
       </span>
     </div>
 
-    <!-- Shown once the browser knows the reader is signed in; a visitor never sees it. -->
-    @if (auth.isAuthenticated()) {
-      <a matButton="outlined" [routerLink]="['/hangar', quad.id]">
-        <mat-icon>{{ quad.ownedByViewer ? 'edit' : 'open_in_new' }}</mat-icon>
-        {{ quad.ownedByViewer ? 'Open in your hangar' : 'Open in the app' }}
-      </a>
-    }
+    <div class="flex flex-wrap items-center gap-2">
+      <sh-like-button target="builds" [subjectId]="quad.id" [likes]="quad.likes" />
+
+      <!-- Shown once the browser knows the reader is signed in; a visitor never sees it. -->
+      @if (auth.isAuthenticated()) {
+        <a matButton="outlined" [routerLink]="['/hangar', quad.id]">
+          <mat-icon>{{ quad.ownedByViewer ? 'edit' : 'open_in_new' }}</mat-icon>
+          {{ quad.ownedByViewer ? 'Open in your hangar' : 'Open in the app' }}
+        </a>
+      }
+    </div>
   </header>
 
   <div class="flex flex-col gap-8">

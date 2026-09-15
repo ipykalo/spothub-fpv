@@ -12,3 +12,4 @@ export * from './lib/spot.contract';
 export * from './lib/youtube';
 export * from './lib/comment.contract';
 export * from './lib/post.contract';
+export * from './lib/like.contract';

@@ -34,6 +34,7 @@ apps/api/src/
   spots/                                     flying spots on a map
   comments/                                  questions and replies on spots and builds
   posts/                                     the blog: posts pilots write about their builds
+  likes/                                     hearts on posts and builds
   health/
 ```
 
@@ -112,10 +113,11 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are six: `UsersFacade` (consumed by auth),
+that module's `exports`. There are seven: `UsersFacade` (consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
 `FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
-comments) and `BuildsFacade` (consumed by comments and posts). A facade
+comments), `BuildsFacade` (consumed by comments and posts) and `LikesFacade`
+(consumed by builds and posts). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -181,6 +183,7 @@ features/
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot and build pages)
   posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
+  likes/        likes.api, like-button container (dropped into the post and public build pages)
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -686,6 +689,19 @@ in or not, and render them on the server.
   the author only. A summary carries those visible builds as tags (asked for
   once for the whole list), its cover thumbnail and a reading time, which is
   what the blog feed's full-width `sh-post-card` rows show.
+- **Likes are one heart per pilot**, on posts and builds, in their own
+  dependency-free `likes` module. One `likes` table holds both: a `post_id` or
+  a `build_id`, exactly one by a CHECK constraint in the migration, unique per
+  user and subject, cascading with either. Anyone who can open the subject
+  sees the count (`GET …/likes` is public); liking is `PUT` and taking it back
+  is `DELETE`, both idempotent and both answering the new count. Whether a
+  subject may be liked is a join on `posts` / `builds` inside the likes
+  repository — a draft or a private build answers 404. Builds and posts carry
+  `likes` (`count`, `likedByViewer`) on every DTO, batched for a whole list
+  through `LikesFacade`. The client's `sh-like-button` starts from that count
+  (so the server's HTML and the browser agree), updates at once and settles on
+  the API's answer, and sends a visitor to sign in
+  (`apps/api/e2e/likes.e2e.spec.ts`).
 - **Markdown is rendered by `sh-markdown`** (`marked`): raw HTML in the
   source is escaped, an image at any outside address becomes a link (loading
   it would tell its host who read the page), and the result still goes
