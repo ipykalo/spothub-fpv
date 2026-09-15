@@ -1,34 +1,65 @@
-<mat-card appearance="outlined" class="flex h-full flex-col gap-2 px-4 pt-3.5 pb-2.5">
-  <h3 class="m-0 text-base leading-snug font-semibold wrap-anywhere">
-    <a class="text-inherit no-underline hover:underline" [routerLink]="link()">{{ post().title }}</a>
-  </h3>
+<article class="overflow-hidden rounded-lg border border-outline-variant bg-surface">
+  @if (post().coverUrl; as cover) {
+    <a [routerLink]="link()" tabindex="-1" aria-hidden="true">
+      <img class="block aspect-[5/2] w-full object-cover" [src]="cover" alt="" loading="lazy" />
+    </a>
+  }
 
-  <p class="m-0 text-xs text-muted">
-    {{ post().authorName ?? 'A pilot' }}
-    @if (post().publishedAt; as published) {
-      · <time [attr.datetime]="published">{{ published | date: 'd MMM y' }}</time>
-    }
-    @if (manage()) {
-      · {{ visibilityLabels[post().visibility] }}
-    }
-  </p>
-
-  <p class="m-0 flex-auto text-sm">
-    @if (post().summary; as summary) {
-      {{ summary }}
-    } @else {
-      <span class="text-muted italic">No summary</span>
-    }
-  </p>
-
-  @if (manage()) {
-    <div class="border-t border-outline-variant pt-1.5">
-      <div class="-ml-2 flex gap-0.5">
-        <a matButton [routerLink]="['/posts', post().id, 'edit']">Edit</a>
-        <button matButton type="button" [disabled]="deleting()" (click)="delete.emit(post())">
-          {{ deleting() ? 'Deleting…' : 'Delete' }}
-        </button>
+  <div class="p-4 sm:px-6 sm:py-5">
+    <div class="flex items-center gap-2.5">
+      <span
+        class="grid size-9 shrink-0 place-items-center rounded-full bg-(--mat-sys-primary) text-sm font-bold text-(--mat-sys-on-primary)"
+        aria-hidden="true"
+      >
+        {{ initial() }}
+      </span>
+      <div class="min-w-0 leading-tight">
+        <p class="m-0 truncate text-sm font-semibold">{{ post().authorName ?? 'A pilot' }}</p>
+        <p class="m-0 text-xs text-muted">
+          @if (post().publishedAt; as published) {
+            <time [attr.datetime]="published">{{ published | date: 'MMM d, y' }}</time>
+          } @else {
+            Not published
+          }
+          @if (manage()) {
+            · {{ visibilityLabels[post().visibility] }}
+          }
+        </p>
       </div>
     </div>
-  }
-</mat-card>
+
+    <div class="sm:pl-11.5">
+      <h2 class="mt-3 mb-1.5 text-2xl leading-tight font-bold wrap-anywhere text-(--mat-sys-on-surface) sm:text-3xl">
+        <a class="text-inherit no-underline hover:text-primary" [routerLink]="link()">{{ post().title }}</a>
+      </h2>
+
+      @if (post().tags.length) {
+        <ul class="m-0 mb-2 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-sm" aria-label="Builds in this post">
+          @for (tag of post().tags; track tag.id) {
+            <li>
+              <a class="text-muted no-underline hover:text-primary" [routerLink]="['/builds', tag.id, tag.slug]"
+                >#{{ tag.name }}</a
+              >
+            </li>
+          }
+        </ul>
+      }
+
+      @if (post().summary; as summary) {
+        <p class="m-0 text-muted">{{ summary }}</p>
+      }
+
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+        @if (manage()) {
+          <div class="-ml-3 flex gap-0.5">
+            <a matButton [routerLink]="['/posts', post().id, 'edit']">Edit</a>
+            <button matButton type="button" [disabled]="deleting()" (click)="delete.emit(post())">
+              {{ deleting() ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+        }
+        <span class="ml-auto">{{ post().readingMinutes }} min read</span>
+      </div>
+    </div>
+  </div>
+</article>

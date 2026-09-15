@@ -14,7 +14,7 @@ import { uniqueSlug } from '../common';
 import { MediaFacade } from '../media';
 import { PostsRepository } from './abstract/posts.repository';
 import type { PostEntity, UpdatePostData } from './post.entity';
-import { toPostDto, toPostSummaryDto } from './posts.mapper';
+import { toPostDto, toPostSummaryDto, toPostTag } from './posts.mapper';
 
 /**
  * Business rules for blog posts. Knows nothing about HTTP or Prisma.
@@ -142,7 +142,11 @@ export class PostsService {
     }
   }
 
-  /** Summaries with their cover thumbnails, signed in one batch per author. */
+  /**
+   * Summaries with their cover thumbnails, signed in one batch per author, and
+   * their tags — the linked builds this viewer may open, asked for once for
+   * the whole list.
+   */
   private async summaries(
     posts: readonly PostEntity[],
     viewerId: string | null,
@@ -165,11 +169,23 @@ export class PostsService {
       }
     }
 
+    const buildIds = [...new Set(posts.flatMap((post) => post.buildIds))];
+    const tags = new Map(
+      (await this.builds.visibleToViewer(viewerId, buildIds)).map((build) => [
+        build.id,
+        toPostTag(build),
+      ]),
+    );
+
     return posts.map((post) =>
       toPostSummaryDto(
         post,
         viewerId,
         post.coverAssetId === null ? null : (urls.get(post.coverAssetId) ?? null),
+        post.buildIds.flatMap((buildId) => {
+          const tag = tags.get(buildId);
+          return tag ? [tag] : [];
+        }),
       ),
     );
   }

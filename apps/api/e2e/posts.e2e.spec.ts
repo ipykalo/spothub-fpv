@@ -151,6 +151,15 @@ describe('posts', () => {
     expect(read.builds[0].ownedByViewer).toBe(false);
 
     expect(await publishedIds()).toContain(post.id);
+
+    // On the blog, its tags are the linked builds a visitor may open, and it reads in a minute.
+    const listed = (await get<PostSummaryDto[]>(null, '/api/posts/published')).find(
+      (entry) => entry.id === post.id,
+    );
+    expect(listed?.tags).toEqual([
+      { id: publicBuild.id, name: publicBuild.name, slug: publicBuild.slug },
+    ]);
+    expect(listed?.readingMinutes).toBe(1);
     expect(await publishedIds(`?buildId=${publicBuild.id}`)).toContain(post.id);
     expect(await publishedIds(`?buildId=${pilotsBuild.id}`)).not.toContain(post.id);
 

@@ -24,7 +24,7 @@
 }
 
 @if (store.mine().length) {
-  <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+  <div class="grid gap-4">
     @for (post of store.mine(); track post.id) {
       <sh-post-card [post]="post" [manage]="true" [deleting]="pendingDelete() === post.id" (delete)="remove($event)" />
     }

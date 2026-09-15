@@ -32,6 +32,12 @@ export function postImageMarkdown(caption: string, assetId: string): string {
   return `![${caption.replace(/[[\]]/g, '')}](${POST_IMAGE_SCHEME}${assetId})`;
 }
 
+/** Minutes to read a body at about 200 words a minute; never less than one. */
+export function readingMinutes(bodyMd: string): number {
+  const words = bodyMd.replace(IMAGE_REFERENCE, ' ').match(/\S+/g)?.length ?? 0;
+  return Math.max(1, Math.round(words / 200));
+}
+
 /** The ids of the post's own images a body shows, in order. */
 export function referencedImageIds(bodyMd: string): string[] {
   return [...bodyMd.matchAll(IMAGE_REFERENCE)].flatMap((match) =>
@@ -103,7 +109,14 @@ export const postImageSchema = z.object({
   height: z.number().int().nullable(),
 });
 
-/** What the blog list shows: everything but the body and the linked builds. */
+/** A linked build as a tag on a post: enough to name it and link to its page. */
+export const postTagSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  slug: z.string(),
+});
+
+/** What the blog list shows: everything but the body and the linked builds in full. */
 export const postSummarySchema = z.object({
   id: z.uuid(),
   title: z.string(),
@@ -118,6 +131,10 @@ export const postSummarySchema = z.object({
   ownedByViewer: z.boolean(),
   /** The cover's thumbnail, for a list. Short-lived; render it now. */
   coverUrl: z.string().nullable(),
+  /** Minutes to read the body. */
+  readingMinutes: z.number().int(),
+  /** The linked builds the person asking may open, as tags, in the author's order. */
+  tags: z.array(postTagSchema),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -148,6 +165,7 @@ export type PostFormValue = z.input<typeof createPostSchema>;
 export type CreatePostDto = z.output<typeof createPostSchema>;
 export type UpdatePostDto = z.output<typeof updatePostSchema>;
 export type PostImageDto = z.output<typeof postImageSchema>;
+export type PostTagDto = z.output<typeof postTagSchema>;
 export type PostSummaryDto = z.output<typeof postSummarySchema>;
 export type PostDto = z.output<typeof postSchema>;
 export type ListPublishedPostsQuery = z.output<typeof listPublishedPostsQuerySchema>;

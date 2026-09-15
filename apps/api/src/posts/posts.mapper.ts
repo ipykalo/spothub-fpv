@@ -1,4 +1,11 @@
-import type { BuildDto, PostDto, PostImageDto, PostSummaryDto } from '@spothub/shared';
+import {
+  type BuildDto,
+  type PostDto,
+  type PostImageDto,
+  type PostSummaryDto,
+  type PostTagDto,
+  readingMinutes,
+} from '@spothub/shared';
 
 import type { PostEntity } from './post.entity';
 
@@ -6,12 +13,15 @@ import type { PostEntity } from './post.entity';
  * The single place a post becomes a wire object. Explicit rather than a
  * spread of the entity, so a column added to the table is not silently
  * published. `viewerId` is whoever asked — null for a signed-out visitor.
- * Image URLs are signed per response by the media module and passed in.
+ * Image URLs are signed per response by the media module, and the tags are
+ * the linked builds the builds module says this viewer may open; both are
+ * passed in.
  */
 export function toPostSummaryDto(
   post: PostEntity,
   viewerId: string | null,
   coverUrl: string | null,
+  tags: readonly PostTagDto[],
 ): PostSummaryDto {
   return {
     id: post.id,
@@ -23,9 +33,16 @@ export function toPostSummaryDto(
     authorName: post.authorName,
     ownedByViewer: post.authorId === viewerId,
     coverUrl,
+    readingMinutes: readingMinutes(post.bodyMd),
+    tags: [...tags],
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
   };
+}
+
+/** A build as a post's tag. */
+export function toPostTag(build: BuildDto): PostTagDto {
+  return { id: build.id, name: build.name, slug: build.slug };
 }
 
 /**
@@ -43,7 +60,12 @@ export function toPostDto(
   const cover = images.find((image) => image.id === post.coverAssetId) ?? null;
 
   return {
-    ...toPostSummaryDto(post, viewerId, cover ? (cover.thumbUrl ?? cover.url) : null),
+    ...toPostSummaryDto(
+      post,
+      viewerId,
+      cover ? (cover.thumbUrl ?? cover.url) : null,
+      builds.map(toPostTag),
+    ),
     bodyMd: post.bodyMd,
     coverAssetId: cover?.id ?? null,
     coverImageUrl: cover?.url ?? null,

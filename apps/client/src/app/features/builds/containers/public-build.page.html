@@ -103,7 +103,7 @@
 
       @if (loaded.posts.length) {
         <sh-section heading="Posts about this build" [count]="loaded.posts.length">
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+          <div class="grid gap-4">
             @for (post of loaded.posts; track post.id) {
               <sh-post-card [post]="post" />
             }

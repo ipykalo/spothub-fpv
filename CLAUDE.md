@@ -683,7 +683,9 @@ in or not, and render them on the server.
   asks `BuildsFacade.idsOwnedBy`, so only the author's own builds, and
   reading asks `BuildsFacade.visibleToViewer`, so a build its owner makes
   private drops out of the post for everyone else. The raw link list goes to
-  the author only.
+  the author only. A summary carries those visible builds as tags (asked for
+  once for the whole list), its cover thumbnail and a reading time, which is
+  what the blog feed's full-width `sh-post-card` rows show.
 - **Markdown is rendered by `sh-markdown`** (`marked`): raw HTML in the
   source is escaped, an image at any outside address becomes a link (loading
   it would tell its host who read the page), and the result still goes
