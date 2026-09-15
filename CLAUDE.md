@@ -705,7 +705,13 @@ in or not, and render them on the server.
   through `execCommand('insertText')` so Ctrl+Z undoes a button. An image is
   a placeholder line until it uploads; the first image on a never-saved post
   saves it as a draft and swaps the address to its edit page with
-  `Location.replaceState`, so nothing typed is lost.
+  `Location.replaceState`, so nothing typed is lost. The toolbar is `sticky`,
+  so nothing around it may clip overflow; and the body textarea has no padding
+  of its own, because `cdkTextareaAutosize` sizes it to its content and
+  padding inside that height scrolls. A loaded post calls
+  `resizeToFitContent` itself — the autosize only measures on input. Tables
+  are GFM; `sh-markdown` wraps each in a sideways-scrolling
+  `.sh-markdown-table`.
 - **Only `builds` and `blog` render on the server** (`app.routes.server.ts`);
   everything behind sign-in stays browser-rendered, since the server holds no
   session and the map touches browser APIs as it loads. `apps/client` builds

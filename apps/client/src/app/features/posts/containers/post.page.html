@@ -1,5 +1,6 @@
 @if (shown(); as post) {
-  <div class="mx-auto max-w-3xl">
+  <!-- As wide as the blog feed, so opening a post does not shrink it. -->
+  <div>
     <a class="mb-3 inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline" routerLink="/blog">
       <mat-icon class="icon-sm">arrow_back</mat-icon>
       Blog
@@ -7,7 +8,7 @@
 
     <article class="overflow-hidden rounded-lg border border-outline-variant bg-surface">
       @if (post.coverImageUrl; as cover) {
-        <img class="block aspect-[2/1] w-full object-cover" [src]="cover" [alt]="'Cover of ' + post.title" />
+        <img class="block aspect-[5/2] w-full object-cover" [src]="cover" [alt]="'Cover of ' + post.title" />
       }
 
       <div class="px-4 py-6 sm:px-12 sm:py-10">

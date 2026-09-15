@@ -21,6 +21,7 @@ const BUTTONS: readonly ToolbarButton[] = [
   { action: 'quote', icon: 'format_quote', label: 'Quote' },
   { action: 'code', icon: 'code', label: 'Inline code' },
   { action: 'codeBlock', icon: 'data_object', label: 'Code block' },
+  { action: 'table', icon: 'table_chart', label: 'Table' },
   { action: 'image', icon: 'image', label: 'Image' },
 ];
 

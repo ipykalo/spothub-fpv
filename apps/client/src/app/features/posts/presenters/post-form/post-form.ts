@@ -1,8 +1,10 @@
-import { TextFieldModule } from '@angular/cdk/text-field';
+import { CdkTextareaAutosize, TextFieldModule } from '@angular/cdk/text-field';
 import {
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -11,6 +13,7 @@ import {
   signal,
   untracked,
   viewChild,
+  viewChildren,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -136,6 +139,9 @@ export class PostForm {
   protected readonly message = computed(() => this.errorMessage() ?? this.problem());
 
   private readonly body = viewChild.required<ElementRef<HTMLTextAreaElement>>('body');
+  /** The auto-growing title and body. */
+  private readonly autosizes = viewChildren(CdkTextareaAutosize);
+  private readonly injector = inject(Injector);
 
   constructor() {
     effect(() => {
@@ -151,6 +157,18 @@ export class PostForm {
           summary: post.summary ?? '',
           bodyMd: post.bodyMd,
         });
+
+        // The boxes measure themselves as someone types. A saved post is set
+        // from code, so they are told to fit it — or they keep their empty
+        // height and the text scrolls inside them instead of down the page.
+        afterNextRender(
+          () => {
+            for (const autosize of this.autosizes()) {
+              autosize.resizeToFitContent(true);
+            }
+          },
+          { injector: this.injector },
+        );
         this.currentVisibility.set(post.visibility);
         this.linked.set(post.buildIds);
         this.images.set(post.images);

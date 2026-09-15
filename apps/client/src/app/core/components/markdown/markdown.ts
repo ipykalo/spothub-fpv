@@ -63,7 +63,12 @@ export function renderMarkdown(
     },
   });
 
-  return markdown.parse(source, { async: false });
+  // A table gets a wrapper that scrolls sideways, so a wide one never pushes
+  // the page wider than a phone.
+  return markdown
+    .parse(source, { async: false })
+    .replaceAll('<table>', '<div class="sh-markdown-table"><table>')
+    .replaceAll('</table>', '</table></div>');
 }
 
 /**

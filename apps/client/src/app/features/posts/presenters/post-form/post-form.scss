@@ -33,13 +33,11 @@
   font-size: 1.05rem;
 }
 
+// No padding of its own (the wrapper has it): the auto-grow sizes the text
+// area to its content, and padding inside that height would scroll.
 .body-field {
-  padding: 1.25rem 1rem;
+  padding: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.95rem;
   line-height: 1.6;
-
-  @media (min-width: 40rem) {
-    padding-inline: 2rem;
-  }
 }

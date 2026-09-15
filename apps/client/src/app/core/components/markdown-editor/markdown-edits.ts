@@ -36,7 +36,8 @@ export type MarkdownAction =
   | 'bulletList'
   | 'numberedList'
   | 'code'
-  | 'codeBlock';
+  | 'codeBlock'
+  | 'table';
 
 /** What each toolbar action does to the selection. */
 export function editFor(action: MarkdownAction, selection: TextSelection): TextEdit {
@@ -59,7 +60,32 @@ export function editFor(action: MarkdownAction, selection: TextSelection): TextE
       return prefixLines(selection, (index) => `${String(index + 1)}. `, NUMBERED, LIST);
     case 'codeBlock':
       return codeBlock(selection);
+    case 'table':
+      return table(selection);
   }
+}
+
+const TABLE_HEADER = 'Column 1';
+const TABLE_TEMPLATE = [
+  `| ${TABLE_HEADER} | Column 2 | Column 3 |`,
+  '| --- | --- | --- |',
+  '|  |  |  |',
+  '|  |  |  |',
+].join('\n');
+
+/**
+ * A three-column table as its own paragraph, with the first heading selected
+ * to type over. More rows are one `|  |  |  |` line each.
+ */
+export function table(selection: TextSelection): TextEdit {
+  const edit = insertBlock(selection, TABLE_TEMPLATE);
+  const headerStart = edit.start + edit.text.indexOf(TABLE_TEMPLATE) + 2;
+
+  return {
+    ...edit,
+    selectStart: headerStart,
+    selectEnd: headerStart + TABLE_HEADER.length,
+  };
 }
 
 /**

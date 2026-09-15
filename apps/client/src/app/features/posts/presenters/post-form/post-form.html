@@ -13,7 +13,8 @@
       </mat-button-toggle-group>
     </div>
 
-    <div class="overflow-hidden rounded-lg border border-outline-variant">
+    <!-- No overflow clipping here: it would stop the toolbar below from sticking. -->
+    <div class="rounded-lg border border-outline-variant">
       <!-- Hidden rather than removed while previewing: an upload still finishing writes into this text. -->
       <div [class.hidden]="mode() === 'preview'">
         <div class="grid gap-4 px-4 pt-6 pb-4 sm:px-8">
@@ -66,24 +67,28 @@
           }
         </div>
 
-        <div class="border-y border-outline-variant bg-surface-high px-2 py-1 sm:px-6">
+        <!-- Sticks to the top of the window, so formatting is in reach anywhere in a long post. -->
+        <div class="sticky top-0 z-10 border-y border-outline-variant bg-surface-high px-2 py-1 sm:px-6">
           <sh-markdown-toolbar [target]="body" [disabled]="saving()" (imageRequested)="imagePicker.click()" />
           <input #imagePicker type="file" hidden multiple [accept]="accept" (change)="onImagesChosen($event)" />
         </div>
 
-        <textarea
-          #body
-          class="body-field"
-          formControlName="bodyMd"
-          placeholder="Write your post content here…"
-          aria-label="Post, in Markdown"
-          cdkTextareaAutosize
-          cdkAutosizeMinRows="16"
-          [attr.maxlength]="maxBody"
-          (paste)="onPaste($event)"
-          (dragover)="onDragOver($event)"
-          (drop)="onDrop($event)"
-        ></textarea>
+        <!-- The padding sits on this wrapper: on the textarea, the auto-grow would leave it a padding short. -->
+        <div class="px-4 py-5 sm:px-8">
+          <textarea
+            #body
+            class="body-field"
+            formControlName="bodyMd"
+            placeholder="Write your post content here…"
+            aria-label="Post, in Markdown"
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="16"
+            [attr.maxlength]="maxBody"
+            (paste)="onPaste($event)"
+            (dragover)="onDragOver($event)"
+            (drop)="onDrop($event)"
+          ></textarea>
+        </div>
 
         @if (uploading() > 0) {
           <p class="m-0 px-4 pb-4 text-sm text-muted sm:px-8" role="status">
