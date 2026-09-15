@@ -18,23 +18,31 @@ import {
   updateRepairSchema,
 } from '@spothub/shared';
 
-import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
+import {
+  type AuthenticatedUser,
+  CurrentUser,
+  CurrentViewer,
+  Public,
+  ZodValidationPipe,
+} from '../common';
 import { RepairsService } from './repairs.service';
 
 /**
  * Nested under a build: a repair only means anything in the context of the
- * thing that broke. Guarded by the global JwtAuthGuard like everything else.
+ * thing that broke. Guarded by the global JwtAuthGuard like everything else,
+ * except the list: a public build page shows its repair history to anyone.
  */
 @Controller('builds/:buildId/repairs')
 export class RepairsController {
   constructor(private readonly repairs: RepairsService) {}
 
+  @Public()
   @Get()
   list(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentViewer() viewer: AuthenticatedUser | null,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<RepairDto[]> {
-    return this.repairs.list(user.id, buildId);
+    return this.repairs.list(viewer?.id ?? null, buildId);
   }
 
   @Post()

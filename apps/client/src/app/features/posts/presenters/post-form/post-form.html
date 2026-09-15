@@ -1,0 +1,80 @@
+<mat-card appearance="outlined" class="mx-auto max-w-176">
+  <mat-card-header>
+    <mat-card-title>{{ isEdit() ? 'Edit post' : 'New post' }}</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <form class="grid gap-2" [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field>
+        <mat-label>Title</mat-label>
+        <input matInput formControlName="title" [attr.maxlength]="maxTitle" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Summary</mat-label>
+        <input matInput formControlName="summary" [attr.maxlength]="maxSummary" />
+        <mat-hint>A line or two for the blog list and link previews</mat-hint>
+      </mat-form-field>
+
+      <sh-autocomplete formControlName="visibility" label="Visibility" [options]="visibilityOptions" />
+      <p class="mt-0 mb-2 text-xs text-muted">
+        Private is a draft only you see. Unlisted opens for anyone with the link. Public is also listed on the blog.
+      </p>
+
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span class="text-sm font-semibold">Post, in Markdown</span>
+        <mat-button-toggle-group
+          hideSingleSelectionIndicator
+          aria-label="Write or preview the post"
+          [value]="mode()"
+          (change)="setMode($event.value)"
+        >
+          <mat-button-toggle value="write">Write</mat-button-toggle>
+          <mat-button-toggle value="preview">Preview</mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      @if (mode() === 'write') {
+        <mat-form-field>
+          <mat-label>What happened</mat-label>
+          <textarea matInput rows="14" formControlName="bodyMd" [attr.maxlength]="maxBody"></textarea>
+        </mat-form-field>
+      } @else {
+        <div class="mb-5 min-h-40 rounded border border-outline-variant p-4">
+          @if (previewSource()) {
+            <sh-markdown [source]="previewSource()" />
+          } @else {
+            <p class="m-0 text-muted italic">Nothing written yet.</p>
+          }
+        </div>
+      }
+
+      @if (builds().length) {
+        <fieldset class="m-0 border-0 p-0">
+          <legend class="mb-1 p-0 text-sm font-semibold">Builds this post is about</legend>
+          <div class="grid gap-0.5">
+            @for (build of builds(); track build.id) {
+              <mat-checkbox [checked]="isLinked(build.id)" (change)="toggleBuild(build.id, $event.checked)">
+                {{ build.name }}
+              </mat-checkbox>
+            }
+          </div>
+          <p class="mt-1 mb-0 text-xs text-muted">
+            Readers see only the builds you have shared; a private one shows to you alone.
+          </p>
+        </fieldset>
+      }
+
+      @if (message(); as text) {
+        <p role="alert">{{ text }}</p>
+      }
+
+      <div class="mt-4 flex gap-3">
+        <button matButton="filled" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+        <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

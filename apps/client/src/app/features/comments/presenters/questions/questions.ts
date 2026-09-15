@@ -43,6 +43,8 @@ export class Questions {
   /** "spot" or "build" — what the empty state talks about. */
   readonly subjectLabel = input('spot');
   readonly saving = input(false);
+  /** For a signed-out reader: the conversation, with nothing to reply with. */
+  readonly readOnly = input(false);
 
   readonly replied = output<CommentReply>();
   readonly edited = output<CommentEdit>();

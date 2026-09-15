@@ -46,6 +46,7 @@ model User {
   spots        Spot[]
   comments     Comment[]
   commentReads CommentRead[]
+  posts        Post[]
 
   @@map("users")
 }
@@ -149,6 +150,7 @@ model Build {
   flights      Flight[]
   comments     Comment[]
   commentReads CommentRead[]
+  postLinks    PostBuild[]
 
   @@unique([ownerId, slug])
   @@index([ownerId, status])
@@ -817,4 +819,49 @@ model CommentRead {
   @@unique([spotId, userId])
   @@unique([buildId, userId])
   @@map("comment_reads")
+}
+
+// ------------------------------------------------------------------- posts
+
+/// A blog post: markdown a pilot wrote, optionally about some of their own
+/// builds. Visibility works as it does for a build — Private is a draft only
+/// its author sees, Unlisted opens for anyone with the link, signed in or not,
+/// and Public is also listed on the blog.
+model Post {
+  id          String     @id @default(uuid()) @db.Uuid
+  authorId    String     @map("author_id") @db.Uuid
+  title       String
+  slug        String
+  /// A line or two for the blog list and link previews.
+  summary     String?
+  bodyMd      String     @default("") @map("body_md")
+  visibility  Visibility @default(PRIVATE)
+  /// Set the first time the post leaves Private, and kept after that: the day
+  /// it was published, not the last day it was made public again.
+  publishedAt DateTime?  @map("published_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  builds PostBuild[]
+
+  @@unique([authorId, slug])
+  @@index([authorId, updatedAt])
+  @@index([visibility, publishedAt])
+  @@map("posts")
+}
+
+/// A build a post is about. Goes when either the post or the build does.
+model PostBuild {
+  postId    String @map("post_id") @db.Uuid
+  buildId   String @map("build_id") @db.Uuid
+  /// The author's order.
+  sortOrder Int    @default(0) @map("sort_order")
+
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@id([postId, buildId])
+  @@index([buildId])
+  @@map("post_builds")
 }

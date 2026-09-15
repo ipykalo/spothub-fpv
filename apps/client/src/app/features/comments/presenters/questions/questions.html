@@ -110,7 +110,7 @@
       }
 
       <div class="-ml-2 flex flex-wrap gap-0.5">
-        @if (!isReply) {
+        @if (!isReply && !readOnly()) {
           <button matButton type="button" (click)="startReply(comment.id)">
             <mat-icon>reply</mat-icon>
             Reply

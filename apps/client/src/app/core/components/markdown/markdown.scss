@@ -1,0 +1,97 @@
+// Unencapsulated (see markdown.ts), so every rule is scoped under the host class.
+.sh-markdown {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+
+  > div > :first-child {
+    margin-top: 0;
+  }
+
+  > div > :last-child {
+    margin-bottom: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 1.5em 0 0.5em;
+    line-height: 1.25;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  h3,
+  h4 {
+    font-size: 1.1rem;
+  }
+
+  p,
+  ul,
+  ol,
+  blockquote,
+  pre,
+  table {
+    margin: 0 0 1em;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.5em;
+  }
+
+  a {
+    color: var(--mat-sys-primary);
+  }
+
+  code {
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    background: var(--mat-sys-surface-container-high);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+
+  pre {
+    overflow-x: auto;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    background: var(--mat-sys-surface-container-high);
+
+    code {
+      padding: 0;
+      background: none;
+    }
+  }
+
+  blockquote {
+    padding-left: 1em;
+    border-left: 3px solid var(--mat-sys-outline-variant);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  hr {
+    margin: 1.5em 0;
+    border: 0;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 0.35em 0.6em;
+    border: 1px solid var(--mat-sys-outline-variant);
+    text-align: left;
+  }
+}

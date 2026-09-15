@@ -13,9 +13,13 @@ import type { BuildEntity } from './build.entity';
  * signature minted per response by the media module, and this module knows
  * nothing about how assets are stored. `viewerId` is whoever asked: the same
  * build answers `ownedByViewer: true` to its owner and `false` to anyone it is
- * shared with.
+ * shared with, or to a signed-out visitor (a null viewer).
  */
-export function toBuildDto(build: BuildEntity, coverUrl: string | null, viewerId: string): BuildDto {
+export function toBuildDto(
+  build: BuildEntity,
+  coverUrl: string | null,
+  viewerId: string | null,
+): BuildDto {
   return {
     id: build.id,
     name: build.name,

@@ -15,6 +15,11 @@
       "options": {
         "outputPath": "dist/apps/client",
         "browser": "apps/client/src/main.ts",
+        "server": "apps/client/src/main.server.ts",
+        "outputMode": "server",
+        "ssr": {
+          "entry": "apps/client/src/server.ts"
+        },
         "tsConfig": "apps/client/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "allowedCommonJsDependencies": [
@@ -80,13 +85,12 @@
         "watch": false
       }
     },
-    "serve-static": {
+    "serve-ssr": {
       "continuous": true,
-      "executor": "@nx/web:file-server",
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
       "options": {
-        "buildTarget": "client:build",
-        "staticFilePath": "dist/apps/client/browser",
-        "spa": true
+        "command": "node dist/apps/client/server/server.mjs"
       }
     }
   }

@@ -34,7 +34,8 @@ export class CommentsService {
     private readonly builds: BuildsFacade,
   ) {}
 
-  async list(viewerId: string, ref: SubjectRef): Promise<ConversationDto> {
+  /** A null viewer is a signed-out visitor, who may read a shared build's conversation only. */
+  async list(viewerId: string | null, ref: SubjectRef): Promise<ConversationDto> {
     const ownerId = await this.ownerOfVisibleSubject(viewerId, ref);
     return this.conversation(viewerId, ref, ownerId);
   }
@@ -133,11 +134,16 @@ export class CommentsService {
     };
   }
 
-  private async ownerOfVisibleSubject(viewerId: string, ref: SubjectRef): Promise<string> {
+  private async ownerOfVisibleSubject(viewerId: string | null, ref: SubjectRef): Promise<string> {
     const isSpot = ref.subject === CommentSubject.Spot;
-    const ownerId = isSpot
-      ? await this.spots.ownerIfVisible(viewerId, ref.subjectId)
-      : await this.builds.ownerIfVisible(viewerId, ref.subjectId);
+    let ownerId: string | null;
+
+    if (isSpot) {
+      // Spots are never shown to a signed-out visitor.
+      ownerId = viewerId === null ? null : await this.spots.ownerIfVisible(viewerId, ref.subjectId);
+    } else {
+      ownerId = await this.builds.ownerIfVisible(viewerId, ref.subjectId);
+    }
 
     if (ownerId === null) {
       throw new NotFoundException(isSpot ? 'Spot not found' : 'Build not found');
@@ -147,7 +153,7 @@ export class CommentsService {
   }
 
   private async conversation(
-    viewerId: string,
+    viewerId: string | null,
     ref: SubjectRef,
     ownerId: string,
   ): Promise<ConversationDto> {

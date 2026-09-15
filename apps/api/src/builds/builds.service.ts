@@ -38,8 +38,36 @@ export class BuildsService {
     return this.withCovers(viewerId, builds);
   }
 
-  /** The viewer's own build, or one shared with them. Anything else is not found. */
-  async getOne(viewerId: string, id: string): Promise<BuildDto> {
+  /**
+   * Every Public build, the viewer's own included — what a signed-out visitor
+   * browses. `viewerId` is null for a visitor.
+   */
+  async listPublic(viewerId: string | null, query: ListBuildsQuery): Promise<BuildDto[]> {
+    const builds = await this.builds.findPublic(query);
+    return this.withCovers(viewerId, builds);
+  }
+
+  /**
+   * The builds among these the viewer may open, in the order asked — what a
+   * post shows of the builds it links. The rest are left out silently.
+   */
+  async listVisible(viewerId: string | null, ids: readonly string[]): Promise<BuildDto[]> {
+    const found = new Map(
+      (await this.builds.findManyVisibleForViewer(viewerId, ids)).map((build) => [build.id, build]),
+    );
+    const ordered = ids.flatMap((id) => {
+      const build = found.get(id);
+      return build ? [build] : [];
+    });
+
+    return this.withCovers(viewerId, ordered);
+  }
+
+  /**
+   * The viewer's own build, or one shared as Public or Unlisted — which a
+   * signed-out visitor (a null viewer) may open too. Anything else is not found.
+   */
+  async getOne(viewerId: string | null, id: string): Promise<BuildDto> {
     const build = await this.builds.findVisibleForViewer(viewerId, id);
 
     if (!build) {
@@ -97,7 +125,7 @@ export class BuildsService {
    * settled by the read that found it.
    */
   private async withCovers(
-    viewerId: string,
+    viewerId: string | null,
     builds: readonly BuildEntity[],
   ): Promise<BuildDto[]> {
     const coversByOwner = new Map<string, string[]>();
@@ -127,7 +155,7 @@ export class BuildsService {
     );
   }
 
-  private async withCover(viewerId: string, build: BuildEntity): Promise<BuildDto> {
+  private async withCover(viewerId: string | null, build: BuildEntity): Promise<BuildDto> {
     const [dto] = await this.withCovers(viewerId, [build]);
     return dto;
   }

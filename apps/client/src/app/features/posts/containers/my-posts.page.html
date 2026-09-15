@@ -1,0 +1,37 @@
+<header class="mb-4 flex flex-wrap items-center gap-4">
+  <div class="min-w-0">
+    <a class="inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline" routerLink="/blog">
+      <mat-icon class="icon-sm">arrow_back</mat-icon>
+      Blog
+    </a>
+    <h1 class="mt-1.5 mb-0 text-2xl">My posts</h1>
+  </div>
+
+  <span class="flex-auto"></span>
+
+  <a matButton="filled" routerLink="/posts/new">
+    <mat-icon>edit</mat-icon>
+    Write a post
+  </a>
+</header>
+
+@if (store.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (store.error(); as message) {
+  <p role="alert">{{ message }}</p>
+}
+
+@if (store.mine().length) {
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+    @for (post of store.mine(); track post.id) {
+      <sh-post-card [post]="post" [manage]="true" [deleting]="pendingDelete() === post.id" (delete)="remove($event)" />
+    }
+  </div>
+} @else if (!store.loading() && !store.error()) {
+  <div class="px-4 py-12 text-center text-muted">
+    <p>No posts yet.</p>
+    <a matButton routerLink="/posts/new">Write your first</a>
+  </div>
+}

@@ -13,8 +13,8 @@ import { BuildsService } from './builds.service';
  *
  * What is fitted to one, what broke on it and what firmware it ran are three
  * other modules. They reach a build only through a join in their own
- * repositories, so they do not depend on this module. `comments` does, through
- * `BuildsFacade` — the only provider exported.
+ * repositories, so they do not depend on this module. `comments` and `posts`
+ * do, through `BuildsFacade` — the only provider exported.
  */
 @Module({
   // For MediaFacade only: a build card shows its cover photo. Media depends on

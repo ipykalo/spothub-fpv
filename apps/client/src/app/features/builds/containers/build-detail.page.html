@@ -27,6 +27,13 @@
 
     <div class="flex items-center gap-2">
       <sh-collapse-all />
+      <!-- A shared build has a page anyone may open, signed in or not. -->
+      @if (quad.visibility !== 'PRIVATE') {
+        <a matButton [routerLink]="['/builds', quad.id, quad.slug]">
+          <mat-icon>public</mat-icon>
+          Public page
+        </a>
+      }
       <!-- Only its owner changes a build; a shared one is read-only. -->
       @if (quad.ownedByViewer) {
         <a matButton="outlined" [routerLink]="['/hangar', quad.id, 'edit']">
@@ -116,7 +123,7 @@
 
     @if (build()?.descriptionMd; as notes) {
       <h3 class="mt-5 mb-2 text-sm font-semibold tracking-wider text-muted uppercase">Notes</h3>
-      <p class="m-0 max-w-176 whitespace-pre-wrap wrap-anywhere">{{ notes }}</p>
+      <sh-markdown class="max-w-176" [source]="notes" />
     }
   </sh-section>
 

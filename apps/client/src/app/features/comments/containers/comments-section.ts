@@ -8,11 +8,14 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { type CommentDto, CommentSubject } from '@spothub/shared';
+import { Router } from '@angular/router';
+import { type CommentDto, CommentSubject, type ConversationDto } from '@spothub/shared';
 
 import { Section } from '../../../core/components/section/section';
+import { AuthStore } from '../../../core/auth/auth.store';
 import { CommentsStore } from '../comments.store';
 import { CommentForm } from '../presenters/comment-form/comment-form';
 import {
@@ -29,11 +32,16 @@ import {
  * One container for both pages rather than the same handlers written into
  * each: a page drops it in with the subject and whether the viewer owns it,
  * and everything about comments stays in this feature.
+ *
+ * On a public page a signed-out reader sees the conversation and a way to
+ * sign in, never an ask box. That page hands in the conversation it was
+ * rendered with; once the reader turns out to be signed in, it is asked for
+ * again so their own permissions show.
  */
 @Component({
   selector: 'sh-comments-section',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommentForm, MatProgressBarModule, Questions, Section],
+  imports: [CommentForm, MatButtonModule, MatProgressBarModule, Questions, Section],
   templateUrl: './comments-section.html',
   styleUrl: './comments-section.scss',
 })
@@ -42,8 +50,12 @@ export class CommentsSection {
   readonly subjectId = input.required<string>();
   /** The owner answers here; everyone else it is shared with asks. */
   readonly ownedByViewer = input(false);
+  /** The conversation a server-rendered page was rendered with, adopted rather than fetched. */
+  readonly initial = input<ConversationDto | null>(null);
 
   protected readonly comments = inject(CommentsStore);
+  protected readonly auth = inject(AuthStore);
+  private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
 
   /** The ask box is asked for, never shown by default. */
@@ -55,16 +67,22 @@ export class CommentsSection {
   );
 
   constructor() {
-    // The conversation follows the subject, including a page reused for another one.
+    // The conversation follows the subject, including a page reused for
+    // another one, and whether the reader is signed in.
     effect(() => {
       const subject = this.subject();
       const subjectId = this.subjectId();
+      const signedIn = this.auth.isAuthenticated();
 
       untracked(() => {
         this.asking.set(false);
-        void this.comments.open(subject, subjectId);
+        void this.comments.open(subject, subjectId, signedIn ? null : this.initial());
       });
     });
+  }
+
+  protected signIn(): void {
+    void this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
   }
 
   protected async ask(body: string): Promise<void> {

@@ -14,6 +14,9 @@ const WITH_OWNER_NAME = { owner: { select: { displayName: true } } } satisfies P
 
 type BuildRow = Prisma.BuildGetPayload<{ include: typeof WITH_OWNER_NAME }>;
 
+/** What anyone may open, signed in or not: a build shared as Public or Unlisted. */
+const SHARED: Prisma.BuildWhereInput = { visibility: { in: ['PUBLIC', 'UNLISTED'] } };
+
 /**
  * The only place in the builds feature that knows Prisma exists.
  */
@@ -42,13 +45,55 @@ export class PrismaBuildsRepository extends BuildsRepository {
     return build ? toEntity(build) : null;
   }
 
-  async findVisibleForViewer(viewerId: string, id: string): Promise<BuildEntity | null> {
+  async findVisibleForViewer(viewerId: string | null, id: string): Promise<BuildEntity | null> {
     const build = await this.prisma.build.findFirst({
-      where: { id, OR: [{ ownerId: viewerId }, { visibility: { in: ['PUBLIC', 'UNLISTED'] } }] },
+      where: { id, ...(viewerId === null ? SHARED : { OR: [{ ownerId: viewerId }, SHARED] }) },
       include: WITH_OWNER_NAME,
     });
 
     return build ? toEntity(build) : null;
+  }
+
+  async findPublic(filter: BuildFilter): Promise<BuildEntity[]> {
+    const builds = await this.prisma.build.findMany({
+      where: { visibility: 'PUBLIC', ...matching(filter) },
+      include: WITH_OWNER_NAME,
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+    });
+
+    return builds.map(toEntity);
+  }
+
+  async findManyVisibleForViewer(
+    viewerId: string | null,
+    ids: readonly string[],
+  ): Promise<BuildEntity[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const builds = await this.prisma.build.findMany({
+      where: {
+        id: { in: [...ids] },
+        ...(viewerId === null ? SHARED : { OR: [{ ownerId: viewerId }, SHARED] }),
+      },
+      include: WITH_OWNER_NAME,
+    });
+
+    return builds.map(toEntity);
+  }
+
+  async findIdsOwnedBy(ownerId: string, ids: readonly string[]): Promise<string[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const builds = await this.prisma.build.findMany({
+      where: { id: { in: [...ids] }, ownerId },
+      select: { id: true },
+    });
+
+    return builds.map((build) => build.id);
   }
 
   async findSharedForViewer(viewerId: string, filter: BuildFilter): Promise<BuildEntity[]> {

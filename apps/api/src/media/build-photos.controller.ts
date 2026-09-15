@@ -21,7 +21,13 @@ import {
   setCoverSchema,
 } from '@spothub/shared';
 
-import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
+import {
+  type AuthenticatedUser,
+  CurrentUser,
+  CurrentViewer,
+  Public,
+  ZodValidationPipe,
+} from '../common';
 import { AssetsService } from './assets.service';
 
 /**
@@ -32,17 +38,21 @@ import { AssetsService } from './assets.service';
  * PUT and the client sends the bytes straight to storage; `POST
  * /:assetId/commit` is where the API first reads them, strips EXIF and makes
  * the thumbnail. No route here ever accepts a file body.
+ *
+ * The gallery itself is `@Public()`: a public build page shows its photos to
+ * anyone the build is shared with, signed in or not.
  */
 @Controller('builds/:buildId/photos')
 export class BuildPhotosController {
   constructor(private readonly assets: AssetsService) {}
 
+  @Public()
   @Get()
   list(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentViewer() viewer: AuthenticatedUser | null,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<AssetDto[]> {
-    return this.assets.list(user.id, buildId);
+    return this.assets.list(viewer?.id ?? null, buildId);
   }
 
   @Post('uploads')

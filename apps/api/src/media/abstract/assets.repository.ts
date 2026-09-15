@@ -34,10 +34,11 @@ export abstract class AssetsRepository {
 
   /**
    * The subject's owner, when the viewer may see it — for a build, their own
-   * or one shared as Public or Unlisted. Null otherwise.
+   * or one shared as Public or Unlisted; a null viewer is a signed-out visitor,
+   * who sees only the shared ones. Null otherwise.
    */
   abstract findSubjectOwnerVisibleToViewer(
-    viewerId: string,
+    viewerId: string | null,
     subject: AssetSubject,
     subjectId: string,
   ): Promise<string | null>;

@@ -13,10 +13,11 @@ export class RepairsService {
 
   /**
    * The repair history of a build the viewer may see. Someone it is shared
-   * with reads what broke and when, never what putting it right cost. A build
-   * they cannot see lists nothing, as before.
+   * with reads what broke and when, never what putting it right cost — and so
+   * does a signed-out visitor, a null viewer. A build they cannot see lists
+   * nothing, as before.
    */
-  async list(viewerId: string, buildId: string): Promise<RepairDto[]> {
+  async list(viewerId: string | null, buildId: string): Promise<RepairDto[]> {
     const ownerId = await this.repairs.findBuildOwnerVisibleToViewer(viewerId, buildId);
 
     if (ownerId === null) {

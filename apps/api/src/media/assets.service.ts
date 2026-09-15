@@ -129,9 +129,10 @@ export class AssetsService {
   /**
    * A build's gallery, for its owner or anyone it is shared with. The photos
    * are already safe to show — EXIF went on commit — but the name a file had
-   * on the owner's phone is theirs, so someone else sees none.
+   * on the owner's phone is theirs, so someone else sees none — a signed-out
+   * visitor (a null viewer) included.
    */
-  async list(viewerId: string, buildId: string): Promise<AssetDto[]> {
+  async list(viewerId: string | null, buildId: string): Promise<AssetDto[]> {
     const ownerId = await this.assets.findSubjectOwnerVisibleToViewer(
       viewerId,
       AssetSubject.Build,

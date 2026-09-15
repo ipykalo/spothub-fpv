@@ -16,10 +16,14 @@ export interface BuildPartFilter {
 export abstract class BuildPartsRepository {
   /**
    * The build's owner, when the viewer may see the build — their own, or one
-   * shared as Public or Unlisted. Null otherwise. A join on `builds` inside
-   * this repository, so reading a shared parts list needs no builds facade.
+   * shared as Public or Unlisted; a null viewer is a signed-out visitor, who
+   * sees only the shared ones. Null otherwise. A join on `builds` inside this
+   * repository, so reading a shared parts list needs no builds facade.
    */
-  abstract findBuildOwnerVisibleToViewer(viewerId: string, buildId: string): Promise<string | null>;
+  abstract findBuildOwnerVisibleToViewer(
+    viewerId: string | null,
+    buildId: string,
+  ): Promise<string | null>;
 
   abstract findManyForOwner(
     ownerId: string,

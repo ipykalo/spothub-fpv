@@ -28,6 +28,11 @@ export class BuildsApi {
     return this.http.get<BuildDto[]>(`${this.url}/shared`, { params: toParams(query) });
   }
 
+  /** Every Public build, for anyone — the public list. */
+  listPublic(): Observable<BuildDto[]> {
+    return this.http.get<BuildDto[]>(`${this.url}/public`);
+  }
+
   /** One of the viewer's own builds, or one shared with them. */
   getOne(id: string): Observable<BuildDto> {
     return this.http.get<BuildDto>(`${this.url}/${id}`);

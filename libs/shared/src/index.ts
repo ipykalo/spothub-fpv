@@ -11,3 +11,4 @@ export * from './lib/user.contract';
 export * from './lib/spot.contract';
 export * from './lib/youtube';
 export * from './lib/comment.contract';
+export * from './lib/post.contract';

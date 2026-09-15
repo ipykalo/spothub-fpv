@@ -10,9 +10,13 @@ import type { CreateRepairData, RepairEntity, UpdateRepairData } from '../repair
 export abstract class RepairsRepository {
   /**
    * The build's owner, when the viewer may see the build — their own, or one
-   * shared as Public or Unlisted. Null otherwise.
+   * shared as Public or Unlisted; a null viewer is a signed-out visitor, who
+   * sees only the shared ones. Null otherwise.
    */
-  abstract findBuildOwnerVisibleToViewer(viewerId: string, buildId: string): Promise<string | null>;
+  abstract findBuildOwnerVisibleToViewer(
+    viewerId: string | null,
+    buildId: string,
+  ): Promise<string | null>;
 
   abstract findManyForOwner(ownerId: string, buildId: string): Promise<RepairEntity[]>;
 

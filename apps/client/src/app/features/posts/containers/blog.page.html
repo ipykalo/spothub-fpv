@@ -1,0 +1,44 @@
+<header class="mb-4 flex flex-wrap items-center gap-4">
+  <div class="min-w-0">
+    <h1 class="m-0 text-2xl">Blog</h1>
+    <p class="m-0 mt-1 text-muted">Build logs, crash reports and what pilots learned along the way.</p>
+  </div>
+
+  <span class="flex-auto"></span>
+
+  <!-- Shown once the browser knows the reader is signed in. -->
+  @if (auth.isAuthenticated()) {
+    <a matButton routerLink="/posts">My posts</a>
+    <a matButton="filled" routerLink="/posts/new">
+      <mat-icon>edit</mat-icon>
+      Write a post
+    </a>
+  }
+</header>
+
+@if (posts(); as list) {
+  @if (list.length) {
+    <sh-grid-toolbar
+      [(query)]="grid.query"
+      [(sort)]="grid.sort"
+      [sorts]="sorts"
+      [shown]="rows().length"
+      [total]="list.length"
+      searchLabel="Search posts"
+    />
+
+    @if (rows().length) {
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+        @for (post of rows(); track post.id) {
+          <sh-post-card [post]="post" />
+        }
+      </div>
+    } @else {
+      <p class="py-8 text-muted">Nothing matches.</p>
+    }
+  } @else {
+    <p class="px-4 py-12 text-center text-muted">Nothing published yet.</p>
+  }
+} @else {
+  <p role="alert">The blog could not be loaded. Try again in a moment.</p>
+}

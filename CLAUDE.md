@@ -33,6 +33,7 @@ apps/api/src/
   flight-logs/                               log import, a reader per format
   spots/                                     flying spots on a map
   comments/                                  questions and replies on spots and builds
+  posts/                                     the blog: posts pilots write about their builds
   health/
 ```
 
@@ -113,8 +114,8 @@ needs go through a facade — an abstract class in the owning module's
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
 that module's `exports`. There are six: `UsersFacade` (consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
-`FlightsFacade` (consumed by flight-logs), and `SpotsFacade` and
-`BuildsFacade` (both consumed by comments). A facade
+`FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
+comments) and `BuildsFacade` (consumed by comments and posts). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -179,6 +180,7 @@ features/
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot and build pages)
+  posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -316,7 +318,8 @@ The rules that keep Tailwind and Angular Material from fighting:
 ## Commands
 
 ```bash
-npm run dev            # api :3000 + client :4200
+npm run dev            # api :3000 + client :4200 (public pages server-rendered)
+npx nx run client:serve-ssr   # the built client server on :4000
 npm run db:up          # postgres + minio
 npm run db:migrate     # create/apply a migration
 npm run db:studio      # stand-in admin UI
@@ -658,6 +661,58 @@ read (`withoutOwnersDetails`); every write stays owner-scoped and untouched.
 The client hides every owner section and control where `ownedByViewer` is
 false, and does not even request configs, the inventory or the logbook;
 `?scope=shared` on `/hangar` is the shared list.
+
+**Public pages and the blog** open shared builds and posts to anyone, signed
+in or not, and render them on the server.
+
+- **A read a visitor may make is `@Public()` and takes `@CurrentViewer()`**
+  — the signed-in user, or null. On a public route the global guard still
+  checks a bearer token when one is sent, so an owner is recognised there
+  too; a missing or bad token just leaves the request a visitor. The public
+  reads are the Public builds list (`GET /builds/public`), one build, its
+  parts, repairs, photos and questions, and the published posts and one post.
+  Every repository read that takes a viewer accepts null and then lets
+  through only what is shared; the owner-only redaction is unchanged, so a
+  visitor sees exactly what a signed-in stranger does. Spots stay behind
+  sign-in, as do every write and the cost rollup
+  (`apps/api/e2e/public-builds.e2e.spec.ts`).
+- **Posts are their own module**, `posts`: Markdown by any signed-in pilot,
+  with the build visibility rule (Private is a draft, Unlisted opens by link,
+  Public is also listed) and `published_at` stamped the first time a post
+  leaves Private, then kept. `post_builds` links a post to builds; linking
+  asks `BuildsFacade.idsOwnedBy`, so only the author's own builds, and
+  reading asks `BuildsFacade.visibleToViewer`, so a build its owner makes
+  private drops out of the post for everyone else. The raw link list goes to
+  the author only.
+- **Markdown is rendered by `sh-markdown`** (`marked`): raw HTML in the
+  source is escaped, an image becomes a link (loading it would tell its host
+  who read the page), and the result still goes through Angular's
+  `[innerHTML]` sanitizer.
+- **Only `builds` and `blog` render on the server** (`app.routes.server.ts`);
+  everything behind sign-in stays browser-rendered, since the server holds no
+  session and the map touches browser APIs as it loads. `apps/client` builds
+  to a Node server (`src/server.ts`) instead of static files, and its image
+  runs that rather than nginx. It needs `API_INTERNAL_ORIGIN` (how it reaches
+  the API without leaving the network) and `NG_ALLOWED_HOSTS` (the site's
+  domain — Angular answers any other Host header with 400).
+- **A server-rendered page renders from data resolved before it exists.** The
+  browser's first render must match the server's HTML, and anything fetched
+  after a component is created lands too late for that. So the public pages
+  load through route resolvers and hand the result to the read-only
+  presenters, with no store; `sh-comments-section` takes the resolved
+  conversation as `initial`. In the browser the resolvers get the server's
+  responses back from the transfer cache and fetch nothing.
+- **The server's API rewrite is a root interceptor**, registered in
+  `app.config.server.ts` through `ɵHTTP_ROOT_INTERCEPTOR_FNS`.
+  `withInterceptors` ones run before the transfer cache keys a request, and a
+  rewritten URL there made the browser fetch every response a second time.
+  `API_BASE_URL` stays `/api` on both sides so the keys match.
+- **A public page asks again once it knows the reader is signed in.**
+  `App` restores the session after the first render, on public pages only
+  (on the OAuth callback a failed refresh would race the handed-over token),
+  and shows a guest header until then. The build and post pages then re-read
+  as that user: the owner gets their controls, and their own private build
+  or draft opens.
 
 **Next, in order:** VPS + Caddy first deploy, then database backups with a
 tested restore. V1 is feature-complete; what is left is getting it off the

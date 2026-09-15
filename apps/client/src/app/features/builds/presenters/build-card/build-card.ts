@@ -30,6 +30,10 @@ export class BuildCard {
   readonly deleting = input(false);
   /** Questions by other pilots waiting unread on this build; only ever set for the viewer's own. */
   readonly unread = input(0);
+  /** Where Open goes: the app's own build page, or `/builds` for the public one. */
+  readonly link = input('/hangar');
+  /** Edit and Delete for the owner. Off on the public pages, which only ever read. */
+  readonly actions = input(true);
 
   readonly delete = output<BuildDto>();
 

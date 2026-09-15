@@ -134,13 +134,14 @@ export class PrismaAssetsRepository extends AssetsRepository {
   /** The same one-entry table, for reading a gallery someone shared. */
   private readonly subjectVisibility: Record<
     AssetSubject,
-    (viewerId: string, subjectId: string) => Promise<string | null>
+    (viewerId: string | null, subjectId: string) => Promise<string | null>
   > = {
     [AssetSubject.Build]: async (viewerId, subjectId) => {
+      const shared = { visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] } };
       const build = await this.prisma.build.findFirst({
         where: {
           id: subjectId,
-          OR: [{ ownerId: viewerId }, { visibility: { in: ['PUBLIC', 'UNLISTED'] } }],
+          ...(viewerId === null ? shared : { OR: [{ ownerId: viewerId }, shared] }),
         },
         select: { ownerId: true },
       });
@@ -149,7 +150,7 @@ export class PrismaAssetsRepository extends AssetsRepository {
   };
 
   findSubjectOwnerVisibleToViewer(
-    viewerId: string,
+    viewerId: string | null,
     subject: AssetSubject,
     subjectId: string,
   ): Promise<string | null> {

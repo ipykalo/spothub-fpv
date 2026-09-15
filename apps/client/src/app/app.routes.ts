@@ -1,10 +1,16 @@
 import { type Route } from '@angular/router';
 
 import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { publicBuildResolver, publicBuildsResolver } from './features/builds/public-build.resolvers';
+import { postResolver, publishedPostsResolver } from './features/posts/posts.resolvers';
 
 /**
  * Every route is lazily loaded, so the login screen does not ship the hangar
  * and the initial bundle stays small.
+ *
+ * `builds` and `blog` are the public pages: no guard, rendered on the server
+ * (`app.routes.server.ts`), and everything they show resolved before they
+ * render so the browser picks up the server's page rather than drawing its own.
  */
 export const appRoutes: Route[] = [
   { path: '', pathMatch: 'full', redirectTo: 'hangar' },
@@ -20,6 +26,83 @@ export const appRoutes: Route[] = [
       import('./features/auth/containers/auth-callback.page').then(
         (m) => m.AuthCallbackPage,
       ),
+  },
+  {
+    // Public: every build shared as Public, and any shared build's own page.
+    // The slug is only for people reading the link; the id finds the build.
+    path: 'builds',
+    children: [
+      {
+        path: '',
+        resolve: { builds: publicBuildsResolver },
+        loadComponent: () =>
+          import('./features/builds/containers/public-builds.page').then(
+            (m) => m.PublicBuildsPage,
+          ),
+      },
+      {
+        path: ':id',
+        resolve: { view: publicBuildResolver },
+        loadComponent: () =>
+          import('./features/builds/containers/public-build.page').then(
+            (m) => m.PublicBuildPage,
+          ),
+      },
+      {
+        path: ':id/:slug',
+        resolve: { view: publicBuildResolver },
+        loadComponent: () =>
+          import('./features/builds/containers/public-build.page').then(
+            (m) => m.PublicBuildPage,
+          ),
+      },
+    ],
+  },
+  {
+    // Public: the blog and its posts.
+    path: 'blog',
+    children: [
+      {
+        path: '',
+        resolve: { posts: publishedPostsResolver },
+        loadComponent: () =>
+          import('./features/posts/containers/blog.page').then((m) => m.BlogPage),
+      },
+      {
+        path: ':id',
+        resolve: { post: postResolver },
+        loadComponent: () =>
+          import('./features/posts/containers/post.page').then((m) => m.PostPage),
+      },
+      {
+        path: ':id/:slug',
+        resolve: { post: postResolver },
+        loadComponent: () =>
+          import('./features/posts/containers/post.page').then((m) => m.PostPage),
+      },
+    ],
+  },
+  {
+    // Writing: the viewer's own posts, drafts included.
+    path: 'posts',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/posts/containers/my-posts.page').then((m) => m.MyPostsPage),
+      },
+      {
+        path: 'new',
+        loadComponent: () =>
+          import('./features/posts/containers/post-form.page').then((m) => m.PostFormPage),
+      },
+      {
+        path: ':id/edit',
+        loadComponent: () =>
+          import('./features/posts/containers/post-form.page').then((m) => m.PostFormPage),
+      },
+    ],
   },
   {
     path: 'hangar',

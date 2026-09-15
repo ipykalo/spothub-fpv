@@ -2,9 +2,12 @@ import type { CommentDto, ConversationDto } from '@spothub/shared';
 
 import type { CommentEntity } from './comment.entity';
 
-/** Who is looking, and whose spot or build it is — what every permission flag is worked out from. */
+/**
+ * Who is looking, and whose spot or build it is — what every permission flag
+ * is worked out from. A null viewer is a signed-out visitor: every flag is false.
+ */
 export interface CommentViewContext {
-  readonly viewerId: string;
+  readonly viewerId: string | null;
   readonly ownerId: string;
 }
 

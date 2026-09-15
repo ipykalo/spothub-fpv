@@ -31,6 +31,7 @@ import {
   type RepairDto,
 } from '@spothub/shared';
 
+import { Markdown } from '../../../core/components/markdown/markdown';
 import { Section } from '../../../core/components/section/section';
 import { CollapseAll } from '../../../core/components/section/collapse-all';
 import { SectionGroup } from '../../../core/components/section/section-group';
@@ -84,6 +85,7 @@ import { BuildsStore } from '../builds.store';
     ConfigPasteForm,
     FlightTrends,
     CommentsSection,
+    Markdown,
   ],
   hostDirectives: [SectionGroup],
   templateUrl: './build-detail.page.html',

@@ -1,0 +1,34 @@
+<mat-card appearance="outlined" class="flex h-full flex-col gap-2 px-4 pt-3.5 pb-2.5">
+  <h3 class="m-0 text-base leading-snug font-semibold wrap-anywhere">
+    <a class="text-inherit no-underline hover:underline" [routerLink]="link()">{{ post().title }}</a>
+  </h3>
+
+  <p class="m-0 text-xs text-muted">
+    {{ post().authorName ?? 'A pilot' }}
+    @if (post().publishedAt; as published) {
+      · <time [attr.datetime]="published">{{ published | date: 'd MMM y' }}</time>
+    }
+    @if (manage()) {
+      · {{ visibilityLabels[post().visibility] }}
+    }
+  </p>
+
+  <p class="m-0 flex-auto text-sm">
+    @if (post().summary; as summary) {
+      {{ summary }}
+    } @else {
+      <span class="text-muted italic">No summary</span>
+    }
+  </p>
+
+  @if (manage()) {
+    <div class="border-t border-outline-variant pt-1.5">
+      <div class="-ml-2 flex gap-0.5">
+        <a matButton [routerLink]="['/posts', post().id, 'edit']">Edit</a>
+        <button matButton type="button" [disabled]="deleting()" (click)="delete.emit(post())">
+          {{ deleting() ? 'Deleting…' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+  }
+</mat-card>

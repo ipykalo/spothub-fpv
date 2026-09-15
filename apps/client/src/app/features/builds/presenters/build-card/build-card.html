@@ -51,9 +51,9 @@
 
   <div class="border-t border-outline-variant pt-1.5">
     <div class="-ml-2 flex gap-0.5">
-      <a matButton [routerLink]="['/hangar', build().id]">Open</a>
+      <a matButton [routerLink]="[link(), build().id]">Open</a>
       <!-- Only its owner changes a build; a shared one is read-only. -->
-      @if (build().ownedByViewer) {
+      @if (actions() && build().ownedByViewer) {
         <a matButton [routerLink]="['/hangar', build().id, 'edit']">Edit</a>
         <button matButton [disabled]="deleting()" (click)="delete.emit(build())">
           {{ deleting() ? 'Deleting…' : 'Delete' }}

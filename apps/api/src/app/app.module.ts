@@ -15,6 +15,7 @@ import { HealthModule } from '../health';
 import { JobsModule } from '../jobs';
 import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
+import { PostsModule } from '../posts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
 import { SpotsModule } from '../spots';
@@ -48,6 +49,7 @@ import { UsersModule } from '../users';
     FlightLogsModule,
     SpotsModule,
     CommentsModule,
+    PostsModule,
     HealthModule,
   ],
   providers: [

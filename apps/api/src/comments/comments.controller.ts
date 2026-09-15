@@ -23,7 +23,13 @@ import {
   updateCommentSchema,
 } from '@spothub/shared';
 
-import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
+import {
+  type AuthenticatedUser,
+  CurrentUser,
+  CurrentViewer,
+  Public,
+  ZodValidationPipe,
+} from '../common';
 import type { SubjectRef } from './comment.entity';
 import { CommentsService } from './comments.service';
 
@@ -113,12 +119,18 @@ export class CommentsController {
 
   // --- On a build ---
 
+  /**
+   * Readable by a signed-out visitor too, on a build shared as Public or
+   * Unlisted: a public build page shows its questions and answers, and asking
+   * still needs signing in.
+   */
+  @Public()
   @Get('builds/:buildId/comments')
   listOnBuild(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentViewer() viewer: AuthenticatedUser | null,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<ConversationDto> {
-    return this.comments.list(user.id, build(buildId));
+    return this.comments.list(viewer?.id ?? null, build(buildId));
   }
 
   @Post('builds/:buildId/comments')

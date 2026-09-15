@@ -43,10 +43,11 @@ export class BuildPartsService {
   /**
    * What is fitted to a build the viewer may see. Someone it is shared with
    * sees what each part is, never what it cost, where it came from or the
-   * owner's notes. A build they cannot see lists nothing, as before.
+   * owner's notes — and so does a signed-out visitor, a null viewer. A build
+   * they cannot see lists nothing, as before.
    */
   async list(
-    viewerId: string,
+    viewerId: string | null,
     buildId: string,
     query: ListBuildPartsQuery,
   ): Promise<BuildPartDto[]> {
