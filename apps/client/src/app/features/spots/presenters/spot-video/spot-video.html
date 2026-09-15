@@ -1,11 +1,16 @@
-<div class="grid max-w-3xl gap-2">
+<div class="mx-auto grid max-w-3xl gap-2">
   <div class="aspect-video w-full overflow-hidden rounded border border-outline-variant bg-surface-container">
     @if (playing() && embedUrl(); as src) {
+      <!--
+        The same permissions YouTube's own embed code grants. Without
+        clipboard-write the player's "copy link" button fails with "Unable to
+        copy link to clipboard"; without web-share its share sheet does.
+      -->
       <iframe
         class="size-full border-0"
         [src]="src"
         title="Flight video"
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         allowfullscreen
         referrerpolicy="strict-origin-when-cross-origin"
       ></iframe>
@@ -25,7 +30,7 @@
     }
   </div>
 
-  <a matButton class="justify-self-start" [href]="watchUrl()" target="_blank" rel="noopener noreferrer">
+  <a matButton class="justify-self-center" [href]="watchUrl()" target="_blank" rel="noopener noreferrer">
     <mat-icon>open_in_new</mat-icon>
     Open on YouTube
   </a>
