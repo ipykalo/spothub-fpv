@@ -37,7 +37,11 @@ export abstract class CommentsRepository {
    * stay. A deleted question goes for good with its last reply, or when the
    * owner deletes it. False when the viewer may not.
    */
-  abstract deleteForViewer(viewerId: string, ref: SubjectRef, commentId: string): Promise<boolean>;
+  abstract deleteForViewer(
+    viewerId: string,
+    ref: SubjectRef,
+    commentId: string,
+  ): Promise<boolean>;
 
   /**
    * Marks a reply as its question's answer — clearing any other answer on

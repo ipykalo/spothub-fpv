@@ -3,8 +3,10 @@ import { Module } from '@nestjs/common';
 import { BuildsModule } from '../builds';
 import { LikesModule } from '../likes';
 import { MediaModule } from '../media';
+import { PostsFacade } from './abstract/posts.facade';
 import { PostsRepository } from './abstract/posts.repository';
 import { PostsController } from './posts.controller';
+import { PostsFacadeImpl } from './posts.facade.impl';
 import { PostsService } from './posts.service';
 import { PrismaPostsRepository } from './prisma-posts.repository';
 
@@ -15,7 +17,8 @@ import { PrismaPostsRepository } from './prisma-posts.repository';
  * a lifecycle and an audience of its own, and may be about several builds or
  * none. It reaches builds only through `BuildsFacade`, its images only through
  * `MediaFacade` and its likes only through `LikesFacade` — `posts → builds`,
- * `posts → media`, `posts → likes`, never the other way.
+ * `posts → media`, `posts → likes`, never the other way. `comments` reaches
+ * posts through `PostsFacade`.
  */
 @Module({
   imports: [BuildsModule, MediaModule, LikesModule],
@@ -23,6 +26,8 @@ import { PrismaPostsRepository } from './prisma-posts.repository';
   providers: [
     PostsService,
     { provide: PostsRepository, useClass: PrismaPostsRepository },
+    { provide: PostsFacade, useClass: PostsFacadeImpl },
   ],
+  exports: [PostsFacade],
 })
 export class PostsModule {}

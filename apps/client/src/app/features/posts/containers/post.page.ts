@@ -12,13 +12,19 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
-import { type PostDto, Visibility } from '@spothub/shared';
+import {
+  CommentSubject,
+  type ConversationDto,
+  type PostDto,
+  Visibility,
+} from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthStore } from '../../../core/auth/auth.store';
 import { Markdown } from '../../../core/components/markdown/markdown';
 import { injectPageMeta } from '../../../core/seo/page-meta';
 import { BuildCard } from '../../builds/presenters/build-card/build-card';
+import { CommentsSection } from '../../comments/containers/comments-section';
 import { LikeButton } from '../../likes/containers/like-button';
 import { PostsApi } from '../posts.api';
 
@@ -35,6 +41,7 @@ import { PostsApi } from '../posts.api';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     BuildCard,
+    CommentsSection,
     DatePipe,
     LikeButton,
     Markdown,
@@ -50,8 +57,11 @@ export class PostPage {
   readonly id = input.required<string>();
   /** Resolved. Null when there is no such post or it is not shared. */
   readonly post = input<PostDto | null>(null);
+  /** Resolved with it: the comments as a visitor sees them. */
+  readonly conversation = input<ConversationDto | null>(null);
 
   protected readonly auth = inject(AuthStore);
+  protected readonly commentSubject = CommentSubject.Post;
   private readonly api = inject(PostsApi);
   private readonly meta = injectPageMeta();
 

@@ -33,13 +33,24 @@ import {
 import type { SubjectRef } from './comment.entity';
 import { CommentsService } from './comments.service';
 
-const spot = (subjectId: string): SubjectRef => ({ subject: CommentSubject.Spot, subjectId });
-const build = (subjectId: string): SubjectRef => ({ subject: CommentSubject.Build, subjectId });
+const spot = (subjectId: string): SubjectRef => ({
+  subject: CommentSubject.Spot,
+  subjectId,
+});
+const build = (subjectId: string): SubjectRef => ({
+  subject: CommentSubject.Build,
+  subjectId,
+});
+const post = (subjectId: string): SubjectRef => ({
+  subject: CommentSubject.Post,
+  subjectId,
+});
 
 /**
- * Questions and replies on spots and builds. Guarded by the global JwtAuthGuard.
+ * Questions and replies on spots and builds, and comments on posts. Guarded by
+ * the global JwtAuthGuard.
  *
- * The routes sit under `spots/:spotId` and `builds/:buildId`, where each
+ * The routes sit under `spots/:spotId`, `builds/:buildId` and `posts/:postId`, where each
  * conversation belongs, so the controller has no prefix of its own. The two
  * sets are spelled out rather than generated: each is a one-line hand-off,
  * and a route table that reads top to bottom is worth the repetition. Who may
@@ -178,5 +189,54 @@ export class CommentsController {
     @Body(new ZodValidationPipe(markAnswerSchema)) body: MarkAnswerDto,
   ): Promise<ConversationDto> {
     return this.comments.setAnswer(user.id, build(buildId), commentId, body);
+  }
+
+  // --- On a post: the same, without an answer to mark ---
+
+  /** Readable by a signed-out visitor too, on a post shared as Public or Unlisted. */
+  @Public()
+  @Get('posts/:postId/comments')
+  listOnPost(
+    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @Param('postId', ParseUUIDPipe) postId: string,
+  ): Promise<ConversationDto> {
+    return this.comments.list(viewer?.id ?? null, post(postId));
+  }
+
+  @Post('posts/:postId/comments')
+  createOnPost(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Body(new ZodValidationPipe(createCommentSchema)) body: CreateCommentDto,
+  ): Promise<ConversationDto> {
+    return this.comments.create(user.id, post(postId), body);
+  }
+
+  @Post('posts/:postId/comments/read')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  markPostRead(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('postId', ParseUUIDPipe) postId: string,
+  ): Promise<void> {
+    return this.comments.markRead(user.id, post(postId));
+  }
+
+  @Patch('posts/:postId/comments/:commentId')
+  updateOnPost(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Param('commentId', ParseUUIDPipe) commentId: string,
+    @Body(new ZodValidationPipe(updateCommentSchema)) body: UpdateCommentDto,
+  ): Promise<ConversationDto> {
+    return this.comments.update(user.id, post(postId), commentId, body);
+  }
+
+  @Delete('posts/:postId/comments/:commentId')
+  removeOnPost(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Param('commentId', ParseUUIDPipe) commentId: string,
+  ): Promise<ConversationDto> {
+    return this.comments.remove(user.id, post(postId), commentId);
   }
 }

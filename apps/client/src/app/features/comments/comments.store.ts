@@ -1,5 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { CommentSubject, type ConversationDto, type UnreadCommentsDto } from '@spothub/shared';
+import {
+  CommentSubject,
+  type ConversationDto,
+  type UnreadCommentsDto,
+} from '@spothub/shared';
 import { type Observable, firstValueFrom } from 'rxjs';
 
 import { CommentsApi } from './comments.api';
@@ -7,6 +11,7 @@ import { CommentsApi } from './comments.api';
 const NO_UNREAD: UnreadCommentsDto = {
   spots: { total: 0, bySubject: {} },
   builds: { total: 0, bySubject: {} },
+  posts: { total: 0, bySubject: {} },
 };
 
 interface OpenSubject {
@@ -39,10 +44,14 @@ export class CommentsStore {
   readonly error = this.failure.asReadonly();
   readonly unread = this.unreadCounts.asReadonly();
 
-  /** New comments waiting on one of the viewer's spots or builds. */
+  /** New comments waiting on one of the viewer's spots, builds or posts. */
   unreadFor(subject: CommentSubject, subjectId: string): number {
-    const counts =
-      subject === CommentSubject.Spot ? this.unreadCounts().spots : this.unreadCounts().builds;
+    const unread = this.unreadCounts();
+    const counts = {
+      [CommentSubject.Spot]: unread.spots,
+      [CommentSubject.Build]: unread.builds,
+      [CommentSubject.Post]: unread.posts,
+    }[subject];
 
     return counts.bySubject[subjectId] ?? 0;
   }
@@ -125,7 +134,9 @@ export class CommentsStore {
   }
 
   remove(commentId: string): Promise<boolean> {
-    return this.change(({ subject, subjectId }) => this.api.remove(subject, subjectId, commentId));
+    return this.change(({ subject, subjectId }) =>
+      this.api.remove(subject, subjectId, commentId),
+    );
   }
 
   setAnswer(commentId: string, isAnswer: boolean): Promise<boolean> {
@@ -135,7 +146,9 @@ export class CommentsStore {
   }
 
   /** Runs one change against the open subject and adopts the conversation it answers with. */
-  private async change(call: (open: OpenSubject) => Observable<ConversationDto>): Promise<boolean> {
+  private async change(
+    call: (open: OpenSubject) => Observable<ConversationDto>,
+  ): Promise<boolean> {
     const open = this.current();
 
     if (open === null) {

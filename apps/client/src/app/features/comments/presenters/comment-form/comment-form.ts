@@ -26,7 +26,13 @@ import { MAX_COMMENT_LENGTH, updateCommentSchema } from '@spothub/shared';
 @Component({
   selector: 'sh-comment-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatFormFieldModule, MatInputModule, ReactiveFormsModule, TextFieldModule],
+  imports: [
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    ReactiveFormsModule,
+    TextFieldModule,
+  ],
   templateUrl: './comment-form.html',
   styleUrl: './comment-form.scss',
 })

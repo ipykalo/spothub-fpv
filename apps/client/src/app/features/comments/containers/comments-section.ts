@@ -25,9 +25,48 @@ import {
   Questions,
 } from '../presenters/questions/questions';
 
+/** What the section calls things: a spot or build has questions, a post a discussion. */
+interface SectionWords {
+  readonly heading: string;
+  readonly start: string;
+  readonly intro: string;
+  readonly signIn: string;
+  readonly formLabel: string;
+  readonly submit: string;
+  /** One of them, lower case: "question" or "comment". */
+  readonly noun: string;
+}
+
+const QUESTIONS: SectionWords = {
+  heading: 'Questions',
+  start: 'Ask a question',
+  intro: 'Pilots ask and answer here.',
+  signIn: 'Sign in to ask',
+  formLabel: 'Your question',
+  submit: 'Ask',
+  noun: 'question',
+};
+
+const DISCUSSION: SectionWords = {
+  heading: 'Comments',
+  start: 'Add a comment',
+  intro: 'Pilots discuss the post here.',
+  signIn: 'Sign in to comment',
+  formLabel: 'Your comment',
+  submit: 'Comment',
+  noun: 'comment',
+};
+
+const SUBJECT_LABELS: Readonly<Record<CommentSubject, string>> = {
+  [CommentSubject.Spot]: 'spot',
+  [CommentSubject.Build]: 'build',
+  [CommentSubject.Post]: 'post',
+};
+
 /**
- * Container: the Questions section of a spot or a build page — the ask box,
- * the conversation, and every intent a comment can raise.
+ * Container: the Questions section of a spot or a build page, or the Comments
+ * under a post — the box to start one, the conversation, and every intent a
+ * comment can raise.
  *
  * One container for both pages rather than the same handlers written into
  * each: a page drops it in with the subject and whether the viewer owns it,
@@ -61,9 +100,16 @@ export class CommentsSection {
   /** The ask box is asked for, never shown by default. */
   protected readonly asking = signal(false);
 
-  /** "spot" or "build", for the words on screen and the fold's storage key. */
-  protected readonly subjectLabel = computed(() =>
-    this.subject() === CommentSubject.Spot ? 'spot' : 'build',
+  /** "spot", "build" or "post", for the words on screen and the fold's storage key. */
+  protected readonly subjectLabel = computed(() => SUBJECT_LABELS[this.subject()]);
+  protected readonly words = computed(() =>
+    this.subject() === CommentSubject.Post ? DISCUSSION : QUESTIONS,
+  );
+  /** A spot's or build's owner answers rather than asks; a post's author joins its discussion. */
+  protected readonly canStart = computed(
+    () =>
+      this.auth.isAuthenticated() &&
+      (!this.ownedByViewer() || this.subject() === CommentSubject.Post),
   );
 
   constructor() {
@@ -82,7 +128,9 @@ export class CommentsSection {
   }
 
   protected signIn(): void {
-    void this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+    void this.router.navigate(['/login'], {
+      queryParams: { returnUrl: this.router.url },
+    });
   }
 
   protected async ask(body: string): Promise<void> {
@@ -106,9 +154,13 @@ export class CommentsSection {
   }
 
   protected async remove(comment: CommentDto): Promise<void> {
-    const question = this.comments.comments()?.questions.find((entry) => entry.id === comment.id);
+    const question = this.comments
+      .comments()
+      ?.questions.find((entry) => entry.id === comment.id);
     const replies = question?.replies.length ?? 0;
     const counted = `${String(replies)} ${replies === 1 ? 'reply' : 'replies'}`;
+    const { noun } = this.words();
+    const capitalized = noun.charAt(0).toUpperCase() + noun.slice(1);
 
     // Say what goes before it goes: an asker's own question leaves its replies
     // behind, while the owner removing someone's question takes the thread.
@@ -116,8 +168,8 @@ export class CommentsSection {
 
     if (replies > 0) {
       prompt = question?.byViewer
-        ? `Delete your question? Its ${counted} will stay, under "Question deleted".`
-        : `Delete this question and its ${counted}?`;
+        ? `Delete your ${noun}? Its ${counted} will stay, under "${capitalized} deleted".`
+        : `Delete this ${noun} and its ${counted}?`;
     }
 
     if (!window.confirm(prompt)) {

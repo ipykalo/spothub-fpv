@@ -1,8 +1,14 @@
 import { RESPONSE_INIT, inject } from '@angular/core';
 import type { ResolveFn } from '@angular/router';
-import type { PostDto, PostSummaryDto } from '@spothub/shared';
+import {
+  CommentSubject,
+  type ConversationDto,
+  type PostDto,
+  type PostSummaryDto,
+} from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
+import { CommentsApi } from '../comments/comments.api';
 import { PostsApi } from './posts.api';
 
 /*
@@ -36,6 +42,21 @@ export const postResolver: ResolveFn<PostDto | null> = async (route) => {
       response.status = 404;
     }
 
+    return null;
+  }
+};
+
+/** The comments under that post, as the reader sees them. Null when the post cannot be opened. */
+export const postConversationResolver: ResolveFn<ConversationDto | null> = async (
+  route,
+) => {
+  const comments = inject(CommentsApi);
+
+  try {
+    return await firstValueFrom(
+      comments.list(CommentSubject.Post, route.paramMap.get('id') ?? ''),
+    );
+  } catch {
     return null;
   }
 };

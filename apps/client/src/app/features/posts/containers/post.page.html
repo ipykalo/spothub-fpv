@@ -81,6 +81,15 @@
         }
       </div>
     </article>
+
+    <div class="mt-8">
+      <sh-comments-section
+        [subject]="commentSubject"
+        [subjectId]="post.id"
+        [ownedByViewer]="post.ownedByViewer"
+        [initial]="conversation()"
+      />
+    </div>
   </div>
 } @else {
   <div class="px-4 py-16 text-center">

@@ -38,6 +38,7 @@ export function toPostSummaryDto(
     readingMinutes: readingMinutes(post.bodyMd),
     tags: [...tags],
     likes,
+    commentCount: post.commentCount,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
   };

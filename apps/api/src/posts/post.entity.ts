@@ -17,6 +17,8 @@ export interface PostEntity {
   readonly coverAssetId: string | null;
   /** The builds it is about, in the author's order. Not yet checked against any viewer. */
   readonly buildIds: readonly string[];
+  /** Comments and replies on it, a join inside the repository. */
+  readonly commentCount: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }

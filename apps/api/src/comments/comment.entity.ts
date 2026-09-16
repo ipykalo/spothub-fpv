@@ -1,6 +1,6 @@
 import type { CommentSubject } from '@spothub/shared';
 
-/** What a conversation hangs off: one spot or one build. */
+/** What a conversation hangs off: one spot, build or post. */
 export interface SubjectRef {
   readonly subject: CommentSubject;
   readonly subjectId: string;
@@ -29,5 +29,7 @@ export interface CreateCommentData {
   readonly body: string;
 }
 
-/** Unread counts per subject id, kept apart for spots and builds. */
-export type UnreadBySubject = Readonly<Record<CommentSubject, ReadonlyMap<string, number>>>;
+/** Unread counts per subject id, kept apart for spots, builds and posts. */
+export type UnreadBySubject = Readonly<
+  Record<CommentSubject, ReadonlyMap<string, number>>
+>;

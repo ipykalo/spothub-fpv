@@ -73,7 +73,11 @@ export class PrismaCommentsRepository extends CommentsRepository {
     return count > 0;
   }
 
-  deleteForViewer(viewerId: string, ref: SubjectRef, commentId: string): Promise<boolean> {
+  deleteForViewer(
+    viewerId: string,
+    ref: SubjectRef,
+    commentId: string,
+  ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       // A comment on this subject that the viewer wrote, or on a subject the viewer owns.
       const comment = await tx.comment.findFirst({
@@ -88,6 +92,7 @@ export class PrismaCommentsRepository extends CommentsRepository {
           deletedAt: true,
           spot: { select: { ownerId: true } },
           build: { select: { ownerId: true } },
+          post: { select: { authorId: true } },
           _count: { select: { replies: true } },
         },
       });
@@ -96,7 +101,9 @@ export class PrismaCommentsRepository extends CommentsRepository {
         return false;
       }
 
-      const ownsSubject = (comment.spot?.ownerId ?? comment.build?.ownerId) === viewerId;
+      const ownsSubject =
+        (comment.spot?.ownerId ?? comment.build?.ownerId ?? comment.post?.authorId) ===
+        viewerId;
 
       // Already deleted by its asker: only the owner can remove what is left.
       if (comment.deletedAt !== null && !ownsSubject) {
@@ -124,7 +131,11 @@ export class PrismaCommentsRepository extends CommentsRepository {
       // A deleted question has nothing left to show once its last reply is gone.
       if (comment.parentId !== null) {
         await tx.comment.deleteMany({
-          where: { id: comment.parentId, deletedAt: { not: null }, replies: { none: {} } },
+          where: {
+            id: comment.parentId,
+            deletedAt: { not: null },
+            replies: { none: {} },
+          },
         });
       }
 
@@ -147,7 +158,11 @@ export class PrismaCommentsRepository extends CommentsRepository {
           parentId: { not: null },
           OR: [subjectOwnedBy(ref, viewerId), { parent: { authorId: viewerId } }],
         },
-        select: { parentId: true, authorId: true, parent: { select: { authorId: true } } },
+        select: {
+          parentId: true,
+          authorId: true,
+          parent: { select: { authorId: true } },
+        },
       });
 
       if (!reply?.parentId) {
@@ -177,23 +192,33 @@ export class PrismaCommentsRepository extends CommentsRepository {
   async markReadForUser(userId: string, ref: SubjectRef): Promise<void> {
     const readAt = new Date();
 
-    if (ref.subject === CommentSubject.Spot) {
-      await this.prisma.commentRead.upsert({
-        where: { spotId_userId: { spotId: ref.subjectId, userId } },
-        create: { spotId: ref.subjectId, userId },
-        update: { readAt },
-      });
-    } else {
-      await this.prisma.commentRead.upsert({
-        where: { buildId_userId: { buildId: ref.subjectId, userId } },
-        create: { buildId: ref.subjectId, userId },
-        update: { readAt },
-      });
+    switch (ref.subject) {
+      case CommentSubject.Spot:
+        await this.prisma.commentRead.upsert({
+          where: { spotId_userId: { spotId: ref.subjectId, userId } },
+          create: { spotId: ref.subjectId, userId },
+          update: { readAt },
+        });
+        break;
+      case CommentSubject.Build:
+        await this.prisma.commentRead.upsert({
+          where: { buildId_userId: { buildId: ref.subjectId, userId } },
+          create: { buildId: ref.subjectId, userId },
+          update: { readAt },
+        });
+        break;
+      case CommentSubject.Post:
+        await this.prisma.commentRead.upsert({
+          where: { postId_userId: { postId: ref.subjectId, userId } },
+          create: { postId: ref.subjectId, userId },
+          update: { readAt },
+        });
+        break;
     }
   }
 
   async countUnreadForOwner(ownerId: string): Promise<UnreadBySubject> {
-    // One query for every spot and build the owner has, rather than one per card.
+    // One query for every spot, build and post the owner has, rather than one per card.
     const rows = await this.prisma.$queryRaw<
       { subject: CommentSubject; subject_id: string; unread: number }[]
     >`
@@ -216,29 +241,56 @@ export class PrismaCommentsRepository extends CommentsRepository {
         AND c.deleted_at IS NULL
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.build_id
+      UNION ALL
+      SELECT 'POST' AS subject, c.post_id AS subject_id, COUNT(*)::int AS unread
+      FROM comments c
+      JOIN posts p ON p.id = c.post_id
+      LEFT JOIN comment_reads r ON r.post_id = c.post_id AND r.user_id = p.author_id
+      WHERE p.author_id = ${ownerId}::uuid
+        AND c.author_id <> p.author_id
+        AND c.deleted_at IS NULL
+        AND (r.read_at IS NULL OR c.created_at > r.read_at)
+      GROUP BY c.post_id
     `;
 
-    const spots = new Map<string, number>();
-    const builds = new Map<string, number>();
+    const counts = {
+      [CommentSubject.Spot]: new Map<string, number>(),
+      [CommentSubject.Build]: new Map<string, number>(),
+      [CommentSubject.Post]: new Map<string, number>(),
+    };
 
     for (const row of rows) {
-      (row.subject === CommentSubject.Spot ? spots : builds).set(row.subject_id, row.unread);
+      counts[row.subject].set(row.subject_id, row.unread);
     }
 
-    return { [CommentSubject.Spot]: spots, [CommentSubject.Build]: builds };
+    return counts;
   }
 }
 
 /** The column a subject's comments hang off — a filter on reads, the value on create. */
-function onSubject(ref: SubjectRef): { spotId: string } | { buildId: string } {
-  return ref.subject === CommentSubject.Spot
-    ? { spotId: ref.subjectId }
-    : { buildId: ref.subjectId };
+function onSubject(
+  ref: SubjectRef,
+): { spotId: string } | { buildId: string } | { postId: string } {
+  switch (ref.subject) {
+    case CommentSubject.Spot:
+      return { spotId: ref.subjectId };
+    case CommentSubject.Build:
+      return { buildId: ref.subjectId };
+    case CommentSubject.Post:
+      return { postId: ref.subjectId };
+  }
 }
 
-/** The subject is the viewer's own, as a join to its table. */
+/** The subject is the viewer's own — a post is its author's — as a join to its table. */
 function subjectOwnedBy(ref: SubjectRef, ownerId: string): Prisma.CommentWhereInput {
-  return ref.subject === CommentSubject.Spot ? { spot: { ownerId } } : { build: { ownerId } };
+  switch (ref.subject) {
+    case CommentSubject.Spot:
+      return { spot: { ownerId } };
+    case CommentSubject.Build:
+      return { build: { ownerId } };
+    case CommentSubject.Post:
+      return { post: { authorId: ownerId } };
+  }
 }
 
 function toEntity(row: CommentRow): CommentEntity {

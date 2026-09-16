@@ -18,6 +18,8 @@ import type {
 const WITH_AUTHOR_AND_BUILDS = {
   author: { select: { displayName: true } },
   builds: { select: { buildId: true }, orderBy: { sortOrder: 'asc' } },
+  // What is left of a deleted question is not a comment anyone can read.
+  _count: { select: { comments: { where: { deletedAt: null } } } },
 } satisfies Prisma.PostInclude;
 
 type PostRow = Prisma.PostGetPayload<{ include: typeof WITH_AUTHOR_AND_BUILDS }>;
@@ -167,6 +169,7 @@ function toEntity(row: PostRow): PostEntity {
     publishedAt: row.publishedAt,
     coverAssetId: row.coverAssetId,
     buildIds: row.builds.map((link) => link.buildId),
+    commentCount: row._count.comments,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

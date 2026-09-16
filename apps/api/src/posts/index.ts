@@ -1,6 +1,8 @@
 /**
  * The posts module's public API.
  *
- * Nothing but the module class: no other module needs to reach a post.
+ * The module class, and the facade `comments` asks whether a post may be
+ * opened and who wrote it.
  */
+export { PostsFacade } from './abstract/posts.facade';
 export { PostsModule } from './posts.module';

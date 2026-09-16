@@ -67,6 +67,13 @@
           }}</mat-icon>
           {{ post().likes.count }}
         </span>
+        <span
+          class="inline-flex items-center gap-1"
+          [attr.aria-label]="post().commentCount + (post().commentCount === 1 ? ' comment' : ' comments')"
+        >
+          <mat-icon class="icon-sm" aria-hidden="true">chat_bubble_outline</mat-icon>
+          {{ post().commentCount }}
+        </span>
         <span class="ml-auto">{{ post().readingMinutes }} min read</span>
       </div>
     </div>

@@ -9,6 +9,8 @@ import type { CommentEntity } from './comment.entity';
 export interface CommentViewContext {
   readonly viewerId: string | null;
   readonly ownerId: string;
+  /** Whether a reply can be marked as the answer — on spots and builds, not on a post's discussion. */
+  readonly answers: boolean;
 }
 
 /**
@@ -78,6 +80,7 @@ function toCommentDto(
     deleted,
     isAnswer: comment.isAnswer,
     canMarkAnswer:
+      context.answers &&
       askerId !== null &&
       comment.authorId !== askerId &&
       (viewerOwnsSubject || context.viewerId === askerId),

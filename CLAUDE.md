@@ -32,7 +32,7 @@ apps/api/src/
   flights/                                   the logbook: flights, sessions
   flight-logs/                               log import, a reader per format
   spots/                                     flying spots on a map
-  comments/                                  questions and replies on spots and builds
+  comments/                                  questions and replies on spots, builds and posts
   posts/                                     the blog: posts pilots write about their builds
   likes/                                     hearts on posts and builds
   health/
@@ -113,11 +113,11 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are seven: `UsersFacade` (consumed by auth),
+that module's `exports`. There are eight: `UsersFacade` (consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
 `FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
-comments), `BuildsFacade` (consumed by comments and posts) and `LikesFacade`
-(consumed by builds and posts). A facade
+comments), `BuildsFacade` (consumed by comments and posts), `LikesFacade`
+(consumed by builds and posts) and `PostsFacade` (consumed by comments). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -181,7 +181,7 @@ features/
   flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
-  comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot and build pages)
+  comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
   posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
   likes/        likes.api, like-button container (dropped into the post and public build pages)
 ```
@@ -702,6 +702,18 @@ in or not, and render them on the server.
   (so the server's HTML and the browser agree), updates at once and settles on
   the API's answer, and sends a visitor to sign in
   (`apps/api/e2e/likes.e2e.spec.ts`).
+- **A post carries a discussion, which is the same `comments` module.** `POST`
+  joins `SPOT` and `BUILD` as a comment subject: a third nullable column on
+  `comments` and `comment_reads`, with the CHECK widened to
+  `num_nonnulls(spot_id, build_id, post_id) = 1`, and the same routes under
+  `posts/:postId/comments`. `comments` asks the new `PostsFacade.authorIfVisible`
+  who may open a post and who wrote it, so a draft answers 404 to everyone but
+  its author. What differs is only the words and one rule: a post has
+  "Comments", not "Questions", its author may join in rather than only answer,
+  and no reply is marked as the answer — `canMarkAnswer` is false throughout
+  and there is no answer route. A summary carries `commentCount`, counted as a
+  join inside the posts repository rather than through a facade, which the feed
+  rows show beside the likes (`apps/api/e2e/post-comments.e2e.spec.ts`).
 - **Markdown is rendered by `sh-markdown`** (`marked`): raw HTML in the
   source is escaped, an image at any outside address becomes a link (loading
   it would tell its host who read the page), and the result still goes

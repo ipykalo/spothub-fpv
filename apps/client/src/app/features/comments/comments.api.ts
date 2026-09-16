@@ -12,6 +12,13 @@ import type { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../../core/api/api.tokens';
 
+/** Where each subject's conversation lives in the API. */
+const COLLECTIONS: Readonly<Record<CommentSubject, string>> = {
+  [CommentSubject.Spot]: 'spots',
+  [CommentSubject.Build]: 'builds',
+  [CommentSubject.Post]: 'posts',
+};
+
 /**
  * Transport only. No caching or state — that belongs to CommentsStore.
  * Every change answers with the whole conversation.
@@ -39,11 +46,20 @@ export class CommentsApi {
     commentId: string,
     body: UpdateCommentDto,
   ): Observable<ConversationDto> {
-    return this.http.patch<ConversationDto>(`${this.url(subject, subjectId)}/${commentId}`, body);
+    return this.http.patch<ConversationDto>(
+      `${this.url(subject, subjectId)}/${commentId}`,
+      body,
+    );
   }
 
-  remove(subject: CommentSubject, subjectId: string, commentId: string): Observable<ConversationDto> {
-    return this.http.delete<ConversationDto>(`${this.url(subject, subjectId)}/${commentId}`);
+  remove(
+    subject: CommentSubject,
+    subjectId: string,
+    commentId: string,
+  ): Observable<ConversationDto> {
+    return this.http.delete<ConversationDto>(
+      `${this.url(subject, subjectId)}/${commentId}`,
+    );
   }
 
   setAnswer(
@@ -68,7 +84,6 @@ export class CommentsApi {
   }
 
   private url(subject: CommentSubject, subjectId: string): string {
-    const collection = subject === CommentSubject.Spot ? 'spots' : 'builds';
-    return `${this.baseUrl}/${collection}/${subjectId}/comments`;
+    return `${this.baseUrl}/${COLLECTIONS[subject]}/${subjectId}/comments`;
   }
 }

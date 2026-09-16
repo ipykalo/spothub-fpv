@@ -2,7 +2,9 @@
 
 @if (!conversation.questions.length) {
   <p class="m-0 text-muted italic">
-    @if (conversation.viewerOwnsSubject) {
+    @if (isPost()) {
+      No comments yet. Start the discussion.
+    } @else if (conversation.viewerOwnsSubject) {
       No questions yet. Pilots who can open this {{ subjectLabel() }} can ask here.
     } @else if (subjectLabel() === 'spot') {
       No questions yet. Ask about access, parking or the best time to fly.
@@ -46,12 +48,14 @@
 <ng-template #entry let-comment let-isReply="isReply">
   @if (comment.deleted) {
     <!-- Its asker deleted it after others replied: no words, no name, the replies kept below. -->
-    <article class="grid gap-1.5" aria-label="Deleted question">
+    <article class="grid gap-1.5" [attr.aria-label]="isPost() ? 'Deleted comment' : 'Deleted question'">
       <header class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <span class="text-muted italic">Question deleted</span>
+        <span class="text-muted italic">{{ isPost() ? 'Comment deleted' : 'Question deleted' }}</span>
 
         @if (comment.answered) {
-          <span class="tone-go rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase">
+          <span
+            class="tone-go rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase"
+          >
             Answered
           </span>
         }
@@ -64,13 +68,18 @@
       }
     </article>
   } @else {
-    <article class="grid gap-1.5" [attr.aria-label]="(isReply ? 'Reply by ' : 'Question by ') + author(comment)">
+    <article
+      class="grid gap-1.5"
+      [attr.aria-label]="(isReply ? 'Reply by ' : isPost() ? 'Comment by ' : 'Question by ') + author(comment)"
+    >
       <header class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         <span class="font-semibold">{{ author(comment) }}</span>
 
         @if (comment.byOwner) {
-          <span class="tone-idle rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase">
-            Owner
+          <span
+            class="tone-idle rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase"
+          >
+            {{ isPost() ? 'Author' : 'Owner' }}
           </span>
         }
 
@@ -84,12 +93,16 @@
         }
 
         @if (!isReply && comment.answered) {
-          <span class="tone-go rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase">
+          <span
+            class="tone-go rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase"
+          >
             Answered
           </span>
         }
 
-        <time class="text-muted" [attr.datetime]="comment.createdAt">{{ comment.createdAt | date: 'd MMM y, HH:mm' }}</time>
+        <time class="text-muted" [attr.datetime]="comment.createdAt">{{
+          comment.createdAt | date: 'd MMM y, HH:mm'
+        }}</time>
 
         @if (comment.editedAt) {
           <span class="text-muted">· edited</span>

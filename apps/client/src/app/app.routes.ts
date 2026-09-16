@@ -1,8 +1,15 @@
 import { type Route } from '@angular/router';
 
 import { authGuard, guestGuard } from './core/auth/auth.guard';
-import { publicBuildResolver, publicBuildsResolver } from './features/builds/public-build.resolvers';
-import { postResolver, publishedPostsResolver } from './features/posts/posts.resolvers';
+import {
+  publicBuildResolver,
+  publicBuildsResolver,
+} from './features/builds/public-build.resolvers';
+import {
+  postConversationResolver,
+  postResolver,
+  publishedPostsResolver,
+} from './features/posts/posts.resolvers';
 
 /**
  * Every route is lazily loaded, so the login screen does not ship the hangar
@@ -70,13 +77,13 @@ export const appRoutes: Route[] = [
       },
       {
         path: ':id',
-        resolve: { post: postResolver },
+        resolve: { post: postResolver, conversation: postConversationResolver },
         loadComponent: () =>
           import('./features/posts/containers/post.page').then((m) => m.PostPage),
       },
       {
         path: ':id/:slug',
-        resolve: { post: postResolver },
+        resolve: { post: postResolver, conversation: postConversationResolver },
         loadComponent: () =>
           import('./features/posts/containers/post.page').then((m) => m.PostPage),
       },
@@ -95,12 +102,16 @@ export const appRoutes: Route[] = [
       {
         path: 'new',
         loadComponent: () =>
-          import('./features/posts/containers/post-form.page').then((m) => m.PostFormPage),
+          import('./features/posts/containers/post-form.page').then(
+            (m) => m.PostFormPage,
+          ),
       },
       {
         path: ':id/edit',
         loadComponent: () =>
-          import('./features/posts/containers/post-form.page').then((m) => m.PostFormPage),
+          import('./features/posts/containers/post-form.page').then(
+            (m) => m.PostFormPage,
+          ),
       },
     ],
   },
@@ -206,7 +217,9 @@ export const appRoutes: Route[] = [
         // `?lat=&lng=` when a point was picked on the map first.
         path: 'new',
         loadComponent: () =>
-          import('./features/spots/containers/spot-form.page').then((m) => m.SpotFormPage),
+          import('./features/spots/containers/spot-form.page').then(
+            (m) => m.SpotFormPage,
+          ),
       },
       {
         path: ':id',
@@ -218,7 +231,9 @@ export const appRoutes: Route[] = [
       {
         path: ':id/edit',
         loadComponent: () =>
-          import('./features/spots/containers/spot-form.page').then((m) => m.SpotFormPage),
+          import('./features/spots/containers/spot-form.page').then(
+            (m) => m.SpotFormPage,
+          ),
       },
     ],
   },

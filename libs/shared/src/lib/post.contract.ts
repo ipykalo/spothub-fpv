@@ -137,6 +137,8 @@ export const postSummarySchema = z.object({
   /** The linked builds the person asking may open, as tags, in the author's order. */
   tags: z.array(postTagSchema),
   likes: likesSchema,
+  /** Comments and replies on it, not counting what is left of a deleted one. */
+  commentCount: z.number().int(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

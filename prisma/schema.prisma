@@ -779,6 +779,7 @@ model Comment {
   id        String    @id @default(uuid()) @db.Uuid
   spotId    String?   @map("spot_id") @db.Uuid
   buildId   String?   @map("build_id") @db.Uuid
+  postId    String?   @map("post_id") @db.Uuid
   authorId  String    @map("author_id") @db.Uuid
   /// Null for a question; the question's id for a reply.
   parentId  String?   @map("parent_id") @db.Uuid
@@ -795,6 +796,7 @@ model Comment {
 
   spot    Spot?     @relation(fields: [spotId], references: [id], onDelete: Cascade)
   build   Build?    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  post    Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
   author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   /// Deleting a question takes its replies with it.
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
@@ -802,6 +804,7 @@ model Comment {
 
   @@index([spotId, createdAt])
   @@index([buildId, createdAt])
+  @@index([postId, createdAt])
   @@index([parentId])
   @@map("comments")
 }
@@ -813,15 +816,18 @@ model CommentRead {
   id      String   @id @default(uuid()) @db.Uuid
   spotId  String?  @map("spot_id") @db.Uuid
   buildId String?  @map("build_id") @db.Uuid
+  postId  String?  @map("post_id") @db.Uuid
   userId  String   @map("user_id") @db.Uuid
   readAt  DateTime @default(now()) @map("read_at")
 
   spot  Spot?  @relation(fields: [spotId], references: [id], onDelete: Cascade)
   build Build? @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([spotId, userId])
   @@unique([buildId, userId])
+  @@unique([postId, userId])
   @@map("comment_reads")
 }
 
@@ -853,6 +859,8 @@ model Post {
   cover  Asset?      @relation("PostCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
   builds PostBuild[]
   likes  Like[]
+  comments     Comment[]
+  commentReads CommentRead[]
 
   @@unique([authorId, slug])
   @@index([authorId, updatedAt])
