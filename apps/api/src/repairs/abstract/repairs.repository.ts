@@ -1,4 +1,9 @@
-import type { CreateRepairData, RepairEntity, UpdateRepairData } from '../repair.entity';
+import type {
+  BuildAccess,
+  CreateRepairData,
+  RepairEntity,
+  UpdateRepairData,
+} from '../repair.entity';
 
 /**
  * Persistence contract for repairs.
@@ -9,14 +14,14 @@ import type { CreateRepairData, RepairEntity, UpdateRepairData } from '../repair
  */
 export abstract class RepairsRepository {
   /**
-   * The build's owner, when the viewer may see the build — their own, or one
-   * shared as Public or Unlisted; a null viewer is a signed-out visitor, who
-   * sees only the shared ones. Null otherwise.
+   * The build's owner and whether they share what its repairs cost, when the
+   * viewer may see the build — their own, or one shared as Public or Unlisted.
+   * Null otherwise.
    */
-  abstract findBuildOwnerVisibleToViewer(
+  abstract findBuildAccessForViewer(
     viewerId: string | null,
     buildId: string,
-  ): Promise<string | null>;
+  ): Promise<BuildAccess | null>;
 
   abstract findManyForOwner(ownerId: string, buildId: string): Promise<RepairEntity[]>;
 

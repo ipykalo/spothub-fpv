@@ -26,6 +26,14 @@
 
       <mat-checkbox formControlName="hasGps">Has GPS</mat-checkbox>
 
+      <!-- What sharing gives away is the owner's to decide. Both off by default,
+           and they do nothing at all while the build is Private. -->
+      <fieldset class="m-0 grid gap-1 rounded border border-outline-variant p-3">
+        <legend class="px-1 text-xs tracking-wider text-muted uppercase">When shared, also show</legend>
+        <mat-checkbox formControlName="shareCosts">What the parts and repairs cost</mat-checkbox>
+        <mat-checkbox formControlName="shareNotes">My notes on the parts</mat-checkbox>
+      </fieldset>
+
       <mat-form-field>
         <mat-label>Build notes (Markdown)</mat-label>
         <textarea matInput rows="6" formControlName="descriptionMd"></textarea>

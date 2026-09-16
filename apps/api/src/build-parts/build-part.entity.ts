@@ -3,6 +3,20 @@ import type { InstallReason } from '@spothub/shared';
 import type { CurrencyTotal } from '../common';
 
 /**
+ * What a build says about who may read it and how much of it — the owner, and
+ * the two things they may have chosen to share. A join on `builds` inside this
+ * module's own repository, which is what keeps the rule in the same query as
+ * the rows it guards.
+ */
+export interface BuildAccess {
+  readonly ownerId: string;
+  /** Prices, sources and the cost rollup are the owner's alone unless this is on. */
+  readonly shareCosts: boolean;
+  /** The owner's notes on a part or a unit are theirs alone unless this is on. */
+  readonly shareNotes: boolean;
+}
+
+/**
  * One installation period, as the domain understands it.
  *
  * It names a unit rather than embedding one. The unit and the kind of part

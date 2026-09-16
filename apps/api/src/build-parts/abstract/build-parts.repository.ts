@@ -1,4 +1,8 @@
-import type { BuildPartEntity, CreateBuildPartData } from '../build-part.entity';
+import type {
+  BuildAccess,
+  BuildPartEntity,
+  CreateBuildPartData,
+} from '../build-part.entity';
 
 export interface BuildPartFilter {
   /** True limits to what is fitted right now; omit for the full history. */
@@ -15,15 +19,15 @@ export interface BuildPartFilter {
  */
 export abstract class BuildPartsRepository {
   /**
-   * The build's owner, when the viewer may see the build — their own, or one
-   * shared as Public or Unlisted; a null viewer is a signed-out visitor, who
-   * sees only the shared ones. Null otherwise. A join on `builds` inside this
-   * repository, so reading a shared parts list needs no builds facade.
+   * The build's owner and what they have chosen to share, when the viewer may
+   * see the build — their own, or one shared as Public or Unlisted. Null
+   * otherwise. A join on `builds` inside this repository, so reading a shared
+   * parts list needs no builds facade.
    */
-  abstract findBuildOwnerVisibleToViewer(
+  abstract findBuildAccessForViewer(
     viewerId: string | null,
     buildId: string,
-  ): Promise<string | null>;
+  ): Promise<BuildAccess | null>;
 
   abstract findManyForOwner(
     ownerId: string,

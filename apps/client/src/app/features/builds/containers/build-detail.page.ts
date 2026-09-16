@@ -182,11 +182,15 @@ export class BuildDetailPage {
    * even asked for on a build someone only shares.
    */
   private loadOwnersSections(id: string): void {
+    // The rollup is the one part of this a reader may be shown.
+    if (this.owned() || (this.build()?.shareCosts ?? false)) {
+      void this.installs.loadCost(id);
+    }
+
     if (!this.owned()) {
       return;
     }
 
-    void this.installs.loadCost(id);
     void this.configs.load(id);
 
     // The install picker needs the inventory; harmless if already loaded.

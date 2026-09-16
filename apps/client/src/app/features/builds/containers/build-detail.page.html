@@ -109,8 +109,8 @@
       </dl>
     }
 
-    <!-- What it cost is the owner's business. -->
-    @if (owned()) {
+    <!-- The owner always; a reader only where the owner switched costs on. -->
+    @if (owned() || (build()?.shareCosts ?? false)) {
       <sh-build-cost-summary [cost]="installs.cost()" />
     }
 

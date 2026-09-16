@@ -104,6 +104,15 @@ describe('shared builds', () => {
     return response.body as T;
   }
 
+  /** A change by the owner — used here to switch what a shared build gives away. */
+  async function patchAs(user: TestUser, path: string, body: object): Promise<void> {
+    await request(testApp.server)
+      .patch(path)
+      .set('Authorization', as(user))
+      .send(body)
+      .expect(200);
+  }
+
   async function getAs<T>(user: TestUser, path: string, status = 200): Promise<T> {
     const response = await request(testApp.server)
       .get(path)
@@ -213,20 +222,12 @@ describe('shared builds', () => {
     expect(ownView.part.purchasePrice).toBe(30);
     expect(ownView.part.sources).toHaveLength(1);
 
-    // Private builds list nothing, and the cost rollup reveals nothing to anyone else.
+    // Private builds list nothing, and the rollup is not theirs to ask for at
+    // all — answered as no such build, rather than as a build with no costs.
     expect(
       await getAs<BuildPartDto[]>(pilot, `/api/builds/${privateBuild.id}/parts`),
     ).toEqual([]);
-    const cost = await getAs<BuildCostDto>(
-      pilot,
-      `/api/builds/${publicBuild.id}/parts/cost`,
-    );
-    expect(cost).toMatchObject({
-      totals: [],
-      repairTotals: [],
-      installedCount: 0,
-      repairCount: 0,
-    });
+    await getAs(pilot, `/api/builds/${publicBuild.id}/parts/cost`, 404);
   });
 
   it('shows another pilot what broke and when, never what the repair cost', async () => {
@@ -250,6 +251,55 @@ describe('shared builds', () => {
     expect(
       await getAs<RepairDto[]>(pilot, `/api/builds/${privateBuild.id}/repairs`),
     ).toEqual([]);
+  });
+
+  it('shows the costs and the notes when the owner switches them on, and hides them again', async () => {
+    await patchAs(owner, `/api/builds/${publicBuild.id}`, {
+      shareCosts: true,
+      shareNotes: true,
+    });
+
+    const [install] = await getAs<BuildPartDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/parts`,
+    );
+    expect(install.part).toMatchObject({
+      notesMd: 'Bought used from a friend',
+      purchasePrice: 30,
+      purchaseCurrency: 'EUR',
+    });
+    expect(install.part.sources).toHaveLength(1);
+
+    // The shelf is still the owner's: other units and when this one was
+    // acquired are not part of the build, whatever is switched on.
+    expect(install.part.units).toEqual([]);
+    expect(install.unit.acquiredOn).toBeNull();
+
+    const [repair] = await getAs<RepairDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/repairs`,
+    );
+    expect(repair).toMatchObject({ cost: 12, currency: 'EUR' });
+
+    const rollup = await getAs<BuildCostDto>(
+      pilot,
+      `/api/builds/${publicBuild.id}/parts/cost`,
+    );
+    expect(rollup.installedCount).toBe(1);
+    expect(rollup.totals).toEqual([{ currency: 'EUR', amount: 30 }]);
+
+    // Switched off again, and the reader is back where they started.
+    await patchAs(owner, `/api/builds/${publicBuild.id}`, {
+      shareCosts: false,
+      shareNotes: false,
+    });
+
+    const [again] = await getAs<BuildPartDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/parts`,
+    );
+    expect(again.part).toMatchObject({ notesMd: null, purchasePrice: null });
+    await getAs(pilot, `/api/builds/${publicBuild.id}/parts/cost`, 404);
   });
 
   it('shows another pilot the photos, without the name the file had on the owner’s phone', async () => {

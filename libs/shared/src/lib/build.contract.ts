@@ -42,6 +42,13 @@ const buildFields = z.object({
     .max(50_000, 'That is not a quad')
     .nullable(),
   hasGps: z.boolean(),
+  /**
+   * What someone the build is shared with may see. Off by default — sharing a
+   * build has never meant sharing what it cost — and meaningless while the
+   * build is Private, since nobody else can open it at all.
+   */
+  shareCosts: z.boolean(),
+  shareNotes: z.boolean(),
   descriptionMd: z.string().max(20_000).nullable(),
   builtOn: optionalDate,
   retiredOn: optionalDate,
@@ -53,6 +60,8 @@ const newBuildFields = buildFields.extend({
   visibility: buildFields.shape.visibility.default(Visibility.Private),
   weightG: buildFields.shape.weightG.default(null),
   hasGps: buildFields.shape.hasGps.default(false),
+  shareCosts: buildFields.shape.shareCosts.default(false),
+  shareNotes: buildFields.shape.shareNotes.default(false),
   descriptionMd: buildFields.shape.descriptionMd.default(null),
   builtOn: buildFields.shape.builtOn.default(null),
   retiredOn: buildFields.shape.retiredOn.default(null),
@@ -93,6 +102,10 @@ export const buildSchema = z.object({
   visibility: z.enum(Visibility),
   weightG: z.number().int().nullable(),
   hasGps: z.boolean(),
+  /** Prices, sources and the cost rollup are shown to readers, not only the owner. */
+  shareCosts: z.boolean(),
+  /** The owner's own notes on the parts are shown to readers. */
+  shareNotes: z.boolean(),
   descriptionMd: z.string().nullable(),
   /**
    * The chosen cover photo, and a short-lived presigned URL for it.

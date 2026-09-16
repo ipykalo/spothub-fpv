@@ -134,6 +134,10 @@ model Build {
   visibility    Visibility  @default(PRIVATE)
   weightG       Int?        @map("weight_g")
   hasGps        Boolean     @default(false) @map("has_gps")
+  /// What a reader who is not the owner is shown once the build is shared.
+  /// Off by default: sharing a build has never meant sharing what it cost.
+  shareCosts    Boolean     @default(false) @map("share_costs")
+  shareNotes    Boolean     @default(false) @map("share_notes")
   descriptionMd String?     @map("description_md")
   /// The photo shown on the build card. One of this build's linked assets;
   /// SetNull so deleting the photo does not delete the quad.

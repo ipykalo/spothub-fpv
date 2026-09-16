@@ -1,5 +1,14 @@
 import type { RepairCause } from '@spothub/shared';
 
+/**
+ * What a build says about who may read it and whether what its repairs cost
+ * travels with it. A join on `builds` inside this module's own repository.
+ */
+export interface BuildAccess {
+  readonly ownerId: string;
+  readonly shareCosts: boolean;
+}
+
 /** A repair as the domain understands it — no ORM types, `cost` a number. */
 export interface RepairEntity {
   readonly id: string;

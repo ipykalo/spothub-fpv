@@ -92,6 +92,8 @@ export class BuildsService {
       visibility: input.visibility,
       weightG: input.weightG,
       hasGps: input.hasGps,
+      shareCosts: input.shareCosts,
+      shareNotes: input.shareNotes,
       descriptionMd: input.descriptionMd,
       builtOn: toNullableDate(input.builtOn),
       retiredOn: toNullableDate(input.retiredOn),
@@ -186,6 +188,8 @@ function toUpdateData(input: UpdateBuildDto): UpdateBuildData {
   if (input.visibility !== undefined) patch['visibility'] = input.visibility;
   if (input.weightG !== undefined) patch['weightG'] = input.weightG;
   if (input.hasGps !== undefined) patch['hasGps'] = input.hasGps;
+  if (input.shareCosts !== undefined) patch['shareCosts'] = input.shareCosts;
+  if (input.shareNotes !== undefined) patch['shareNotes'] = input.shareNotes;
   if (input.descriptionMd !== undefined) patch['descriptionMd'] = input.descriptionMd;
   if (input.builtOn !== undefined) patch['builtOn'] = toNullableDate(input.builtOn);
   if (input.retiredOn !== undefined) patch['retiredOn'] = toNullableDate(input.retiredOn);

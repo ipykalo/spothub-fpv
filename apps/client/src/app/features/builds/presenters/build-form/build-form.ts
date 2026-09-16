@@ -95,6 +95,8 @@ export class BuildForm {
     visibility: [Visibility.Private as Visibility],
     weightG: [null as number | null],
     hasGps: [false],
+    shareCosts: [false],
+    shareNotes: [false],
     descriptionMd: [''],
   });
 
@@ -113,6 +115,8 @@ export class BuildForm {
         visibility: build.visibility,
         weightG: build.weightG,
         hasGps: build.hasGps,
+        shareCosts: build.shareCosts,
+        shareNotes: build.shareNotes,
         descriptionMd: build.descriptionMd ?? '',
       });
     });

@@ -42,27 +42,27 @@ export class BuildPartsService {
 
   /**
    * What is fitted to a build the viewer may see. Someone it is shared with
-   * sees what each part is, never what it cost, where it came from or the
-   * owner's notes — and so does a signed-out visitor, a null viewer. A build
-   * they cannot see lists nothing, as before.
+   * sees what each part is, and what it cost or what the owner wrote about it
+   * only where the owner switched that on. A build they cannot see lists
+   * nothing, as before.
    */
   async list(
     viewerId: string | null,
     buildId: string,
     query: ListBuildPartsQuery,
   ): Promise<BuildPartDto[]> {
-    const ownerId = await this.installs.findBuildOwnerVisibleToViewer(viewerId, buildId);
+    const access = await this.installs.findBuildAccessForViewer(viewerId, buildId);
 
-    if (ownerId === null) {
+    if (access === null) {
       return [];
     }
 
-    const installs = await this.installs.findManyForOwner(ownerId, buildId, query);
-    const fitted = await this.hydrate(ownerId, installs);
+    const installs = await this.installs.findManyForOwner(access.ownerId, buildId, query);
+    const fitted = await this.hydrate(access.ownerId, installs);
 
     return installs.map((install) => {
       const dto = toBuildPartDto(install, lookUp(fitted, install.unitId));
-      return viewerId === ownerId ? dto : withoutOwnersDetails(dto);
+      return viewerId === access.ownerId ? dto : withoutOwnersDetails(dto, access);
     });
   }
 
@@ -70,8 +70,20 @@ export class BuildPartsService {
    * The parts rollup counts what is fitted right now; the repair rollup counts
    * every repair ever logged. Different questions, so they are reported side
    * by side rather than added.
+   *
+   * The owner's, unless they switched costs on for readers — and either way it
+   * is the owner's own prices being totalled.
    */
-  async cost(ownerId: string, buildId: string): Promise<BuildCostDto> {
+  async cost(viewerId: string, buildId: string): Promise<BuildCostDto> {
+    const access = await this.installs.findBuildAccessForViewer(viewerId, buildId);
+
+    // Someone who may not have it is told the build has no rollup, not that it
+    // has one they may not see.
+    if (access === null || (access.ownerId !== viewerId && !access.shareCosts)) {
+      throw new NotFoundException('Build not found');
+    }
+
+    const ownerId = access.ownerId;
     const [installs, repairs] = await Promise.all([
       this.installs.findManyForOwner(ownerId, buildId, { installed: true }),
       this.repairs.costForBuild(ownerId, buildId),

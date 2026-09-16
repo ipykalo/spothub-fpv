@@ -173,6 +173,8 @@ function toEntity(build: BuildRow): BuildEntity {
     visibility: build.visibility,
     weightG: build.weightG,
     hasGps: build.hasGps,
+    shareCosts: build.shareCosts,
+    shareNotes: build.shareNotes,
     descriptionMd: build.descriptionMd,
     coverAssetId: build.coverAssetId,
     builtOn: build.builtOn,

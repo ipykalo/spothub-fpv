@@ -660,10 +660,19 @@ builds facade can be asked; instead `build-parts`, `repairs` and `media` each
 ask their own repository `findBuildOwnerVisibleToViewer` /
 `findSubjectOwnerVisibleToViewer` — a join on `builds` — and then run their
 existing owner-scoped read against that owner. What a shared reader never
-gets: purchase prices, sources, part and unit notes, other units, the cost
-rollup, repair cost and currency, a photo's original file name, firmware
-captures, flights and packs. The redaction is in the service, next to the
-read (`withoutOwnersDetails`); every write stays owner-scoped and untouched.
+gets: other units of a part, when a unit was acquired, a photo's original
+file name, firmware captures, flights and packs — those describe the owner's
+shelf and logbook rather than this build.
+
+**What it cost and what the owner wrote are the owner's to give**, through two
+switches on the build itself, both off by default so nothing was opened by
+adding them: `share_costs` (purchase prices, part sources, the cost rollup,
+repair cost and currency) and `share_notes` (part and unit notes). The reads
+that redact — `withoutOwnersDetails` in build-parts, the repair mapper, and
+the rollup route, which answers 404 rather than zeroes to someone who may not
+have it — take them from `findBuildAccessForViewer`, the same join on
+`builds` that already said who may read at all, so the rule travels in the
+query with the rows it guards. Every write stays owner-scoped and untouched.
 The client hides every owner section and control where `ownedByViewer` is
 false, and does not even request configs, the inventory or the logbook;
 `?scope=shared` on `/hangar` is the shared list. **Sharing decides which
