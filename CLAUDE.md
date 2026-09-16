@@ -345,6 +345,9 @@ the code rather than disabling the rule; the few existing inline disables each
 carry a comment explaining why.
 
 **`npm test` is unit tests; `npm run test:e2e` is a separate suite.** The
+unit target ends in `src` (`vitest run --root apps/api --environment node
+src`) — **without it vitest also picks up `apps/api/e2e`**, which has no
+database in CI's `verify` job and failed every push until it was scoped. The
 former (`apps/api/src/**/*.spec.ts`) covers pure parsers and planners with no
 I/O. The latter (`apps/api/e2e/`) boots the real `AppModule` through
 `@nestjs/testing` and drives it with real HTTP requests, against a real
