@@ -21,6 +21,20 @@
         <th scope="col" class="py-1.5 pr-4 text-right font-medium" title="The lowest the pack fell on any flight">
           Lowest
         </th>
+        <th
+          scope="col"
+          class="py-1.5 pr-4 text-right font-medium"
+          title="The charge drawn on an average flight, from the logs that recorded it"
+        >
+          Avg draw
+        </th>
+        <th
+          scope="col"
+          class="py-1.5 pr-4 text-right font-medium"
+          title="Sag on the pack's recent flights against its earliest ones — how it is wearing"
+        >
+          Sag trend
+        </th>
         <th scope="col" class="py-1.5 font-medium">Last flown</th>
       </tr>
     </thead>
@@ -56,6 +70,18 @@
           </td>
           <td class="py-1.5 pr-4 text-right">
             {{ row.lowestVoltage === null ? '—' : row.lowestVoltage.toFixed(1) + ' V' }}
+          </td>
+          <td class="py-1.5 pr-4 text-right">
+            {{ row.averageMahUsed === null ? '—' : row.averageMahUsed.toFixed(0) + ' mAh' }}
+          </td>
+          <td class="py-1.5 pr-4 text-right">
+            @if (row.sagTrend === null) {
+              <span class="text-muted" title="Not enough flights on this pack yet">—</span>
+            } @else {
+              <span class="{{ trendTone(row.sagTrend) }} font-semibold text-(--tone)">
+                {{ trendLabel(row.sagTrend) }}
+              </span>
+            }
           </td>
           <td class="py-1.5" [class.text-muted]="row.lastFlownAt === null">
             {{ row.lastFlownAt === null ? 'Never' : date(row.lastFlownAt) }}

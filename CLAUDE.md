@@ -420,10 +420,15 @@ so the job retries, and a retry skips what was already parsed.
 - **A flight's battery pack is set by hand** — a log never says which pack was
   plugged in. It is a unit of a `BATTERY` part (`flights.battery_unit_id`, SET
   NULL), set on one flight or on many at once through `PATCH /flights`, which
-  changes every named flight or none of them. A battery part's page lists each
-  pack's cycles, airtime, average sag and lowest voltage, and charts its
-  flights one pack at a time, which is where a pack's wear shows. A cycle is a
-  flight — counted from the flights, never stored, as `fitted` is for units.
+  changes every named flight or none of them. **A battery part's page is the
+  pack registry**: each unit, by the label written on the pack, with its
+  cycles, airtime, average sag, lowest voltage, the charge an average flight
+  drew, and how its sag is trending — the average of its last third of flights
+  against its first third, shown from six flights on and coloured once a fifth
+  worse than it started (`pack-summary.ts`). Picking a pack filters the charts
+  below it. A cycle is a flight — counted from the flights, never stored, as
+  `fitted` is for units — and retiring a pack is its unit's condition, so
+  none of this needed a `batteries` table of its own.
 - **A log counts as imported while a flight from it is still in the
   logbook** (or if it never held one). Delete every flight a log gave and the
   next drop imports it again; delete only some and the rest keep it imported,

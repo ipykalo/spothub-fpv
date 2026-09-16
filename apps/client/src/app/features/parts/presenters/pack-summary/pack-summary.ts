@@ -28,8 +28,27 @@ export interface PackStats {
   /** Take-off voltage minus the flight's lowest, averaged over flights that logged both. */
   readonly averageSagV: number | null;
   readonly lowestVoltage: number | null;
+  /**
+   * The charge drawn on an average flight, from the logs that recorded it. A
+   * pack that keeps its capacity gives the same mAh for the same flying; one
+   * that is going gives less, and lands sooner.
+   */
+  readonly averageMahUsed: number | null;
+  /**
+   * How the pack's sag is moving: the average sag of its recent flights
+   * against its earliest ones, as a fraction — 0.2 is a fifth worse than it
+   * started. Null until enough flights logged voltage for the comparison to
+   * mean anything; wear shows over a pack's life, not over two flights.
+   */
+  readonly sagTrend: number | null;
   readonly lastFlownAt: string | null;
 }
+
+/** Below this, a pack has not flown enough for early and recent to be different things. */
+const TREND_MINIMUM_FLIGHTS = 6;
+
+/** A fifth more sag than the pack started with: the point worth showing as wear. */
+export const TIRED_SAG_TREND = 0.2;
 
 /**
  * Every unit of the part, flown or not, in the part's own order — so a pack
@@ -50,6 +69,9 @@ export function packStats(
     const lows = own.flatMap((flight) =>
       flight.minVoltage === null ? [] : [flight.minVoltage],
     );
+    const charges = own.flatMap((flight) =>
+      flight.mahUsed === null ? [] : [flight.mahUsed],
+    );
 
     // ISO timestamps in one format compare correctly as strings.
     const lastFlownAt = own.reduce<string | null>(
@@ -63,12 +85,43 @@ export function packStats(
       name: unitName(part, unit),
       cycles: own.length,
       airtimeS: own.reduce((sum, flight) => sum + flight.durationS, 0),
-      averageSagV:
-        sags.length > 0 ? sags.reduce((sum, sag) => sum + sag, 0) / sags.length : null,
+      averageSagV: sags.length > 0 ? average(sags) : null,
       lowestVoltage: lows.length > 0 ? Math.min(...lows) : null,
+      averageMahUsed: charges.length > 0 ? average(charges) : null,
+      sagTrend: sagTrend(own),
       lastFlownAt,
     };
   });
+}
+
+const average = (values: readonly number[]): number =>
+  values.reduce((sum, value) => sum + value, 0) / values.length;
+
+/**
+ * The pack's sag now against the sag it started with, comparing its first
+ * third of flights with its last third: a middle left out, so one bad flight
+ * in the middle of a pack's life does not read as wear.
+ */
+function sagTrend(flights: readonly FlightDto[]): number | null {
+  const sags = [...flights]
+    // ISO timestamps in one format compare correctly as strings.
+    .sort((first, second) => first.startedAt.localeCompare(second.startedAt))
+    .flatMap((flight) =>
+      flight.startVoltage !== null && flight.minVoltage !== null
+        ? [flight.startVoltage - flight.minVoltage]
+        : [],
+    );
+
+  if (sags.length < TREND_MINIMUM_FLIGHTS) {
+    return null;
+  }
+
+  const span = Math.floor(sags.length / 3);
+  const early = average(sags.slice(0, span));
+  const recent = average(sags.slice(-span));
+
+  // A pack that never sagged at all has nothing to have grown from.
+  return early > 0 ? (recent - early) / early : null;
 }
 
 /** The radio's clock, stored as UTC, so rendered as UTC. */
@@ -118,5 +171,24 @@ export class PackSummary {
 
   protected date(iso: string): string {
     return SHORT_DATE.format(new Date(iso));
+  }
+
+  /** A pack sagging a fifth more than it used to is worth saying out loud. */
+  protected trendTone(trend: number | null): string {
+    if (trend === null) {
+      return 'tone-idle';
+    }
+
+    return trend >= TIRED_SAG_TREND ? 'tone-stop' : 'tone-go';
+  }
+
+  protected trendLabel(trend: number | null): string {
+    if (trend === null) {
+      return '—';
+    }
+
+    const percent = Math.round(trend * 100);
+
+    return percent > 0 ? `+${String(percent)}%` : `${String(percent)}%`;
   }
 }
