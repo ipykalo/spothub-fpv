@@ -26,6 +26,7 @@ export default defineConfig({
     root: repoRootFrom(import.meta.url, '../..'),
     environment: 'node',
     include: ['apps/client/src/**/*.spec.ts'],
+    setupFiles: ['apps/client/src/test-setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'json'],

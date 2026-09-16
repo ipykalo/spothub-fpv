@@ -208,7 +208,11 @@ for (const suite of SUITES) {
   run(suite);
 }
 
-const merged = merge(SUITES.map((suite) => readReport(suite.report)));
+// A suite that did not run contributes nothing: reading the report it left
+// behind last time would quietly credit code this run never touched.
+const merged = merge(
+  SUITES.filter((suite) => !suite.skip).map((suite) => readReport(suite.report)),
+);
 const areas = summarize(merged);
 const floors = JSON.parse(readFileSync(THRESHOLDS, 'utf8'));
 
