@@ -23,7 +23,8 @@
     "db:reset": "prisma migrate reset",
     "db:seed": "ts-node -P prisma/tsconfig.json prisma/seed.ts",
     "db:seed:undo": "ts-node -P prisma/tsconfig.json prisma/seed.ts --undo",
-    "decoder:build": "docker build --target blackbox-decode -t spothub-blackbox-decode -f apps/api/Dockerfile ."
+    "decoder:build": "docker build --target blackbox-decode -t spothub-blackbox-decode -f apps/api/Dockerfile .",
+    "coverage": "node scripts/coverage.mjs"
   },
   "private": true,
   "dependencies": {

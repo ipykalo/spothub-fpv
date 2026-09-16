@@ -122,9 +122,11 @@ jobs:
 
       - run: npx prisma generate
 
-      # The runner makes its own test database and bucket from these, so
-      # nothing here has to create them.
-      - run: npm run test:e2e
+      # Every suite that measures coverage, then each area against its floor
+      # (coverage.thresholds.json). This is where the e2e suite runs: the
+      # runner makes its own test database and bucket from the env above, and
+      # the API's real coverage only shows once that suite has run.
+      - run: npm run coverage
 
   # Both images are built on every run, including pull requests, because a
   # Dockerfile that only breaks at release time is a Dockerfile nobody trusts.

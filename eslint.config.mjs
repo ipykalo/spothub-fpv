@@ -22,6 +22,10 @@ export default tseslint.config(
       '**/.nx',
       '**/*.timestamp*',
       'node_modules/.prisma',
+      '**/coverage',
+      // Tooling configs, loaded by vite rather than compiled with the app, so
+      // they sit in no tsconfig and the type-aware rules cannot parse them.
+      '**/vitest.config.ts',
     ],
   },
 

@@ -332,6 +332,8 @@ npm run lint           # type-aware, zero warnings tolerated
 npm run typecheck
 npm test               # API unit tests (Vitest) — from PowerShell on Windows
 npm run test:e2e       # API end-to-end, needs db:up first
+npm run coverage       # every suite, then each area against its floor
+npm run coverage -- --skip-e2e   # without a database; floors not enforced
 npm run build
 ```
 
@@ -837,6 +839,46 @@ lookups in `prisma-assets.repository.ts` fails to compile.
 presigned PUT out of the box; R2 and Blob do not and need explicit
 configuration for `PUT` from the app's origin. Nothing in the code changes —
 which is the point of `StorageGateway` — but the first deploy has to set it.
+
+## Coverage
+
+`npm run coverage` runs the three suites that measure it — the API's unit
+tests, its e2e suite, the client's logic tests — and adds their reports
+together file by file, because **the API is proven by driving the real app**:
+without the e2e run counted, `apps/api/src` measures 15%, and with it, 81%.
+All three are rooted at the repository so the same path means the same file in
+every report (`scripts/coverage-paths.mjs`).
+
+Each area is then held to a floor in `coverage.thresholds.json`:
+
+| area | what it is |
+| --- | --- |
+| `libs/shared` | the contracts and their helpers |
+| `apps/api/src` | measured from the unit **and** e2e runs together |
+| `apps/client (logic)` | client files with no template beside them — stores, pure helpers, resolvers |
+| `apps/client (components)` | everything with a template: counted and shown, never gated |
+
+**The floors ratchet.** Each starts at what its area measured and rises as
+tests land; `npm run coverage -- --update` rewrites them from a full run.
+Lowering one needs a reason in the commit. A single flat target was considered
+and rejected: on the API it would only be reachable by mocking repositories —
+which this codebase deliberately does not do — and on the client it would force
+component tests, when a component here is a thin presenter over signals and its
+template is already type-checked by the production build.
+
+Not counted at all, because coverage of them says nothing about whether the
+code works: Nest modules (dependency wiring the app fails to start without),
+barrels, entities, DI tokens, route tables, `main.ts`. Counting those moves
+the number without moving the risk.
+
+**Client tests run on plain Vitest, not Angular's `unit-test` builder**
+(`apps/client/vitest.config.ts`). The builder boots a TestBed and a DOM per
+file, which logic tests need for nothing — and under Vitest 4 its TestBed init
+fails before a test runs. A consequence worth knowing: **a spec must import the
+logic, not the component that uses it.** Importing a component file pulls in
+Angular Material, whose partially-compiled code then demands the JIT compiler.
+That is why `packStats` lives in `pack-stats.ts` beside the component that
+renders it, and it is the shape any new logic should take.
 
 ## Verification
 

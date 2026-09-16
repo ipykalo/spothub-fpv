@@ -41,7 +41,10 @@ console.log(
 const extraArgs = process.argv.slice(2);
 const vitest = spawnSync(
   binPath('vitest'),
-  ['run', '--root', 'apps/api/e2e', ...extraArgs],
+  // The config roots the run at the repository and picks the e2e specs out of
+  // it, so coverage is measured over `apps/api/src` — the code this suite
+  // exists to exercise — rather than over the suite itself.
+  ['run', '--config', 'apps/api/e2e/vitest.config.ts', ...extraArgs],
   // Windows cannot exec a .cmd shim without a shell; a shell on POSIX just
   // runs the same command through /bin/sh -c, harmlessly.
   { cwd: ROOT, env: process.env, stdio: 'inherit', shell: true },
