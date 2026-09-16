@@ -127,8 +127,9 @@ describe('post images', () => {
     const read = await readPost(null, post.id);
     const image = read.images.find((entry) => entry.id === frame.id);
 
-    expect(image?.url).toBeTruthy();
-    expect(image?.thumbUrl).toBeTruthy();
+    // Addresses that do not expire, so a page left open and a shared card keep working.
+    expect(image?.url).toBe(`/api/posts/${post.id}/images/${frame.id}/file`);
+    expect(image?.thumbUrl).toBe(`/api/posts/${post.id}/images/${frame.id}/thumb`);
     expect(image).toMatchObject({ width: 320, height: 240 });
   });
 
@@ -177,7 +178,35 @@ describe('post images', () => {
 
     const blog = (await request(testApp.server).get('/api/posts/published').expect(200))
       .body as PostSummaryDto[];
-    expect(blog.find((entry) => entry.id === post.id)?.coverUrl).toBeTruthy();
+    expect(blog.find((entry) => entry.id === post.id)?.coverUrl).toBe(
+      `/api/posts/${post.id}/images/${frame.id}/thumb`,
+    );
+  });
+
+  it('redirects that address to storage, and only for someone who may read the post', async () => {
+    const shown = await request(testApp.server)
+      .get(`/api/posts/${post.id}/images/${frame.id}/file`)
+      .expect(302);
+    expect(shown.headers['location']).toContain('http');
+    expect(shown.headers['cache-control']).toContain('max-age');
+
+    await request(testApp.server)
+      .get(`/api/posts/${post.id}/images/${frame.id}/thumb`)
+      .expect(302);
+
+    const hidden = await upload(draft.id, 'hidden.jpg');
+
+    // A draft is its author's alone, and an image from another post is not this one's.
+    await request(testApp.server)
+      .get(`/api/posts/${draft.id}/images/${hidden.id}/file`)
+      .expect(404);
+    await request(testApp.server)
+      .get(`/api/posts/${draft.id}/images/${hidden.id}/file`)
+      .set('Authorization', as(author))
+      .expect(302);
+    await request(testApp.server)
+      .get(`/api/posts/${post.id}/images/${hidden.id}/file`)
+      .expect(404);
   });
 
   it('saving a body that no longer shows an image deletes it, but never the cover', async () => {

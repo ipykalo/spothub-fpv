@@ -33,6 +33,24 @@ export function postImageMarkdown(caption: string, assetId: string): string {
   return `![${caption.replace(/[[\]]/g, '')}](${POST_IMAGE_SCHEME}${assetId})`;
 }
 
+/**
+ * Where a post's image is served from — an address that does not expire, which
+ * the API answers with a redirect to storage.
+ *
+ * Presigned URLs are for rendering now: they expire within the hour, so they
+ * cannot be a link preview's picture, a search engine's image, or the `src` of
+ * a page somebody leaves open. This one is stable, and the API checks who may
+ * read the post on every request, so a draft's image is still nobody else's.
+ * The `/api` prefix is the same base the client asks everything else under.
+ */
+export function postImageUrl(
+  postId: string,
+  assetId: string,
+  variant: 'full' | 'thumb' = 'full',
+): string {
+  return `/api/posts/${postId}/images/${assetId}/${variant === 'thumb' ? 'thumb' : 'file'}`;
+}
+
 /** Minutes to read a body at about 200 words a minute; never less than one. */
 export function readingMinutes(bodyMd: string): number {
   const words = bodyMd.replace(IMAGE_REFERENCE, ' ').match(/\S+/g)?.length ?? 0;
@@ -101,7 +119,7 @@ export const updatePostSchema = postFields
     message: 'Provide at least one field to update',
   });
 
-/** One image uploaded to a post, with short-lived URLs to render now. */
+/** One image uploaded to a post, at addresses that do not expire (`postImageUrl`). */
 export const postImageSchema = z.object({
   id: z.uuid(),
   url: z.string(),
@@ -130,7 +148,7 @@ export const postSummarySchema = z.object({
   authorName: z.string().nullable(),
   /** Whether the person asking wrote it. Only its author can change it. */
   ownedByViewer: z.boolean(),
-  /** The cover's thumbnail, for a list. Short-lived; render it now. */
+  /** The cover's thumbnail, for a list. A lasting address, so a card may be shared. */
   coverUrl: z.string().nullable(),
   /** Minutes to read the body. */
   readingMinutes: z.number().int(),

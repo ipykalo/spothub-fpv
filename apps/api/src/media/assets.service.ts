@@ -178,6 +178,48 @@ export class AssetsService {
     );
   }
 
+  /**
+   * Where a post's image actually is at this moment: a presigned URL, for the
+   * route that redirects a reader to it. The address the reader holds never
+   * expires; this one does, which is what keeps the bucket private and lets
+   * every request ask again whether the post may be read at all.
+   */
+  async storageUrl(
+    viewerId: string | null,
+    postId: string,
+    assetId: string,
+    variant: 'full' | 'thumb',
+  ): Promise<string> {
+    const ownerId = await this.assets.findSubjectOwnerVisibleToViewer(
+      viewerId,
+      AssetSubject.Post,
+      postId,
+    );
+
+    if (ownerId === null) {
+      throw new NotFoundException('Post not found');
+    }
+
+    // The post's own images, so an id from another post cannot be served here.
+    // A post has a handful, which makes this cheaper than a lookup that would
+    // then have to prove the image belongs to it.
+    const assets = await this.assets.findManyForSubject(
+      ownerId,
+      AssetSubject.Post,
+      postId,
+    );
+    const asset = assets.find((candidate) => candidate.id === assetId);
+
+    if (!asset) {
+      throw new NotFoundException('Image not found');
+    }
+
+    const key =
+      variant === 'thumb' ? (asset.thumbKey ?? asset.storageKey) : asset.storageKey;
+
+    return this.storage.presignGet(key, this.downloadTtl);
+  }
+
   async remove(
     ownerId: string,
     subject: AssetSubject,

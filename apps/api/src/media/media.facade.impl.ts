@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { PostImageDto } from '@spothub/shared';
+import { type PostImageDto, postImageUrl } from '@spothub/shared';
 
 import type { Env } from '../config';
 import { StorageGateway } from '../storage';
@@ -53,17 +53,15 @@ export class MediaFacadeImpl extends MediaFacade {
       postId,
     );
 
-    return Promise.all(
-      assets.map(async (asset) => ({
-        id: asset.id,
-        url: await this.storage.presignGet(asset.storageKey, this.downloadTtl),
-        thumbUrl: asset.thumbKey
-          ? await this.storage.presignGet(asset.thumbKey, this.downloadTtl)
-          : null,
-        width: asset.width,
-        height: asset.height,
-      })),
-    );
+    // Addresses, not signatures: a post's images are served through the API,
+    // which signs one per request. Nothing here expires.
+    return assets.map((asset) => ({
+      id: asset.id,
+      url: postImageUrl(postId, asset.id),
+      thumbUrl: asset.thumbKey === null ? null : postImageUrl(postId, asset.id, 'thumb'),
+      width: asset.width,
+      height: asset.height,
+    }));
   }
 
   async deletePostImages(

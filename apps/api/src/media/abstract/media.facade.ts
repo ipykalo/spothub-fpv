@@ -8,7 +8,9 @@ import type { PostImageDto } from '@spothub/shared';
  * by storage key, or are served through a signature. Media depends on no
  * feature module, so these edges are safe.
  *
- * Every URL it hands out expires. They are for rendering now, never for storing.
+ * A build's URLs expire: they are for rendering now, never for storing. A
+ * post's images are different — they are public reading, so they carry a
+ * lasting address that the API redirects to storage per request.
  */
 export abstract class MediaFacade {
   /**

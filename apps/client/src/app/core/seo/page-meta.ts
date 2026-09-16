@@ -29,7 +29,7 @@ export interface PageDescription {
   readonly type?: 'website' | 'article';
   /** The page's own address from the site root, for the canonical link and `og:url`. */
   readonly path?: string;
-  /** A picture of what the page is about, absolute. Left out when it would expire — see below. */
+  /** A picture of what the page is about; a path from the site root is made absolute. */
   readonly imageUrl?: string | null;
   readonly publishedAt?: string | null;
   readonly updatedAt?: string | null;
@@ -55,7 +55,7 @@ export class PageMeta {
     const type = page.type ?? 'website';
     const url = page.path === undefined ? null : `${this.origin}${page.path}`;
     const description = page.description ? clip(plainText(page.description)) : '';
-    const image = stableImage(page.imageUrl ?? null);
+    const image = this.absolute(page.imageUrl ?? null);
 
     this.title.setTitle(`${page.title} · ${SITE_NAME}`);
     this.meta.updateTag({ property: 'og:site_name', content: SITE_NAME });
@@ -116,6 +116,19 @@ export class PageMeta {
     }
   }
 
+  /**
+   * A card's picture has to be an address a crawler can fetch on its own, so a
+   * path from the site root becomes a full URL. A post's images are served at
+   * such a path (`postImageUrl`), which is why they can be cards at all.
+   */
+  private absolute(url: string | null): string | null {
+    if (url === null) {
+      return null;
+    }
+
+    return url.startsWith('/') ? `${this.origin}${url}` : url;
+  }
+
   /** `Meta` handles only meta tags, and a canonical address is a link. */
   private canonical(url: string | null): void {
     const head = this.document.head;
@@ -148,22 +161,6 @@ export function injectPageMeta(): PageMeta {
   });
 
   return meta;
-}
-
-/**
- * A post's images are served from object storage through presigned URLs, which
- * expire within the hour. A crawler comes back later and would find a 403, so
- * an address that carries an expiry is no address to publish: the card goes
- * out without a picture instead of with a broken one. Serving post images from
- * a stable public path would give every post its image here — worth doing, and
- * the only thing standing between these cards and a picture.
- */
-function stableImage(url: string | null): string | null {
-  if (url === null) {
-    return null;
-  }
-
-  return /[?&]X-Amz-(Expires|Signature)=/i.test(url) ? null : url;
 }
 
 /** Tags and Markdown punctuation dropped, whitespace collapsed — good enough for a preview line. */

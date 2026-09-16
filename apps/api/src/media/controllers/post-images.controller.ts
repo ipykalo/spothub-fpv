@@ -3,12 +3,14 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
+  Redirect,
 } from '@nestjs/common';
 import {
   type AssetDto,
@@ -48,6 +50,44 @@ export class PostImagesController {
     @Param('postId', ParseUUIDPipe) postId: string,
   ): Promise<AssetDto[]> {
     return this.assets.list(viewer?.id ?? null, AssetSubject.Post, postId);
+  }
+
+  /**
+   * The image itself, at an address that does not expire: a redirect to a
+   * freshly signed one. It is what a post's DTO carries, so a link preview, a
+   * search engine and a page left open all keep working — while the bucket
+   * stays private and this route decides, per request, who may read the post.
+   *
+   * The redirect is cacheable for a few minutes, well inside the signature's
+   * own life, so a reader loading a post does not sign every image twice.
+   */
+  @Public()
+  @Get(':assetId/file')
+  @Header('Cache-Control', 'public, max-age=300')
+  @Redirect()
+  async file(
+    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Param('assetId', ParseUUIDPipe) assetId: string,
+  ): Promise<{ url: string }> {
+    return {
+      url: await this.assets.storageUrl(viewer?.id ?? null, postId, assetId, 'full'),
+    };
+  }
+
+  /** The same, for the thumbnail — the size a feed row shows. */
+  @Public()
+  @Get(':assetId/thumb')
+  @Header('Cache-Control', 'public, max-age=300')
+  @Redirect()
+  async thumb(
+    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Param('assetId', ParseUUIDPipe) assetId: string,
+  ): Promise<{ url: string }> {
+    return {
+      url: await this.assets.storageUrl(viewer?.id ?? null, postId, assetId, 'thumb'),
+    };
   }
 
   @Post('uploads')

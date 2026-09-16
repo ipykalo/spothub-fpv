@@ -767,11 +767,16 @@ and what it cost to undo it are worth remembering before opening anything else.
   is configured anywhere. The Node server itself serves `/robots.txt` — every
   signed-in path disallowed, since a crawler would only meet the login page —
   and `/sitemap.xml`, built from `GET /posts/published` and cached for five
-  minutes. **`og:image` is deliberately left out while a post's images are
-  presigned:** those addresses expire within the hour and a crawler comes back
-  later, so a card goes out without a picture rather than with a broken one.
-  Serving post images from a stable public path is what would turn these into
-  picture cards.
+  minutes.
+- **A post's images have addresses that do not expire.** `postImageUrl`
+  (`libs/shared`) builds `/api/posts/<post>/images/<asset>/file` — and
+  `/thumb` — which a public route answers with a redirect to a freshly
+  presigned URL, cacheable for five minutes. The bucket stays private and
+  every request asks again whether the post may be read, so a draft's images
+  are still nobody else's. That address is what a post's DTO carries, which
+  is what makes `og:image` and a picture card possible at all, and it also
+  fixes a page left open losing its images when the signature expired. Build
+  photos stay presigned: they are not public reading.
 - **A server-rendered page renders from data resolved before it exists.** The
   browser's first render must match the server's HTML, and anything fetched
   after a component is created lands too late for that. So the public pages

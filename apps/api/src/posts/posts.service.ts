@@ -7,6 +7,7 @@ import {
   type PostSummaryDto,
   type UpdatePostDto,
   Visibility,
+  postImageUrl,
   referencedImageIds,
 } from '@spothub/shared';
 
@@ -147,32 +148,14 @@ export class PostsService {
   }
 
   /**
-   * Summaries with their cover thumbnails, signed in one batch per author, and
-   * their tags — the linked builds this viewer may open, asked for once for
-   * the whole list.
+   * Summaries with their cover thumbnails — an address each, not a signature,
+   * so nothing here has to be signed — and their tags, the linked builds this
+   * viewer may open, asked for once for the whole list.
    */
   private async summaries(
     posts: readonly PostEntity[],
     viewerId: string | null,
   ): Promise<PostSummaryDto[]> {
-    const coversByAuthor = new Map<string, string[]>();
-
-    for (const post of posts) {
-      if (post.coverAssetId !== null) {
-        const ids = coversByAuthor.get(post.authorId) ?? [];
-        ids.push(post.coverAssetId);
-        coversByAuthor.set(post.authorId, ids);
-      }
-    }
-
-    const urls = new Map<string, string>();
-
-    for (const [authorId, ids] of coversByAuthor) {
-      for (const [assetId, url] of await this.media.thumbUrlsFor(authorId, ids)) {
-        urls.set(assetId, url);
-      }
-    }
-
     const likes = await this.likes.forPosts(
       viewerId,
       posts.map((post) => post.id),
@@ -190,7 +173,9 @@ export class PostsService {
       toPostSummaryDto(
         post,
         viewerId,
-        post.coverAssetId === null ? null : (urls.get(post.coverAssetId) ?? null),
+        post.coverAssetId === null
+          ? null
+          : postImageUrl(post.id, post.coverAssetId, 'thumb'),
         post.buildIds.flatMap((buildId) => {
           const tag = tags.get(buildId);
           return tag ? [tag] : [];
