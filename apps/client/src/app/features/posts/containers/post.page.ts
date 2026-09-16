@@ -23,6 +23,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { Markdown } from '../../../core/components/markdown/markdown';
 import { injectPageMeta } from '../../../core/seo/page-meta';
+import { injectStructuredData } from '../../../core/seo/structured-data';
 import { BuildCard } from '../../builds/presenters/build-card/build-card';
 import { CommentsSection } from '../../comments/containers/comments-section';
 import { LikeButton } from '../../likes/containers/like-button';
@@ -64,6 +65,7 @@ export class PostPage {
   protected readonly commentSubject = CommentSubject.Post;
   private readonly api = inject(PostsApi);
   private readonly meta = injectPageMeta();
+  private readonly data = injectStructuredData();
 
   private readonly asSignedIn = signal<PostDto | null>(null);
 
@@ -78,15 +80,24 @@ export class PostPage {
 
       untracked(() => {
         this.asSignedIn.set(null);
-        this.meta.set(
-          post
-            ? {
-                title: post.title,
-                description: post.summary ?? post.bodyMd,
-                type: 'article',
-              }
-            : { title: 'Post not found' },
-        );
+
+        if (!post) {
+          this.meta.set({ title: 'Post not found' });
+          this.data.clear();
+          return;
+        }
+
+        this.meta.set({
+          title: post.title,
+          description: post.summary ?? post.bodyMd,
+          type: 'article',
+          path: `/blog/${post.id}/${post.slug}`,
+          imageUrl: post.coverImageUrl,
+          publishedAt: post.publishedAt,
+          updatedAt: post.updatedAt,
+          authorName: post.authorName,
+        });
+        this.data.setPost(post);
       });
     });
 

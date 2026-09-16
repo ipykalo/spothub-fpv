@@ -758,6 +758,20 @@ and what it cost to undo it are worth remembering before opening anything else.
   runs that rather than nginx. It needs `API_INTERNAL_ORIGIN` (how it reaches
   the API without leaving the network) and `NG_ALLOWED_HOSTS` (the site's
   domain — Angular answers any other Host header with 400).
+- **The blog is written to be found.** Every public page sets its own title,
+  description, canonical address and Open Graph and Twitter tags
+  (`core/seo/page-meta.ts`), and a schema.org block beside them
+  (`core/seo/structured-data.ts`): `Blog` on the feed, `BlogPosting` on a
+  post with its author, dates and word count. `SITE_ORIGIN` is the request's
+  own origin on the server and `location.origin` in the browser, so no domain
+  is configured anywhere. The Node server itself serves `/robots.txt` — every
+  signed-in path disallowed, since a crawler would only meet the login page —
+  and `/sitemap.xml`, built from `GET /posts/published` and cached for five
+  minutes. **`og:image` is deliberately left out while a post's images are
+  presigned:** those addresses expire within the hour and a crawler comes back
+  later, so a card goes out without a picture rather than with a broken one.
+  Serving post images from a stable public path is what would turn these into
+  picture cards.
 - **A server-rendered page renders from data resolved before it exists.** The
   browser's first render must match the server's HTML, and anything fetched
   after a component is created lands too late for that. So the public pages
