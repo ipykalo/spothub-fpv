@@ -3,9 +3,7 @@
   role="region"
   aria-label="Change the selected flights"
 >
-  <span class="text-sm font-semibold tabular-nums">
-    {{ count() }} flight{{ count() === 1 ? '' : 's' }} selected
-  </span>
+  <span class="text-sm font-semibold tabular-nums"> {{ count() }} flight{{ count() === 1 ? '' : 's' }} selected </span>
 
   <sh-autocomplete
     class="w-56"

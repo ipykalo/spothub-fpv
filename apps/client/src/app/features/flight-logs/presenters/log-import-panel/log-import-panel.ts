@@ -76,8 +76,12 @@ export class LogImportPanel {
 
   /** Counts logs only: a dropped folder also holds files that are neither format. */
   protected readonly pendingPrompt = computed(() => {
-    const formats = (this.pending() ?? []).map((file) => logFormatOf(file.name)).filter((format) => format !== null);
-    const blackbox = formats.filter((format) => format === LogFormat.BetaflightBbl).length;
+    const formats = (this.pending() ?? [])
+      .map((file) => logFormatOf(file.name))
+      .filter((format) => format !== null);
+    const blackbox = formats.filter(
+      (format) => format === LogFormat.BetaflightBbl,
+    ).length;
     const one = blackbox === 1;
     const which =
       blackbox === formats.length
@@ -214,7 +218,9 @@ export class LogImportPanel {
 /** Today as YYYY-MM-DD in the browser's own zone, the way a date input reads it. */
 function localToday(): string {
   const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 /** Every file under the dropped entries, walking into folders. */

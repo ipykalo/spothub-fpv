@@ -1,5 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import type { CreateDraftSpotDto, CreateSpotDto, SpotDto, UpdateSpotDto } from '@spothub/shared';
+import type {
+  CreateDraftSpotDto,
+  CreateSpotDto,
+  SpotDto,
+  UpdateSpotDto,
+} from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
 import { SpotsApi } from './spots.api';

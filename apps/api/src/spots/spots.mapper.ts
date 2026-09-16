@@ -10,7 +10,11 @@ import type { SpotEntity } from './spot.entity';
  * `viewerId` is whoever asked: the same spot answers `ownedByViewer: true` to
  * its owner and `false` to anyone it is shared with.
  */
-export function toSpotDto(spot: SpotEntity, coverUrl: string | null, viewerId: string): SpotDto {
+export function toSpotDto(
+  spot: SpotEntity,
+  coverUrl: string | null,
+  viewerId: string,
+): SpotDto {
   return {
     id: spot.id,
     name: spot.name,
@@ -26,7 +30,9 @@ export function toSpotDto(spot: SpotEntity, coverUrl: string | null, viewerId: s
     accessNotesMd: spot.accessNotesMd,
     visibility: spot.visibility,
     isDraft: spot.isDraft,
-    video: spot.video ? { youtubeId: spot.video.youtubeId, startS: spot.video.startS } : null,
+    video: spot.video
+      ? { youtubeId: spot.video.youtubeId, startS: spot.video.startS }
+      : null,
     coverUrl,
     ownedByViewer: spot.ownerId === viewerId,
     ownerName: spot.ownerName,

@@ -68,7 +68,10 @@ const RETIRED_DATE_ISSUE = {
   path: ['retiredOn'],
 };
 
-export const createBuildSchema = newBuildFields.refine(retiredAfterBuilt, RETIRED_DATE_ISSUE);
+export const createBuildSchema = newBuildFields.refine(
+  retiredAfterBuilt,
+  RETIRED_DATE_ISSUE,
+);
 
 /**
  * Every field optional, but a body with no fields at all is rejected — an empty

@@ -153,7 +153,11 @@ export class FlightLogImportJob implements OnModuleInit {
     const buildId =
       chosenBuild ?? (await this.buildForModel(ownerId, parsed.modelName, buildByModel));
 
-    const entries = parsed.flights.map((flight) => ({ ...flight, logFileId: file.id, buildId }));
+    const entries = parsed.flights.map((flight) => ({
+      ...flight,
+      logFileId: file.id,
+      buildId,
+    }));
     // A GPS track joins the flight it overlaps; any other log's flights are its own.
     const added =
       parsed.tracksOnly === true

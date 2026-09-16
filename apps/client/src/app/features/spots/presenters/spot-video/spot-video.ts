@@ -38,7 +38,10 @@ export class SpotVideo {
   private readonly sanitizer = inject(DomSanitizer);
 
   /** View state only: back to the poster whenever a different video arrives. */
-  protected readonly playing = linkedSignal({ source: this.video, computation: () => false });
+  protected readonly playing = linkedSignal({
+    source: this.video,
+    computation: () => false,
+  });
 
   protected readonly watchUrl = computed(() => youTubeWatchUrl(this.video()));
 

@@ -10,7 +10,9 @@ import type { CreateSpotData, SpotEntity, UpdateSpotData } from './spot.entity';
  * repository, not a call to the users module, and only the name: an owner's
  * email never leaves the users table through here.
  */
-const WITH_OWNER_NAME = { owner: { select: { displayName: true } } } satisfies Prisma.SpotInclude;
+const WITH_OWNER_NAME = {
+  owner: { select: { displayName: true } },
+} satisfies Prisma.SpotInclude;
 
 type SpotRow = Prisma.SpotGetPayload<{ include: typeof WITH_OWNER_NAME }>;
 
@@ -138,7 +140,10 @@ function toUpdateInput(data: UpdateSpotData): Prisma.SpotUpdateManyMutationInput
     // The video is two columns, written together or not at all.
     ...(video === undefined
       ? {}
-      : { youtubeVideoId: video?.youtubeId ?? null, youtubeStartS: video?.startS ?? null }),
+      : {
+          youtubeVideoId: video?.youtubeId ?? null,
+          youtubeStartS: video?.startS ?? null,
+        }),
   };
 }
 

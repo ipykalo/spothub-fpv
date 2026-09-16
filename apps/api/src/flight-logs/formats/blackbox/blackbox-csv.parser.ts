@@ -105,7 +105,9 @@ export function parseBlackboxLogs(
   frames.sort((a, b) => a.t - b.t);
 
   const runs = split(frames);
-  const flights = runs.filter((run) => run.length >= 2 && spanS(run) * 1000 >= MIN_FLIGHT_MS);
+  const flights = runs.filter(
+    (run) => run.length >= 2 && spanS(run) * 1000 >= MIN_FLIGHT_MS,
+  );
 
   return {
     modelName: craftName,
@@ -117,8 +119,11 @@ export function parseBlackboxLogs(
 
 /** The craft name a flight controller writes into each log's header, or null. */
 export function craftNameFrom(bytes: Uint8Array): string | null {
-  const text = Buffer.from(bytes.buffer, bytes.byteOffset, Math.min(bytes.length, HEADER_BYTES))
-    .toString('latin1');
+  const text = Buffer.from(
+    bytes.buffer,
+    bytes.byteOffset,
+    Math.min(bytes.length, HEADER_BYTES),
+  ).toString('latin1');
   const name = /^H Craft name:(.*)$/m.exec(text)?.[1]?.trim();
 
   return name !== undefined && name.length > 0 ? name : null;

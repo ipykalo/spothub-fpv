@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  signal,
+} from '@angular/core';
 import type { FlightDto } from '@spothub/shared';
 
 interface HoverPoint {
@@ -27,7 +33,10 @@ interface ScatterPoint {
   readonly hover: HoverPoint;
 }
 
-type WithVoltage = FlightDto & { readonly startVoltage: number; readonly minVoltage: number };
+type WithVoltage = FlightDto & {
+  readonly startVoltage: number;
+  readonly minVoltage: number;
+};
 type WithLinkQuality = FlightDto & { readonly minLinkQuality: number };
 type WithThrottleAndCurrent = FlightDto & {
   readonly avgThrottlePct: number;
@@ -58,7 +67,11 @@ const PAD = { top: 12, right: 16, bottom: 24, left: 34 };
 const PLOT_W = WIDTH - PAD.left - PAD.right;
 const PLOT_H = HEIGHT - PAD.top - PAD.bottom;
 
-function scale(value: number, domain: readonly [number, number], range: readonly [number, number]): number {
+function scale(
+  value: number,
+  domain: readonly [number, number],
+  range: readonly [number, number],
+): number {
   const [d0, d1] = domain;
   const [r0, r1] = range;
 
@@ -99,7 +112,10 @@ function niceScale(min: number, max: number, count = 4): NiceScale {
   // An integer step count, not a float accumulator: `value += step` drifts
   // just enough on values like 0.1 to sometimes overshoot into an extra tick.
   const steps = Math.round((niceMax - niceMin) / step);
-  const ticks = Array.from({ length: steps + 1 }, (_, i) => Math.round((niceMin + step * i) * 1000) / 1000);
+  const ticks = Array.from(
+    { length: steps + 1 },
+    (_, i) => Math.round((niceMin + step * i) * 1000) / 1000,
+  );
 
   return { domain: [niceMin, niceMax], ticks };
 }
@@ -113,7 +129,11 @@ function padded(min: number, max: number, fraction = 0.15): readonly [number, nu
   return [Math.max(0, min - pad), max + pad];
 }
 
-const SHORT_DATE = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const SHORT_DATE = new Intl.DateTimeFormat(undefined, {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
 const LONG_DATE = new Intl.DateTimeFormat(undefined, {
   day: 'numeric',
   month: 'short',
@@ -225,7 +245,10 @@ export class FlightTrends {
         hitHeight: Math.abs(minY - startY) + 24,
         hover: {
           title: LONG_DATE.format(new Date(flight.startedAt)),
-          lines: [`Start ${start.toFixed(1)} V`, `Minimum ${min.toFixed(1)} V (sag ${(start - min).toFixed(1)} V)`],
+          lines: [
+            `Start ${start.toFixed(1)} V`,
+            `Minimum ${min.toFixed(1)} V (sag ${(start - min).toFixed(1)} V)`,
+          ],
         },
       };
     });
@@ -265,7 +288,9 @@ export class FlightTrends {
   });
 
   protected readonly linkQualityPath = computed(() => toPath(this.linkQualityPoints()));
-  protected readonly linkQualityArea = computed(() => toArea(this.linkQualityPoints(), PLOT_H));
+  protected readonly linkQualityArea = computed(() =>
+    toArea(this.linkQualityPoints(), PLOT_H),
+  );
   protected readonly linkQualityYTicks = [0, 50, 100].map((value) => ({
     y: scale(value, [0, 100], [PLOT_H, 0]),
     label: `${String(value)} %`,
@@ -274,7 +299,10 @@ export class FlightTrends {
   // --- Chart 3: cumulative airtime, every flight counts -------------------
 
   private readonly airtimeScale = computed<NiceScale>(() => {
-    const totalMinutes = this.chronological().reduce((sum, flight) => sum + flight.durationS / 60, 0);
+    const totalMinutes = this.chronological().reduce(
+      (sum, flight) => sum + flight.durationS / 60,
+      0,
+    );
     const [min, max] = padded(0, totalMinutes, 0.1);
 
     return niceScale(min, max, 3);
@@ -347,7 +375,10 @@ export class FlightTrends {
         y,
         hover: {
           title: LONG_DATE.format(new Date(flight.startedAt)),
-          lines: [`Average throttle ${throttle.toFixed(0)} %`, `Peak current ${current.toFixed(1)} A`],
+          lines: [
+            `Average throttle ${throttle.toFixed(0)} %`,
+            `Peak current ${current.toFixed(1)} A`,
+          ],
         },
       };
     });
@@ -384,7 +415,12 @@ export class FlightTrends {
 }
 
 function toPath(points: readonly LinePoint[]): string {
-  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${String(point.x)} ${String(point.y)}`).join(' ');
+  return points
+    .map(
+      (point, index) =>
+        `${index === 0 ? 'M' : 'L'} ${String(point.x)} ${String(point.y)}`,
+    )
+    .join(' ');
 }
 
 function toArea(points: readonly LinePoint[], plotHeight: number): string {

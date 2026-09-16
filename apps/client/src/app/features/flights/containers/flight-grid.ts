@@ -1,7 +1,10 @@
 import type { FlightDto, SessionDto } from '@spothub/shared';
 
 import type { ChoiceOption } from '../../../core/components/choice-option';
-import type { GridSpec, SortOption } from '../../../core/components/grid-toolbar/grid-view';
+import type {
+  GridSpec,
+  SortOption,
+} from '../../../core/components/grid-toolbar/grid-view';
 
 /** How the logbook's search, sort and build filter read a flight. */
 
@@ -15,7 +18,12 @@ export type FlightSortKey = 'date' | 'duration' | 'voltage' | 'link';
 const UNASSIGNED_BUILD = '__unassigned__';
 
 export const FLIGHT_GRID: GridSpec<FlightDto, FlightSortKey> = {
-  text: (flight) => [flight.buildName, flight.batteryName, flight.modelName, flight.fileName],
+  text: (flight) => [
+    flight.buildName,
+    flight.batteryName,
+    flight.modelName,
+    flight.fileName,
+  ],
   sortBy: {
     date: (flight) => flight.startedAt,
     duration: (flight) => flight.durationS,
@@ -38,7 +46,9 @@ export const FLIGHT_SORTS: readonly SortOption<FlightSortKey>[] = [
  * chip when at least one flight has no build at all. Reads `buildName`
  * straight off each flight, so this needs no builds store.
  */
-export function flownBuildOptions(sessions: readonly SessionDto[]): ChoiceOption<string>[] {
+export function flownBuildOptions(
+  sessions: readonly SessionDto[],
+): ChoiceOption<string>[] {
   const named = new Map<string, string>();
   let unassigned = false;
 
@@ -56,7 +66,9 @@ export function flownBuildOptions(sessions: readonly SessionDto[]): ChoiceOption
     .sort(([, a], [, b]) => a.localeCompare(b))
     .map(([value, label]) => ({ value, label }));
 
-  return unassigned ? [...options, { value: UNASSIGNED_BUILD, label: 'No build' }] : options;
+  return unassigned
+    ? [...options, { value: UNASSIGNED_BUILD, label: 'No build' }]
+    : options;
 }
 
 /** Whether a flight passes the build filter; null lets every flight through. */

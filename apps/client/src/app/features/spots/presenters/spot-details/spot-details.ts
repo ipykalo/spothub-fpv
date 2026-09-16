@@ -32,7 +32,14 @@ import { SpotVideo } from '../spot-video/spot-video';
 @Component({
   selector: 'sh-spot-details',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ClipboardModule, MatButtonModule, MatCardModule, MatIconModule, Section, SpotVideo],
+  imports: [
+    ClipboardModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    Section,
+    SpotVideo,
+  ],
   templateUrl: './spot-details.html',
   styleUrl: './spot-details.scss',
 })
@@ -47,7 +54,9 @@ export class SpotDetails {
 
   protected readonly access = computed(() => SPOT_ACCESS_STYLES[this.spot().access]);
   protected readonly accessLabel = computed(() => SPOT_ACCESS_LABELS[this.spot().access]);
-  protected readonly visibilityLabel = computed(() => VISIBILITY_LABELS[this.spot().visibility]);
+  protected readonly visibilityLabel = computed(
+    () => VISIBILITY_LABELS[this.spot().visibility],
+  );
 
   protected readonly terrain = computed(() => {
     const terrain = this.spot().terrain;
@@ -58,7 +67,9 @@ export class SpotDetails {
 
   protected readonly difficulty = computed(() => {
     const difficulty = this.spot().difficulty;
-    return difficulty === null ? null : (DIFFICULTY_LABELS[difficulty] ?? String(difficulty));
+    return difficulty === null
+      ? null
+      : (DIFFICULTY_LABELS[difficulty] ?? String(difficulty));
   });
 
   protected readonly hazards = computed(() =>

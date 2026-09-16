@@ -24,7 +24,12 @@ export class StubYouTubeThumbnails extends YouTubeThumbnails {
     }
 
     return sharp({
-      create: { width: 480, height: 360, channels: 3, background: { r: 200, g: 60, b: 40 } },
+      create: {
+        width: 480,
+        height: 360,
+        channels: 3,
+        background: { r: 200, g: 60, b: 40 },
+      },
     })
       .jpeg()
       .toBuffer();

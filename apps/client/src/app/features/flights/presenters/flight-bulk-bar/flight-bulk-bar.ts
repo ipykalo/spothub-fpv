@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import type { UpdateFlightDto } from '@spothub/shared';
 
@@ -50,7 +57,9 @@ export class FlightBulkBar {
     ...this.batteries(),
   ]);
 
-  protected readonly ready = computed(() => this.build() !== null || this.battery() !== null);
+  protected readonly ready = computed(
+    () => this.build() !== null || this.battery() !== null,
+  );
 
   protected apply(): void {
     const build = this.build();

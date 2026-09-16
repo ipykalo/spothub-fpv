@@ -109,7 +109,7 @@ describe('partial updates', () => {
       expect(after.spec).toEqual({ kv: 1750, stator: '2207' });
     });
 
-    it("labelling a unit leaves its condition, date and notes alone", async () => {
+    it('labelling a unit leaves its condition, date and notes alone', async () => {
       const created = await request(testApp.server)
         .post(`/api/parts/${part.id}/units`)
         .set('Authorization', auth())

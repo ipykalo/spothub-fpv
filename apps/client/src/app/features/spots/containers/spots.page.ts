@@ -156,7 +156,9 @@ export class SpotsPage {
   });
 
   /** Nothing in the chosen list at all, as opposed to nothing matching a search. */
-  protected readonly firstRun = computed(() => !this.loading() && this.list().length === 0);
+  protected readonly firstRun = computed(
+    () => !this.loading() && this.list().length === 0,
+  );
 
   constructor() {
     void this.store.load();
@@ -189,13 +191,18 @@ export class SpotsPage {
   /** A pin was clicked: select it, and bring its card into view below the map. */
   protected onSpotSelected(spot: SpotDto): void {
     this.select(spot);
-    document.getElementById(`spot-${spot.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    document
+      .getElementById(`spot-${spot.id}`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   /** A card's "Map" button: select it, and bring the map above back into view. */
   protected showOnMap(spot: SpotDto): void {
     this.select(spot);
-    (this.map().nativeElement as HTMLElement).scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    (this.map().nativeElement as HTMLElement).scrollIntoView({
+      block: 'nearest',
+      behavior: 'smooth',
+    });
   }
 
   protected onPointPicked(point: LatLng): void {

@@ -76,7 +76,9 @@ export class PartDetailPage {
   protected readonly packFilter = signal<string | null>(null);
 
   /** Only a battery can be named as what a flight ran on. */
-  protected readonly isBattery = computed(() => this.part()?.category === PartCategory.Battery);
+  protected readonly isBattery = computed(
+    () => this.part()?.category === PartCategory.Battery,
+  );
 
   protected readonly packOptions = computed<readonly ChoiceOption<string>[]>(() => {
     const part = this.part();
@@ -99,7 +101,9 @@ export class PartDetailPage {
     return this.flights
       .sessions()
       .flatMap((session) => session.flights)
-      .filter((flight) => flight.batteryUnitId !== null && units.has(flight.batteryUnitId));
+      .filter(
+        (flight) => flight.batteryUnitId !== null && units.has(flight.batteryUnitId),
+      );
   });
 
   /**
@@ -112,7 +116,9 @@ export class PartDetailPage {
     const all = this.allPackFlights();
     const known = this.part()?.units.some((unit) => unit.id === filter) ?? false;
 
-    return filter === null || !known ? all : all.filter((flight) => flight.batteryUnitId === filter);
+    return filter === null || !known
+      ? all
+      : all.filter((flight) => flight.batteryUnitId === filter);
   });
 
   /** Manufacturer and model are both optional; fall back to the category. */

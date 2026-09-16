@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
@@ -39,7 +45,10 @@ export class SessionFlights {
 
   readonly buildChanged = output<{ flight: FlightDto; buildId: string | null }>();
   readonly batteryChanged = output<{ flight: FlightDto; batteryUnitId: string | null }>();
-  readonly selectionChanged = output<{ flightIds: readonly string[]; selected: boolean }>();
+  readonly selectionChanged = output<{
+    flightIds: readonly string[];
+    selected: boolean;
+  }>();
   readonly removeRequested = output<FlightDto>();
 
   protected readonly allSelected = computed(() => {
@@ -51,13 +60,16 @@ export class SessionFlights {
     const selected = this.selected();
 
     return (
-      !this.allSelected() && this.session().flights.some((flight) => selected.has(flight.id))
+      !this.allSelected() &&
+      this.session().flights.some((flight) => selected.has(flight.id))
     );
   });
 
   /** A blackbox flight records no time of day; its place in the list is its order. */
   protected when(flight: FlightDto): string {
-    return flight.timeRecorded ? CLOCK.format(new Date(flight.startedAt)) : 'time not recorded';
+    return flight.timeRecorded
+      ? CLOCK.format(new Date(flight.startedAt))
+      : 'time not recorded';
   }
 
   protected duration(seconds: number): string {

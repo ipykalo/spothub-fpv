@@ -66,7 +66,9 @@ export class SpotCoverJob implements OnModuleInit {
     const original = await this.thumbnails.fetch(youtubeId);
 
     if (!original) {
-      this.logger.log(`YouTube has no thumbnail for ${youtubeId}; spot ${spotId} keeps no cover`);
+      this.logger.log(
+        `YouTube has no thumbnail for ${youtubeId}; spot ${spotId} keeps no cover`,
+      );
       return;
     }
 

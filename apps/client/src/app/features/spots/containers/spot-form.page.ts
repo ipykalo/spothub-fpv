@@ -51,7 +51,10 @@ export class SpotFormPage {
     const lat = Number(this.lat());
     const lng = Number(this.lng());
 
-    return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+    return Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      Math.abs(lat) <= 90 &&
+      Math.abs(lng) <= 180
       ? { lat, lng }
       : null;
   });

@@ -66,11 +66,7 @@
       searchLabel="Search flights"
     >
       @if (buildFilterOptions().length > 1) {
-        <sh-filter-chips
-          [options]="buildFilterOptions()"
-          [(selected)]="grid.filter"
-          ariaLabel="Filter by build"
-        />
+        <sh-filter-chips [options]="buildFilterOptions()" [(selected)]="grid.filter" ariaLabel="Filter by build" />
       }
     </sh-grid-toolbar>
 
@@ -93,7 +89,12 @@
   }
 
   @for (session of sessions(); track session.id) {
-    <sh-section icon="event" [heading]="heading(session)" [count]="session.flights.length" [open]="$index < openSessions">
+    <sh-section
+      icon="event"
+      [heading]="heading(session)"
+      [count]="session.flights.length"
+      [open]="$index < openSessions"
+    >
       <span shSectionActions class="inline-flex flex-wrap items-center gap-x-4 text-sm text-muted tabular-nums">
         @if (clockUnset(session)) {
           <span

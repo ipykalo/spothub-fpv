@@ -261,9 +261,13 @@ export class FlightsPage {
       this.clearSelection();
 
       const count = flightIds.length;
-      this.snackBar.open(`Updated ${String(count)} flight${count === 1 ? '' : 's'}`, undefined, {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        `Updated ${String(count)} flight${count === 1 ? '' : 's'}`,
+        undefined,
+        {
+          duration: 3000,
+        },
+      );
     } catch {
       this.snackBar.open('Could not change those flights', undefined, { duration: 4000 });
     } finally {

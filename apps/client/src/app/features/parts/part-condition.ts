@@ -134,7 +134,9 @@ export function fittableUnits(parts: readonly PartDto[]): readonly FittableUnit[
  * so a flight flown on a pack that has since died still shows which one it
  * was. A pack that is not serviceable says so in its hint.
  */
-export function batteryOptions(parts: readonly PartDto[]): readonly ChoiceOption<string>[] {
+export function batteryOptions(
+  parts: readonly PartDto[],
+): readonly ChoiceOption<string>[] {
   return parts
     .filter((part) => part.category === PartCategory.Battery)
     .flatMap((part) =>
