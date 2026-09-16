@@ -35,6 +35,13 @@
       [alt]="'Photo of ' + build().name"
       loading="lazy"
     />
+  } @else {
+    <!-- No photo yet. The slot stays, so a row of cards lines up either way, and
+         it holds the build's own status icon rather than a stock picture of
+         somebody else's quad. -->
+    <div class="-mx-4 grid aspect-video w-[calc(100%+2rem)] place-items-center bg-surface-high" aria-hidden="true">
+      <mat-icon class="icon-lg text-(--tone) opacity-30">{{ style().icon }}</mat-icon>
+    </div>
   }
 
   <div class="min-h-6.5 flex-auto overflow-hidden">
