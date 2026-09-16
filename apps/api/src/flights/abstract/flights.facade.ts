@@ -12,7 +12,10 @@ export abstract class FlightsFacade {
    * Stores the flights, skipping any already stored, and regroups the owner's
    * sessions around them. Answers how many were new.
    */
-  abstract addFlights(ownerId: string, flights: readonly NewFlightData[]): Promise<number>;
+  abstract addFlights(
+    ownerId: string,
+    flights: readonly NewFlightData[],
+  ): Promise<number>;
 
   /**
    * Adds GPS tracks to the flights they overlap — allowing for a radio clock

@@ -46,6 +46,8 @@ model User {
   spots        Spot[]
   comments     Comment[]
   commentReads CommentRead[]
+  posts        Post[]
+  likes        Like[]
 
   @@map("users")
 }
@@ -132,6 +134,10 @@ model Build {
   visibility    Visibility  @default(PRIVATE)
   weightG       Int?        @map("weight_g")
   hasGps        Boolean     @default(false) @map("has_gps")
+  /// What a reader who is not the owner is shown once the build is shared.
+  /// Off by default: sharing a build has never meant sharing what it cost.
+  shareCosts    Boolean     @default(false) @map("share_costs")
+  shareNotes    Boolean     @default(false) @map("share_notes")
   descriptionMd String?     @map("description_md")
   /// The photo shown on the build card. One of this build's linked assets;
   /// SetNull so deleting the photo does not delete the quad.
@@ -149,6 +155,8 @@ model Build {
   flights      Flight[]
   comments     Comment[]
   commentReads CommentRead[]
+  postLinks    PostBuild[]
+  likes        Like[]
 
   @@unique([ownerId, slug])
   @@index([ownerId, status])
@@ -394,6 +402,8 @@ model Asset {
   original Asset?      @relation("AssetThumb")
   links    AssetLink[]
   coverFor Build[]     @relation("BuildCover")
+  /// Posts this image is the cover of.
+  postCoverFor Post[]  @relation("PostCover")
 
   @@index([ownerId, status])
   @@map("assets")
@@ -773,6 +783,7 @@ model Comment {
   id        String    @id @default(uuid()) @db.Uuid
   spotId    String?   @map("spot_id") @db.Uuid
   buildId   String?   @map("build_id") @db.Uuid
+  postId    String?   @map("post_id") @db.Uuid
   authorId  String    @map("author_id") @db.Uuid
   /// Null for a question; the question's id for a reply.
   parentId  String?   @map("parent_id") @db.Uuid
@@ -781,11 +792,15 @@ model Comment {
   isAnswer  Boolean   @default(false) @map("is_answer")
   /// When its author last reworded it; null if never.
   editedAt  DateTime? @map("edited_at")
+  /// Set when a question's asker deleted it after others had replied: its
+  /// words are cleared and the replies stay, under "Question deleted".
+  deletedAt DateTime? @map("deleted_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   spot    Spot?     @relation(fields: [spotId], references: [id], onDelete: Cascade)
   build   Build?    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  post    Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
   author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   /// Deleting a question takes its replies with it.
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
@@ -793,6 +808,7 @@ model Comment {
 
   @@index([spotId, createdAt])
   @@index([buildId, createdAt])
+  @@index([postId, createdAt])
   @@index([parentId])
   @@map("comments")
 }
@@ -804,14 +820,91 @@ model CommentRead {
   id      String   @id @default(uuid()) @db.Uuid
   spotId  String?  @map("spot_id") @db.Uuid
   buildId String?  @map("build_id") @db.Uuid
+  postId  String?  @map("post_id") @db.Uuid
   userId  String   @map("user_id") @db.Uuid
   readAt  DateTime @default(now()) @map("read_at")
 
   spot  Spot?  @relation(fields: [spotId], references: [id], onDelete: Cascade)
   build Build? @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([spotId, userId])
   @@unique([buildId, userId])
+  @@unique([postId, userId])
   @@map("comment_reads")
+}
+
+// ------------------------------------------------------------------- posts
+
+/// A blog post: markdown a pilot wrote, optionally about some of their own
+/// builds. Visibility works as it does for a build — Private is a draft only
+/// its author sees, Unlisted opens for anyone with the link, signed in or not,
+/// and Public is also listed on the blog.
+model Post {
+  id          String     @id @default(uuid()) @db.Uuid
+  authorId    String     @map("author_id") @db.Uuid
+  title       String
+  slug        String
+  /// A line or two for the blog list and link previews.
+  summary     String?
+  bodyMd      String     @default("") @map("body_md")
+  visibility  Visibility @default(PRIVATE)
+  /// Set the first time the post leaves Private, and kept after that: the day
+  /// it was published, not the last day it was made public again.
+  publishedAt DateTime?  @map("published_at")
+  /// The cover image, one of the post's own uploaded images. SetNull, so
+  /// deleting the image does not delete the post.
+  coverAssetId String?   @map("cover_asset_id") @db.Uuid
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  cover  Asset?      @relation("PostCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  builds PostBuild[]
+  likes  Like[]
+  comments     Comment[]
+  commentReads CommentRead[]
+
+  @@unique([authorId, slug])
+  @@index([authorId, updatedAt])
+  @@index([visibility, publishedAt])
+  @@map("posts")
+}
+
+/// A build a post is about. Goes when either the post or the build does.
+model PostBuild {
+  postId    String @map("post_id") @db.Uuid
+  buildId   String @map("build_id") @db.Uuid
+  /// The author's order.
+  sortOrder Int    @default(0) @map("sort_order")
+
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@id([postId, buildId])
+  @@index([buildId])
+  @@map("post_builds")
+}
+
+// ------------------------------------------------------------------- likes
+
+/// One pilot liking a post or a build. Belongs to exactly one subject —
+/// `post_id` or `build_id`, which a CHECK constraint in the migration enforces
+/// as for comments — and goes when the subject or the user does.
+model Like {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  postId    String?  @map("post_id") @db.Uuid
+  buildId   String?  @map("build_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  build Build? @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  /// One like per pilot per subject.
+  @@unique([postId, userId])
+  @@unique([buildId, userId])
+  @@map("likes")
 }

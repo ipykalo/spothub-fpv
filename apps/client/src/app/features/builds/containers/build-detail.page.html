@@ -109,14 +109,14 @@
       </dl>
     }
 
-    <!-- What it cost is the owner's business. -->
-    @if (owned()) {
+    <!-- The owner always; a reader only where the owner switched costs on. -->
+    @if (owned() || (build()?.shareCosts ?? false)) {
       <sh-build-cost-summary [cost]="installs.cost()" />
     }
 
     @if (build()?.descriptionMd; as notes) {
       <h3 class="mt-5 mb-2 text-sm font-semibold tracking-wider text-muted uppercase">Notes</h3>
-      <p class="m-0 max-w-176 whitespace-pre-wrap wrap-anywhere">{{ notes }}</p>
+      <sh-markdown class="max-w-176" [source]="notes" />
     }
   </sh-section>
 
@@ -251,10 +251,6 @@
 
   <!-- Open to anyone the build is shared with: they ask, its owner answers. -->
   @if (build(); as quad) {
-    <sh-comments-section
-      [subject]="commentSubject"
-      [subjectId]="quad.id"
-      [ownedByViewer]="quad.ownedByViewer"
-    />
+    <sh-comments-section [subject]="commentSubject" [subjectId]="quad.id" [ownedByViewer]="quad.ownedByViewer" />
   }
 </div>

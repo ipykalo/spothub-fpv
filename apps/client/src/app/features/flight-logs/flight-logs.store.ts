@@ -96,7 +96,9 @@ export class FlightLogsStore {
     buildId: string | null,
     flownOn: string | null,
   ): Promise<void> {
-    const logs = dropped.filter((file) => logFormatOf(file.name) !== null && file.size > 0);
+    const logs = dropped.filter(
+      (file) => logFormatOf(file.name) !== null && file.size > 0,
+    );
 
     this.importBatches.set([]);
     this.importMessage.set(null);

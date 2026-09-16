@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { type PostImageDto, postImageUrl } from '@spothub/shared';
 
 import type { Env } from '../config';
 import { StorageGateway } from '../storage';
 import { AssetsRepository } from './abstract/assets.repository';
 import { MediaFacade } from './abstract/media.facade';
+import { AssetSubject } from './asset.entity';
 
 /** Serves the media facade out of the module's own repository and storage. */
 @Injectable()
@@ -28,10 +30,66 @@ export class MediaFacadeImpl extends MediaFacade {
       return new Map();
     }
 
-    const keys = await this.assets.findKeysForOwner(ownerId, assetIds);
+    // One database round trip; signing itself is a local computation, so a
+    // page of build cards costs one query rather than one per card.
+    return this.sign(await this.assets.findKeysForOwner(ownerId, assetIds));
+  }
 
-    // One database round trip above; signing itself is a local computation, so
-    // a page of build cards costs one query rather than one per card.
+  async thumbUrlsFor(
+    ownerId: string,
+    assetIds: readonly string[],
+  ): Promise<ReadonlyMap<string, string>> {
+    if (assetIds.length === 0) {
+      return new Map();
+    }
+
+    return this.sign(await this.assets.findThumbKeysForOwner(ownerId, assetIds));
+  }
+
+  async postImages(authorId: string, postId: string): Promise<PostImageDto[]> {
+    const assets = await this.assets.findManyForSubject(
+      authorId,
+      AssetSubject.Post,
+      postId,
+    );
+
+    // Addresses, not signatures: a post's images are served through the API,
+    // which signs one per request. Nothing here expires.
+    return assets.map((asset) => ({
+      id: asset.id,
+      url: postImageUrl(postId, asset.id),
+      thumbUrl: asset.thumbKey === null ? null : postImageUrl(postId, asset.id, 'thumb'),
+      width: asset.width,
+      height: asset.height,
+    }));
+  }
+
+  async deletePostImages(
+    authorId: string,
+    postId: string,
+    keep: readonly string[],
+  ): Promise<void> {
+    const assets = await this.assets.findManyForSubject(
+      authorId,
+      AssetSubject.Post,
+      postId,
+    );
+    const doomed = assets.filter((asset) => !keep.includes(asset.id));
+
+    const keys = (
+      await Promise.all(
+        doomed.map((asset) => this.assets.deleteForOwner(authorId, asset.id)),
+      )
+    ).flat();
+
+    if (keys.length > 0) {
+      await this.storage.delete(keys);
+    }
+  }
+
+  private async sign(
+    keys: ReadonlyMap<string, string>,
+  ): Promise<ReadonlyMap<string, string>> {
     const signed = await Promise.all(
       [...keys].map(
         async ([id, key]) =>

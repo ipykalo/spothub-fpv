@@ -1,5 +1,12 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, linkedSignal, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import type { CommentDto, ConversationDto } from '@spothub/shared';
@@ -40,14 +47,19 @@ export interface AnswerMark {
 })
 export class Questions {
   readonly comments = input.required<ConversationDto>();
-  /** "spot" or "build" — what the empty state talks about. */
+  /** "spot", "build" or "post" — what the empty state talks about. Under a post it is a discussion. */
   readonly subjectLabel = input('spot');
   readonly saving = input(false);
+  /** For a signed-out reader: the conversation, with nothing to reply with. */
+  readonly readOnly = input(false);
 
   readonly replied = output<CommentReply>();
   readonly edited = output<CommentEdit>();
   readonly deleted = output<CommentDto>();
   readonly answerMarked = output<AnswerMark>();
+
+  /** Comments under a post rather than questions: different words, the same thread. */
+  protected readonly isPost = computed(() => this.subjectLabel() === 'post');
 
   protected readonly replyingTo = linkedSignal<ConversationDto, string | null>({
     source: this.comments,

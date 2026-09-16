@@ -1,0 +1,131 @@
+// Unencapsulated (see markdown.ts), so every rule is scoped under the host class.
+.sh-markdown {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+
+  > div > :first-child {
+    margin-top: 0;
+  }
+
+  > div > :last-child {
+    margin-bottom: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 1.5em 0 0.5em;
+    line-height: 1.25;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  h3,
+  h4 {
+    font-size: 1.1rem;
+  }
+
+  p,
+  ul,
+  ol,
+  blockquote,
+  pre,
+  table {
+    margin: 0 0 1em;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.5em;
+  }
+
+  a {
+    color: var(--mat-sys-primary);
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1.5em auto;
+    border-radius: 6px;
+  }
+
+  // A reference to an image the post no longer has.
+  .sh-markdown-missing {
+    color: var(--mat-sys-on-surface-variant);
+    font-style: italic;
+  }
+
+  code {
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    background: var(--mat-sys-surface-container-high);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+
+  // Dark in either theme, as code reads best on a dark ground.
+  pre {
+    overflow-x: auto;
+    padding: 1.25rem 1.5rem;
+    border-radius: 8px;
+    background: #0b0c0e;
+    color: #eceff1;
+    line-height: 1.55;
+
+    code {
+      padding: 0;
+      background: none;
+      color: inherit;
+      font-size: 0.875em;
+    }
+  }
+
+  blockquote {
+    padding-left: 1em;
+    border-left: 3px solid var(--mat-sys-outline-variant);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  hr {
+    margin: 1.5em 0;
+    border: 0;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  .sh-markdown-table {
+    margin: 0 0 1em;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 0.65em 0.9em;
+    border: 1px solid var(--mat-sys-outline-variant);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    font-weight: 700;
+    text-align: center;
+  }
+
+  thead th {
+    border-bottom: 2px solid var(--mat-sys-on-surface-variant);
+  }
+}

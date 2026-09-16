@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import type { Repair } from '@prisma/client';
 
 import { PrismaService } from '../prisma';
-import type { CreateRepairData, RepairEntity, UpdateRepairData } from './repair.entity';
+import type {
+  BuildAccess,
+  CreateRepairData,
+  RepairEntity,
+  UpdateRepairData,
+} from './repair.entity';
 import { RepairsRepository } from './abstract/repairs.repository';
 
 type RepairWithCount = Repair & { _count: { installs: number } };
@@ -16,17 +21,21 @@ export class PrismaRepairsRepository extends RepairsRepository {
     super();
   }
 
-  async findBuildOwnerVisibleToViewer(viewerId: string, buildId: string): Promise<string | null> {
+  async findBuildAccessForViewer(
+    viewerId: string | null,
+    buildId: string,
+  ): Promise<BuildAccess | null> {
     // The same rule as a build's own page: the viewer's build, or a shared one.
+    const shared = { visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] } };
     const build = await this.prisma.build.findFirst({
       where: {
         id: buildId,
-        OR: [{ ownerId: viewerId }, { visibility: { in: ['PUBLIC', 'UNLISTED'] } }],
+        ...(viewerId === null ? shared : { OR: [{ ownerId: viewerId }, shared] }),
       },
-      select: { ownerId: true },
+      select: { ownerId: true, shareCosts: true },
     });
 
-    return build?.ownerId ?? null;
+    return build;
   }
 
   async findManyForOwner(ownerId: string, buildId: string): Promise<RepairEntity[]> {

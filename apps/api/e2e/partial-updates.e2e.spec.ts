@@ -1,4 +1,11 @@
-import type { BuildDto, PartDto, PartSourceDto, PartUnitDto, RepairDto } from '@spothub/shared';
+import type {
+  BuildDto,
+  PartDto,
+  PartSourceDto,
+  PartUnitDto,
+  PostDto,
+  RepairDto,
+} from '@spothub/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -102,7 +109,7 @@ describe('partial updates', () => {
       expect(after.spec).toEqual({ kv: 1750, stator: '2207' });
     });
 
-    it("labelling a unit leaves its condition, date and notes alone", async () => {
+    it('labelling a unit leaves its condition, date and notes alone', async () => {
       const created = await request(testApp.server)
         .post(`/api/parts/${part.id}/units`)
         .set('Authorization', auth())
@@ -187,5 +194,43 @@ describe('partial updates', () => {
     expect(after.cost).toBe(12);
     expect(after.currency).toBe('EUR');
     expect(after.occurredOn).toBe('2026-04-02');
+  });
+
+  it('retitling a post leaves its summary, body, visibility and builds alone', async () => {
+    const build = await request(testApp.server)
+      .post('/api/builds')
+      .set('Authorization', auth())
+      .send({ name: 'Post build' })
+      .expect(201);
+
+    const buildId = (build.body as BuildDto).id;
+
+    const created = await request(testApp.server)
+      .post('/api/posts')
+      .set('Authorization', auth())
+      .send({
+        title: 'Partial post',
+        summary: 'A short one',
+        bodyMd: 'Words',
+        visibility: 'UNLISTED',
+        buildIds: [buildId],
+      })
+      .expect(201);
+
+    const post = created.body as PostDto;
+
+    const patched = await request(testApp.server)
+      .patch(`/api/posts/${post.id}`)
+      .set('Authorization', auth())
+      .send({ title: 'Partial post retitled' })
+      .expect(200);
+
+    const after = patched.body as PostDto;
+    expect(after.title).toBe('Partial post retitled');
+    expect(after.summary).toBe('A short one');
+    expect(after.bodyMd).toBe('Words');
+    expect(after.visibility).toBe('UNLISTED');
+    expect(after.buildIds).toEqual([buildId]);
+    expect(after.publishedAt).toBe(post.publishedAt);
   });
 });

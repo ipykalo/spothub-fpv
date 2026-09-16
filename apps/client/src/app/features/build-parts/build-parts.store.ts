@@ -55,7 +55,10 @@ export class BuildPartsStore {
    * asks for the list alone and calls `loadCost` once the build turns out to
    * be the viewer's own: the cost is only ever the owner's to see.
    */
-  async load(buildId: string, options: { readonly withCost?: boolean } = {}): Promise<void> {
+  async load(
+    buildId: string,
+    options: { readonly withCost?: boolean } = {},
+  ): Promise<void> {
     const withCost = options.withCost ?? true;
 
     this.currentBuildId.set(buildId);

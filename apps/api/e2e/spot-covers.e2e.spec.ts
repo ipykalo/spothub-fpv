@@ -38,7 +38,11 @@ describe('spot covers', () => {
   const auth = (): string => `Bearer ${owner.accessToken}`;
 
   /** The job runs in the background, so wait for its outcome rather than a fixed delay. */
-  async function waitFor<T>(read: () => Promise<T>, done: (value: T) => boolean, what: string): Promise<T> {
+  async function waitFor<T>(
+    read: () => Promise<T>,
+    done: (value: T) => boolean,
+    what: string,
+  ): Promise<T> {
     const deadline = Date.now() + WAIT_MS;
 
     for (;;) {
@@ -90,7 +94,12 @@ describe('spot covers', () => {
     const response = await request(testApp.server)
       .post('/api/spots')
       .set('Authorization', auth())
-      .send({ name: `Cover ${youtubeId}`, lat: 49.5, lng: 11.3, video: `https://youtu.be/${youtubeId}` })
+      .send({
+        name: `Cover ${youtubeId}`,
+        lat: 49.5,
+        lng: 11.3,
+        video: `https://youtu.be/${youtubeId}`,
+      })
       .expect(201);
 
     return response.body as SpotDto;
@@ -145,7 +154,9 @@ describe('spot covers', () => {
     const spot = await createSpotWithVideo('aBcDeFgHi_4');
     const key = await waitForCover(spot.id, 'aBcDeFgHi_4');
 
-    const restarted = await patchSpot(spot.id, { video: 'https://youtu.be/aBcDeFgHi_4?t=30' });
+    const restarted = await patchSpot(spot.id, {
+      video: 'https://youtu.be/aBcDeFgHi_4?t=30',
+    });
     expect(restarted.coverUrl).not.toBeNull();
 
     const renamed = await patchSpot(spot.id, { name: 'Renamed cover spot' });

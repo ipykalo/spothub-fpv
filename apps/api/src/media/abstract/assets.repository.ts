@@ -34,10 +34,11 @@ export abstract class AssetsRepository {
 
   /**
    * The subject's owner, when the viewer may see it — for a build, their own
-   * or one shared as Public or Unlisted. Null otherwise.
+   * or one shared as Public or Unlisted; a null viewer is a signed-out visitor,
+   * who sees only the shared ones. Null otherwise.
    */
   abstract findSubjectOwnerVisibleToViewer(
-    viewerId: string,
+    viewerId: string | null,
     subject: AssetSubject,
     subjectId: string,
   ): Promise<string | null>;
@@ -90,8 +91,24 @@ export abstract class AssetsRepository {
     assetId: string | null,
   ): Promise<boolean>;
 
+  /**
+   * Sets or clears a post's cover — which must be one of that post's own
+   * images. The same shape as a build's, for the same reason.
+   */
+  abstract setPostCoverForOwner(
+    ownerId: string,
+    postId: string,
+    assetId: string | null,
+  ): Promise<boolean>;
+
   /** Storage keys for a set of asset ids, for batch URL signing. */
   abstract findKeysForOwner(
+    ownerId: string,
+    assetIds: readonly string[],
+  ): Promise<ReadonlyMap<string, string>>;
+
+  /** The thumbnail's storage key for each asset, or the original's where it has none. */
+  abstract findThumbKeysForOwner(
     ownerId: string,
     assetIds: readonly string[],
   ): Promise<ReadonlyMap<string, string>>;

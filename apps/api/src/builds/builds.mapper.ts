@@ -1,4 +1,4 @@
-import type { BuildDto } from '@spothub/shared';
+import type { BuildDto, LikesDto } from '@spothub/shared';
 
 import { toNullableDateOnly } from '../common';
 import type { BuildEntity } from './build.entity';
@@ -13,9 +13,15 @@ import type { BuildEntity } from './build.entity';
  * signature minted per response by the media module, and this module knows
  * nothing about how assets are stored. `viewerId` is whoever asked: the same
  * build answers `ownedByViewer: true` to its owner and `false` to anyone it is
- * shared with.
+ * shared with, or to a signed-out visitor (a null viewer). Its likes come
+ * from the likes module, passed in the same way.
  */
-export function toBuildDto(build: BuildEntity, coverUrl: string | null, viewerId: string): BuildDto {
+export function toBuildDto(
+  build: BuildEntity,
+  coverUrl: string | null,
+  viewerId: string | null,
+  likes: LikesDto,
+): BuildDto {
   return {
     id: build.id,
     name: build.name,
@@ -25,6 +31,8 @@ export function toBuildDto(build: BuildEntity, coverUrl: string | null, viewerId
     visibility: build.visibility,
     weightG: build.weightG,
     hasGps: build.hasGps,
+    shareCosts: build.shareCosts,
+    shareNotes: build.shareNotes,
     descriptionMd: build.descriptionMd,
     coverAssetId: build.coverAssetId,
     coverUrl,
@@ -32,6 +40,7 @@ export function toBuildDto(build: BuildEntity, coverUrl: string | null, viewerId
     retiredOn: toNullableDateOnly(build.retiredOn),
     ownedByViewer: build.ownerId === viewerId,
     ownerName: build.ownerName,
+    likes,
     createdAt: build.createdAt.toISOString(),
     updatedAt: build.updatedAt.toISOString(),
   };

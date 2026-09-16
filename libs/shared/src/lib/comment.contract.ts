@@ -1,18 +1,20 @@
 import { z } from 'zod';
 
 /**
- * Questions and replies, defined once for both sides of the wire — on a spot
- * or on a build, whichever the conversation is about.
+ * Questions and replies, defined once for both sides of the wire — on a spot,
+ * a build or a blog post, whichever the conversation is about.
  *
  * A question is a comment with no parent; a reply names the question it
  * answers. Replies go one level deep — a conversation about a place or a quad
- * reads as Q&A, not as a tree.
+ * reads as Q&A, not as a tree. On a post the same shape is a discussion:
+ * top-level comments and their replies, with no answer to mark.
  */
 
 /** What a conversation hangs off. */
 export const CommentSubject = {
   Spot: 'SPOT',
   Build: 'BUILD',
+  Post: 'POST',
 } as const;
 export type CommentSubject = (typeof CommentSubject)[keyof typeof CommentSubject];
 
@@ -51,6 +53,12 @@ export const commentSchema = z.object({
   byViewer: z.boolean(),
   /** The person asking may delete it: their own comment, or anything on their own spot or build. */
   canDelete: z.boolean(),
+  /**
+   * A question its asker deleted after others replied: the words and the
+   * author are gone (empty body, null name) and the replies stay. Always
+   * false on a reply.
+   */
+  deleted: z.boolean(),
   /** A reply marked as its question's answer, by the asker or the owner. Always false on a question. */
   isAnswer: z.boolean(),
   /**
@@ -85,12 +93,13 @@ const unreadCountsSchema = z.object({
 });
 
 /**
- * Comments by other people waiting on the viewer's own spots and builds since
- * they last read each — kept apart, because each has its own menu badge.
+ * Comments by other people waiting on the viewer's own spots, builds and
+ * posts since they last read each — kept apart, because each has its own badge.
  */
 export const unreadCommentsSchema = z.object({
   spots: unreadCountsSchema,
   builds: unreadCountsSchema,
+  posts: unreadCountsSchema,
 });
 
 export type CreateCommentDto = z.output<typeof createCommentSchema>;

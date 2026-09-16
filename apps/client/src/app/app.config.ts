@@ -4,6 +4,7 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 
@@ -22,6 +23,13 @@ export const appConfig: ApplicationConfig = {
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     provideAnimationsAsync(),
     provideRouter(appRoutes, withComponentInputBinding()),
+    // A public page rendered on the server is picked up where it stands rather
+    // than drawn again, and the API responses it was rendered from travel with
+    // it, so the browser does not fetch them twice. A click before the app has
+    // loaded is replayed once it has.
+    provideClientHydration(withEventReplay()),
+    // Fetch is the default backend, which is also what the server needs. The
+    // server adds one more interceptor of its own (`app.config.server.ts`).
     provideHttpClient(withInterceptors([authInterceptor])),
   ],
 };

@@ -27,7 +27,11 @@ function gpx(points: readonly Point[], name = 'Air65'): string {
 
 /** Straight north at one step a second, climbing 0.5 m a second. */
 function straight(from: number, seconds: number): Point[] {
-  return Array.from({ length: seconds + 1 }, (_, i) => ({ s: from + i, north: i, ele: 100 + i * 0.5 }));
+  return Array.from({ length: seconds + 1 }, (_, i) => ({
+    s: from + i,
+    north: i,
+    ele: 100 + i * 0.5,
+  }));
 }
 
 describe('parseGpx', () => {
@@ -69,14 +73,18 @@ describe('parseGpx', () => {
 
   it('starts a new track after a long pause, and drops one too short to be a flight', () => {
     const later = SPLIT_GAP_MS / 1000 + 60;
-    const log = parseGpx(gpx([...straight(0, 20), ...straight(later, 25), ...straight(later + 120, 5)]));
+    const log = parseGpx(
+      gpx([...straight(0, 20), ...straight(later, 25), ...straight(later + 120, 5)]),
+    );
 
     expect(log.flights.map((flight) => flight.durationS)).toEqual([20, 25]);
     expect(log.discarded).toBe(1);
   });
 
   it('reads the synthetic Air65 loop as one track, in UTC', () => {
-    const log = parseGpx(readFileSync(join(__dirname, '__fixtures__', 'air65-loop-utc.gpx'), 'utf8'));
+    const log = parseGpx(
+      readFileSync(join(__dirname, '__fixtures__', 'air65-loop-utc.gpx'), 'utf8'),
+    );
 
     expect(log.modelName).toBe('Air65');
     expect(log.rowCount).toBe(600);
@@ -98,8 +106,8 @@ describe('parseGpx', () => {
 
   it('refuses a file that is not GPX, or has no timed points', () => {
     expect(() => parseGpx('Date,Time\n')).toThrow(LogParseError);
-    expect(() => parseGpx('<gpx><trk><trkseg><trkpt lat="1" lon="2"/></trkseg></trk></gpx>')).toThrow(
-      LogParseError,
-    );
+    expect(() =>
+      parseGpx('<gpx><trk><trkseg><trkpt lat="1" lon="2"/></trkseg></trk></gpx>'),
+    ).toThrow(LogParseError);
   });
 });

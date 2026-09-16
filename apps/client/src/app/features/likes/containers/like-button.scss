@@ -1,0 +1,9 @@
+:host {
+  display: inline-block;
+}
+
+// A liked heart is red in either theme. Material colours a button's icon
+// itself, so this cannot be a utility.
+.liked mat-icon {
+  color: #e5484d;
+}

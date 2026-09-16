@@ -1,16 +1,23 @@
 <sh-section
-  heading="Questions"
+  [heading]="words().heading"
   icon="forum"
   [storageKey]="subjectLabel() + '.questions'"
   [count]="comments.comments()?.questions?.length ?? null"
-  [addLabel]="ownedByViewer() ? null : 'Ask a question'"
+  [addLabel]="canStart() ? words().start : null"
   [(adding)]="asking"
 >
+  @if (!auth.isAuthenticated()) {
+    <p class="m-0 mb-4 flex flex-wrap items-center gap-x-2 text-sm text-muted">
+      {{ words().intro }}
+      <button matButton type="button" (click)="signIn()">{{ words().signIn }}</button>
+    </p>
+  }
+
   @if (asking()) {
     <div class="mb-4">
       <sh-comment-form
-        label="Your question"
-        submitLabel="Ask"
+        [label]="words().formLabel"
+        [submitLabel]="words().submit"
         [saving]="comments.saving()"
         (submitted)="ask($event)"
         (cancelled)="asking.set(false)"
@@ -27,6 +34,7 @@
       [comments]="conversation"
       [subjectLabel]="subjectLabel()"
       [saving]="comments.saving()"
+      [readOnly]="!auth.isAuthenticated()"
       (replied)="reply($event)"
       (edited)="edit($event)"
       (deleted)="remove($event)"

@@ -1,0 +1,43 @@
+:host {
+  display: block;
+}
+
+// The editor's own fields: no box, no label, the text itself is the field.
+.title-field,
+.summary-field,
+.body-field {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  resize: none;
+
+  &::placeholder {
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.7;
+  }
+}
+
+.title-field {
+  padding: 0;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.summary-field {
+  padding: 0;
+  font-size: 1.05rem;
+}
+
+// No padding of its own (the wrapper has it): the auto-grow sizes the text
+// area to its content, and padding inside that height would scroll.
+.body-field {
+  padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}

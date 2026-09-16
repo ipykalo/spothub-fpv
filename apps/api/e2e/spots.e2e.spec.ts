@@ -211,7 +211,12 @@ describe('spots', () => {
       const response = await request(testApp.server)
         .post('/api/spots')
         .set('Authorization', as(owner))
-        .send({ name: 'Video spot', lat: 49.5, lng: 11.3, video: 'https://youtu.be/aBcDeFgHi_1?t=1m30s' })
+        .send({
+          name: 'Video spot',
+          lat: 49.5,
+          lng: 11.3,
+          video: 'https://youtu.be/aBcDeFgHi_1?t=1m30s',
+        })
         .expect(201);
 
       withVideo = response.body as SpotDto;
@@ -219,9 +224,15 @@ describe('spots', () => {
     });
 
     const links: readonly (readonly [string, SpotDto['video']])[] = [
-      ['https://www.youtube.com/watch?v=aBcDeFgHi_2&t=42', { youtubeId: 'aBcDeFgHi_2', startS: 42 }],
+      [
+        'https://www.youtube.com/watch?v=aBcDeFgHi_2&t=42',
+        { youtubeId: 'aBcDeFgHi_2', startS: 42 },
+      ],
       ['youtube.com/shorts/aBcDeFgHi_3', { youtubeId: 'aBcDeFgHi_3', startS: null }],
-      ['https://m.youtube.com/live/aBcDeFgHi_4?start=5', { youtubeId: 'aBcDeFgHi_4', startS: 5 }],
+      [
+        'https://m.youtube.com/live/aBcDeFgHi_4?start=5',
+        { youtubeId: 'aBcDeFgHi_4', startS: 5 },
+      ],
     ];
 
     it.each(links)('reads %s', async (link, expected) => {
@@ -241,7 +252,10 @@ describe('spots', () => {
         .send({ name: 'Video spot renamed' })
         .expect(200);
 
-      expect((response.body as SpotDto).video).toEqual({ youtubeId: 'aBcDeFgHi_4', startS: 5 });
+      expect((response.body as SpotDto).video).toEqual({
+        youtubeId: 'aBcDeFgHi_4',
+        startS: 5,
+      });
     });
 
     it('refuses a link that is not to a YouTube video', async () => {
@@ -276,7 +290,10 @@ describe('spots', () => {
         .send({ video: { youtubeId: 'aBcDeFgHi_5', startS: 12 } })
         .expect(200);
 
-      expect((response.body as SpotDto).video).toEqual({ youtubeId: 'aBcDeFgHi_5', startS: 12 });
+      expect((response.body as SpotDto).video).toEqual({
+        youtubeId: 'aBcDeFgHi_5',
+        startS: 12,
+      });
 
       await request(testApp.server)
         .patch(`/api/spots/${withVideo.id}`)
@@ -310,8 +327,18 @@ describe('spots', () => {
       ).map((entry) => entry.id);
 
     beforeAll(async () => {
-      publicSpot = await createAs(owner, { name: 'Public ridge', lat: 49.1, lng: 11.1, visibility: 'PUBLIC' });
-      unlistedSpot = await createAs(owner, { name: 'Unlisted quarry', lat: 49.2, lng: 11.2, visibility: 'UNLISTED' });
+      publicSpot = await createAs(owner, {
+        name: 'Public ridge',
+        lat: 49.1,
+        lng: 11.1,
+        visibility: 'PUBLIC',
+      });
+      unlistedSpot = await createAs(owner, {
+        name: 'Unlisted quarry',
+        lat: 49.2,
+        lng: 11.2,
+        visibility: 'UNLISTED',
+      });
     });
 
     it('a public spot is listed for other pilots and opens for them, read-only', async () => {
@@ -353,7 +380,7 @@ describe('spots', () => {
       expect(await sharedIdsFor(intruder)).not.toContain(unlistedSpot.id);
     });
 
-    it("the owner sees it as theirs, and their shared list leaves out their own spots", async () => {
+    it('the owner sees it as theirs, and their shared list leaves out their own spots', async () => {
       const opened = await request(testApp.server)
         .get(`/api/spots/${publicSpot.id}`)
         .set('Authorization', as(owner))

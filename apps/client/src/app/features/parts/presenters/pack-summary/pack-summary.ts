@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import {
   PART_CONDITION_LABELS,
@@ -29,7 +35,10 @@ export interface PackStats {
  * Every unit of the part, flown or not, in the part's own order — so a pack
  * that has never been flown still shows, with nothing against it.
  */
-export function packStats(part: PartDto, flights: readonly FlightDto[]): readonly PackStats[] {
+export function packStats(
+  part: PartDto,
+  flights: readonly FlightDto[],
+): readonly PackStats[] {
   return part.units.map((unit) => {
     const own = flights.filter((flight) => flight.batteryUnitId === unit.id);
 
@@ -38,11 +47,14 @@ export function packStats(part: PartDto, flights: readonly FlightDto[]): readonl
         ? [flight.startVoltage - flight.minVoltage]
         : [],
     );
-    const lows = own.flatMap((flight) => (flight.minVoltage === null ? [] : [flight.minVoltage]));
+    const lows = own.flatMap((flight) =>
+      flight.minVoltage === null ? [] : [flight.minVoltage],
+    );
 
     // ISO timestamps in one format compare correctly as strings.
     const lastFlownAt = own.reduce<string | null>(
-      (latest, flight) => (latest === null || flight.startedAt > latest ? flight.startedAt : latest),
+      (latest, flight) =>
+        latest === null || flight.startedAt > latest ? flight.startedAt : latest,
       null,
     );
 
@@ -51,7 +63,8 @@ export function packStats(part: PartDto, flights: readonly FlightDto[]): readonl
       name: unitName(part, unit),
       cycles: own.length,
       airtimeS: own.reduce((sum, flight) => sum + flight.durationS, 0),
-      averageSagV: sags.length > 0 ? sags.reduce((sum, sag) => sum + sag, 0) / sags.length : null,
+      averageSagV:
+        sags.length > 0 ? sags.reduce((sum, sag) => sum + sag, 0) / sags.length : null,
       lowestVoltage: lows.length > 0 ? Math.min(...lows) : null,
       lastFlownAt,
     };

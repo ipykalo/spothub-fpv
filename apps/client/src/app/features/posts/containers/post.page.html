@@ -1,0 +1,100 @@
+@if (shown(); as post) {
+  <!-- As wide as the blog feed, so opening a post does not shrink it. -->
+  <div>
+    <a class="mb-3 inline-flex items-center gap-1 text-sm text-muted no-underline hover:underline" routerLink="/blog">
+      <mat-icon class="icon-sm">arrow_back</mat-icon>
+      Blog
+    </a>
+
+    <article class="overflow-hidden rounded-lg border border-outline-variant bg-surface">
+      @if (post.coverImageUrl; as cover) {
+        <img class="block aspect-[5/2] w-full object-cover" [src]="cover" [alt]="'Cover of ' + post.title" />
+      }
+
+      <div class="px-4 py-6 sm:px-12 sm:py-10">
+        @if (isDraft()) {
+          <p class="tone-work mt-0 mb-5 rounded bg-(--tone-surface) px-3 py-2 text-sm text-(--tone)">
+            A draft — only you can see it. Publish it from the editor.
+          </p>
+        }
+
+        <div class="flex flex-wrap items-center gap-3">
+          <span
+            class="grid size-10 shrink-0 place-items-center rounded-full bg-(--mat-sys-primary) font-bold text-(--mat-sys-on-primary)"
+            aria-hidden="true"
+          >
+            {{ (post.authorName ?? 'Pilot').trim().charAt(0).toUpperCase() }}
+          </span>
+          <div class="min-w-0 leading-tight">
+            <p class="m-0 font-semibold">{{ post.authorName ?? 'A pilot' }}</p>
+            <p class="m-0 text-sm text-muted">
+              @if (post.publishedAt; as published) {
+                Posted on <time [attr.datetime]="published">{{ published | date: 'MMMM d, y' }}</time> ·
+              }
+              {{ post.readingMinutes }} min read
+            </p>
+          </div>
+
+          <div class="ml-auto flex items-center gap-2">
+            <sh-like-button target="posts" [subjectId]="post.id" [likes]="post.likes" />
+
+            @if (post.ownedByViewer) {
+              <a matButton="outlined" [routerLink]="['/posts', post.id, 'edit']">
+                <mat-icon>edit</mat-icon>
+                Edit
+              </a>
+            }
+          </div>
+        </div>
+
+        <h1
+          class="mt-6 mb-3 text-4xl leading-tight font-extrabold wrap-anywhere text-(--mat-sys-on-surface) sm:text-5xl"
+        >
+          {{ post.title }}
+        </h1>
+
+        @if (post.tags.length) {
+          <ul class="m-0 mb-2 flex list-none flex-wrap gap-x-3 gap-y-1 p-0" aria-label="Builds in this post">
+            @for (tag of post.tags; track tag.id) {
+              <li>
+                <a class="text-muted no-underline hover:text-primary" [routerLink]="['/hangar', tag.id]"
+                  >#{{ tag.name }}</a
+                >
+              </li>
+            }
+          </ul>
+        }
+
+        @if (post.summary; as summary) {
+          <p class="mt-5 mb-0 text-xl leading-relaxed text-muted">{{ summary }}</p>
+        }
+
+        <sh-markdown class="mt-8 text-lg" [source]="post.bodyMd" [images]="post.images" />
+
+        @if (post.builds.length) {
+          <h2 class="mt-12 mb-4 text-xl">The builds in this post</h2>
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+            @for (build of post.builds; track build.id) {
+              <sh-build-card [build]="build" link="/hangar" [actions]="false" />
+            }
+          </div>
+        }
+      </div>
+    </article>
+
+    <div class="mt-8">
+      <sh-comments-section
+        [subject]="commentSubject"
+        [subjectId]="post.id"
+        [ownedByViewer]="post.ownedByViewer"
+        [initial]="conversation()"
+      />
+    </div>
+  </div>
+} @else {
+  <div class="px-4 py-16 text-center">
+    <h1 class="text-2xl">This post is not published</h1>
+    <p class="text-muted">Its author may have taken it down, or the link is wrong.</p>
+    <a matButton routerLink="/blog">Read the blog</a>
+  </div>
+}

@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type {
-  BuildDto,
-  CreateBuildDto,
-  ListBuildsQuery,
-  UpdateBuildDto,
+import {
+  type BuildDto,
+  type CreateBuildDto,
+  type ListBuildsQuery,
+  NO_LIKES,
+  type UpdateBuildDto,
 } from '@spothub/shared';
 
 import { fromDateOnly, uniqueSlug } from '../common';
+import { LikesFacade } from '../likes';
 import { MediaFacade } from '../media';
 import { BuildsRepository } from './abstract/builds.repository';
 import type { BuildEntity, UpdateBuildData } from './build.entity';
@@ -24,6 +26,7 @@ export class BuildsService {
   constructor(
     private readonly builds: BuildsRepository,
     private readonly media: MediaFacade,
+    private readonly likes: LikesFacade,
   ) {}
 
   /** The viewer's own builds. */
@@ -38,7 +41,33 @@ export class BuildsService {
     return this.withCovers(viewerId, builds);
   }
 
-  /** The viewer's own build, or one shared with them. Anything else is not found. */
+  /**
+   * The builds among these the viewer may open, in the order asked — what a
+   * post shows of the builds it links. The rest are left out silently, and a
+   * signed-out reader of that post sees none of them.
+   */
+  async listVisible(
+    viewerId: string | null,
+    ids: readonly string[],
+  ): Promise<BuildDto[]> {
+    const found = new Map(
+      (await this.builds.findManyVisibleForViewer(viewerId, ids)).map((build) => [
+        build.id,
+        build,
+      ]),
+    );
+    const ordered = ids.flatMap((id) => {
+      const build = found.get(id);
+      return build ? [build] : [];
+    });
+
+    return this.withCovers(viewerId, ordered);
+  }
+
+  /**
+   * The viewer's own build, or one another pilot shared as Public or Unlisted.
+   * Anything else is not found.
+   */
   async getOne(viewerId: string, id: string): Promise<BuildDto> {
     const build = await this.builds.findVisibleForViewer(viewerId, id);
 
@@ -63,6 +92,8 @@ export class BuildsService {
       visibility: input.visibility,
       weightG: input.weightG,
       hasGps: input.hasGps,
+      shareCosts: input.shareCosts,
+      shareNotes: input.shareNotes,
       descriptionMd: input.descriptionMd,
       builtOn: toNullableDate(input.builtOn),
       retiredOn: toNullableDate(input.retiredOn),
@@ -97,7 +128,7 @@ export class BuildsService {
    * settled by the read that found it.
    */
   private async withCovers(
-    viewerId: string,
+    viewerId: string | null,
     builds: readonly BuildEntity[],
   ): Promise<BuildDto[]> {
     const coversByOwner = new Map<string, string[]>();
@@ -118,16 +149,26 @@ export class BuildsService {
       }
     }
 
+    // One batch for the likes on the whole list, too.
+    const likes = await this.likes.forBuilds(
+      viewerId,
+      builds.map((build) => build.id),
+    );
+
     return builds.map((build) =>
       toBuildDto(
         build,
         build.coverAssetId === null ? null : (urls.get(build.coverAssetId) ?? null),
         viewerId,
+        likes.get(build.id) ?? NO_LIKES,
       ),
     );
   }
 
-  private async withCover(viewerId: string, build: BuildEntity): Promise<BuildDto> {
+  private async withCover(
+    viewerId: string | null,
+    build: BuildEntity,
+  ): Promise<BuildDto> {
     const [dto] = await this.withCovers(viewerId, [build]);
     return dto;
   }
@@ -147,6 +188,8 @@ function toUpdateData(input: UpdateBuildDto): UpdateBuildData {
   if (input.visibility !== undefined) patch['visibility'] = input.visibility;
   if (input.weightG !== undefined) patch['weightG'] = input.weightG;
   if (input.hasGps !== undefined) patch['hasGps'] = input.hasGps;
+  if (input.shareCosts !== undefined) patch['shareCosts'] = input.shareCosts;
+  if (input.shareNotes !== undefined) patch['shareNotes'] = input.shareNotes;
   if (input.descriptionMd !== undefined) patch['descriptionMd'] = input.descriptionMd;
   if (input.builtOn !== undefined) patch['builtOn'] = toNullableDate(input.builtOn);
   if (input.retiredOn !== undefined) patch['retiredOn'] = toNullableDate(input.retiredOn);

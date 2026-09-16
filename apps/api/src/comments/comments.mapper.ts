@@ -2,10 +2,15 @@ import type { CommentDto, ConversationDto } from '@spothub/shared';
 
 import type { CommentEntity } from './comment.entity';
 
-/** Who is looking, and whose spot or build it is — what every permission flag is worked out from. */
+/**
+ * Who is looking, and whose spot or build it is — what every permission flag
+ * is worked out from. A null viewer is a signed-out visitor: every flag is false.
+ */
 export interface CommentViewContext {
-  readonly viewerId: string;
+  readonly viewerId: string | null;
   readonly ownerId: string;
+  /** Whether a reply can be marked as the answer — on spots and builds, not on a post's discussion. */
+  readonly answers: boolean;
 }
 
 /**
@@ -59,22 +64,27 @@ function toCommentDto(
   context: CommentViewContext,
   askerId: string | null,
 ): CommentDto {
-  const byViewer = comment.authorId === context.viewerId;
   const viewerOwnsSubject = context.viewerId === context.ownerId;
+  const deleted = comment.deletedAt !== null;
+  // A deleted question no longer says who asked it, not even to the asker.
+  const byViewer = !deleted && comment.authorId === context.viewerId;
 
   return {
     id: comment.id,
-    body: comment.body,
-    authorName: comment.authorName,
-    byOwner: comment.authorId === context.ownerId,
+    body: deleted ? '' : comment.body,
+    authorName: deleted ? null : comment.authorName,
+    byOwner: !deleted && comment.authorId === context.ownerId,
     byViewer,
+    // What is left of a deleted question is the owner's to clear.
     canDelete: byViewer || viewerOwnsSubject,
+    deleted,
     isAnswer: comment.isAnswer,
     canMarkAnswer:
+      context.answers &&
       askerId !== null &&
       comment.authorId !== askerId &&
       (viewerOwnsSubject || context.viewerId === askerId),
     createdAt: comment.createdAt.toISOString(),
-    editedAt: comment.editedAt?.toISOString() ?? null,
+    editedAt: deleted ? null : (comment.editedAt?.toISOString() ?? null),
   };
 }

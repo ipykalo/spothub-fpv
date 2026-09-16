@@ -35,6 +35,13 @@
       [alt]="'Photo of ' + build().name"
       loading="lazy"
     />
+  } @else {
+    <!-- No photo yet. The slot stays, so a row of cards lines up either way, and
+         it holds the build's own status icon rather than a stock picture of
+         somebody else's quad. -->
+    <div class="-mx-4 grid aspect-video w-[calc(100%+2rem)] place-items-center bg-surface-high" aria-hidden="true">
+      <mat-icon class="icon-lg text-(--tone) opacity-30">{{ style().icon }}</mat-icon>
+    </div>
   }
 
   <div class="min-h-6.5 flex-auto overflow-hidden">
@@ -49,16 +56,28 @@
     }
   </div>
 
-  <div class="border-t border-outline-variant pt-1.5">
+  <div class="flex items-center border-t border-outline-variant pt-1.5">
     <div class="-ml-2 flex gap-0.5">
-      <a matButton [routerLink]="['/hangar', build().id]">Open</a>
+      <a matButton [routerLink]="[link(), build().id]">Open</a>
       <!-- Only its owner changes a build; a shared one is read-only. -->
-      @if (build().ownedByViewer) {
+      @if (actions() && build().ownedByViewer) {
         <a matButton [routerLink]="['/hangar', build().id, 'edit']">Edit</a>
         <button matButton [disabled]="deleting()" (click)="delete.emit(build())">
           {{ deleting() ? 'Deleting…' : 'Delete' }}
         </button>
       }
     </div>
+
+    @if (build().likes.count > 0) {
+      <span
+        class="ml-auto inline-flex items-center gap-1 text-sm text-muted"
+        [attr.aria-label]="build().likes.count + (build().likes.count === 1 ? ' like' : ' likes')"
+      >
+        <mat-icon class="icon-sm" aria-hidden="true">{{
+          build().likes.likedByViewer ? 'favorite' : 'favorite_border'
+        }}</mat-icon>
+        {{ build().likes.count }}
+      </span>
+    }
   </div>
 </mat-card>

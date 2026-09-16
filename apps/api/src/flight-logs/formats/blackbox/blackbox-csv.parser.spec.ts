@@ -23,16 +23,28 @@ interface LogShape {
 }
 
 /** One decoded log, ten frames a second. */
-function log({ start, seconds, amps = 10, throttle = 1500, volts = 16.8, sag = 0 }: LogShape): string {
+function log({
+  start,
+  seconds,
+  amps = 10,
+  throttle = 1500,
+  volts = 16.8,
+  sag = 0,
+}: LogShape): string {
   const frames = Math.round(seconds * 10);
   const rows = [HEADER];
 
   for (let index = 0; index <= frames; index += 1) {
     const voltage = index === Math.floor(frames / 2) ? volts - sag : volts;
     rows.push(
-      [index, (start + index / 10).toFixed(3), throttle, voltage.toFixed(2), amps.toFixed(2), 'ANGLE_MODE'].join(
-        ', ',
-      ),
+      [
+        index,
+        (start + index / 10).toFixed(3),
+        throttle,
+        voltage.toFixed(2),
+        amps.toFixed(2),
+        'ANGLE_MODE',
+      ].join(', '),
     );
   }
 
@@ -76,7 +88,10 @@ describe('parseBlackboxLogs', () => {
   it('counts charge from current over time, but not across the disarm between two logs', () => {
     // 10 A for 36 s is 100 mAh; the 2 s between the logs is not flight.
     const [flight] = parseBlackboxLogs(
-      [log({ start: 0, seconds: 36, amps: 10 }), log({ start: 38, seconds: 36, amps: 10 })],
+      [
+        log({ start: 0, seconds: 36, amps: 10 }),
+        log({ start: 38, seconds: 36, amps: 10 }),
+      ],
       null,
       ORIGIN,
     ).flights;
@@ -86,7 +101,11 @@ describe('parseBlackboxLogs', () => {
   });
 
   it('reports no current or charge when the sensor only reads below zero', () => {
-    const [flight] = parseBlackboxLogs([log({ start: 0, seconds: 20, amps: -3 })], null, ORIGIN).flights;
+    const [flight] = parseBlackboxLogs(
+      [log({ start: 0, seconds: 20, amps: -3 })],
+      null,
+      ORIGIN,
+    ).flights;
 
     expect(flight.maxCurrentA).toBeNull();
     expect(flight.mahUsed).toBeNull();
@@ -123,11 +142,13 @@ describe('parseBlackboxLogs', () => {
   });
 
   it('skips an empty log, and refuses a file where no log has frame times', () => {
-    expect(parseBlackboxLogs(['', log({ start: 0, seconds: 12 })], null, ORIGIN).flights).toHaveLength(1);
+    expect(
+      parseBlackboxLogs(['', log({ start: 0, seconds: 12 })], null, ORIGIN).flights,
+    ).toHaveLength(1);
     expect(() => parseBlackboxLogs(['', ''], null, ORIGIN)).toThrow(LogParseError);
-    expect(() => parseBlackboxLogs(['loopIteration, motor[0]\n1, 1000'], null, ORIGIN)).toThrow(
-      LogParseError,
-    );
+    expect(() =>
+      parseBlackboxLogs(['loopIteration, motor[0]\n1, 1000'], null, ORIGIN),
+    ).toThrow(LogParseError);
   });
 });
 
@@ -139,7 +160,9 @@ describe('craftNameFrom', () => {
     );
 
     expect(craftNameFrom(header)).toBe('Cinelog  20');
-    expect(craftNameFrom(Buffer.from('H Product:Blackbox\nH Craft name:\n', 'latin1'))).toBeNull();
+    expect(
+      craftNameFrom(Buffer.from('H Product:Blackbox\nH Craft name:\n', 'latin1')),
+    ).toBeNull();
     expect(craftNameFrom(Buffer.from([0x49, 0x00, 0xff]))).toBeNull();
   });
 });
@@ -160,7 +183,11 @@ describe('real blackbox logs', () => {
       .map((name) => gunzipSync(readFileSync(join(folder, name))).toString('utf8'));
 
   it('reads a Cinelog20 log: its sag under load and the charge its current adds up to', () => {
-    const { flights } = parseBlackboxLogs(decoded('cinelog20-btfl_001'), 'Cinelog  20', 0);
+    const { flights } = parseBlackboxLogs(
+      decoded('cinelog20-btfl_001'),
+      'Cinelog  20',
+      0,
+    );
 
     expect(flights).toHaveLength(1);
 

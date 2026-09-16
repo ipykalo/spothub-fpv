@@ -23,7 +23,8 @@ import { RepairsService } from './repairs.service';
 
 /**
  * Nested under a build: a repair only means anything in the context of the
- * thing that broke. Guarded by the global JwtAuthGuard like everything else.
+ * thing that broke. Guarded by the global JwtAuthGuard like everything else,
+ * except the list: a public build page shows its repair history to anyone.
  */
 @Controller('builds/:buildId/repairs')
 export class RepairsController {

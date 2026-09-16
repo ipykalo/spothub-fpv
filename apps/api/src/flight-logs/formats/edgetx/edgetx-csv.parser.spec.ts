@@ -95,7 +95,7 @@ describe('parseEdgeTxCsv', () => {
     expect(flight.distanceM).toBeNull();
   });
 
-  it('drops an out-of-range RQly reading rather than reporting it as the flight\'s weakest link', () => {
+  it("drops an out-of-range RQly reading rather than reporting it as the flight's weakest link", () => {
     // A real Air65 log with telemetry off recorded RQly as -1005 through
     // -1024 while the link was down — not a weak reading, the same
     // "no reading" sentinel other CRSF fields write as a clean -1.
@@ -243,27 +243,44 @@ describe('parseEdgeTxCsv', () => {
  * for the rest of the file once that happens.
  */
 describe('a log whose row width drifts from the header', () => {
-  it('keeps reading the receiver\'s own link quality once the flight controller\'s telemetry link comes up mid-flight', () => {
+  it("keeps reading the receiver's own link quality once the flight controller's telemetry link comes up mid-flight", () => {
     // No flight-controller telemetry at all when logging starts, so the
     // header only has the receiver's own columns — exactly the shape of a
     // real Air65 log recorded with telemetry off at first.
-    const header = 'Date,Time,1RSS(dB),2RSS(dB),RQly(%),RSNR(dB),TQly(%),Thr,CH5(us),TxBat(V)';
+    const header =
+      'Date,Time,1RSS(dB),2RSS(dB),RQly(%),RSNR(dB),TQly(%),Thr,CH5(us),TxBat(V)';
     const beforeLink = (s: number): string =>
-      ['2026-09-12', clock(s), '-60', '-70', '99', '5', '90', '0', '988', '7.9'].join(',');
+      ['2026-09-12', clock(s), '-60', '-70', '99', '5', '90', '0', '988', '7.9'].join(
+        ',',
+      );
     // Once the link comes up, EdgeTX starts writing two more columns —
     // current and capacity — into every following row, ahead of the
     // receiver's own columns, without ever rewriting line 1.
     const afterLink = (s: number, rqly: number): string =>
-      ['2026-09-12', clock(s), '10.5', '650', '-60', '-70', String(rqly), '5', '90', '0', '988', '7.9'].join(
-        ',',
-      );
+      [
+        '2026-09-12',
+        clock(s),
+        '10.5',
+        '650',
+        '-60',
+        '-70',
+        String(rqly),
+        '5',
+        '90',
+        '0',
+        '988',
+        '7.9',
+      ].join(',');
 
     const rows = [
       ...Array.from({ length: 5 }, (_, i) => beforeLink(i)),
       ...Array.from({ length: 10 }, (_, i) => afterLink(5 + i, 97)),
     ];
 
-    const { flights } = parseEdgeTxCsv([header, ...rows].join('\n'), 'Air65-2026-09-12-140000.csv');
+    const { flights } = parseEdgeTxCsv(
+      [header, ...rows].join('\n'),
+      'Air65-2026-09-12-140000.csv',
+    );
 
     expect(flights).toHaveLength(1);
     // A left-anchored read would land on 1RSS's cell (-60) for every row
@@ -272,24 +289,51 @@ describe('a log whose row width drifts from the header', () => {
     expect(flights[0].minLinkQuality).toBe(97);
   });
 
-  it('drops a stale telemetry reading rather than misreading the receiver\'s own link quality in its place', () => {
+  it("drops a stale telemetry reading rather than misreading the receiver's own link quality in its place", () => {
     // Current and capacity are part of the header's baseline this time —
     // the flight controller's telemetry link is up when logging starts.
     const header =
       'Date,Time,RxBt(V),Curr(A),1RSS(dB),2RSS(dB),RQly(%),RSNR(dB),TQly(%),Thr,CH5(us),TxBat(V)';
     const linked = (s: number): string =>
-      ['2026-09-12', clock(s), '16.5', '12', '-60', '-70', '99', '5', '90', '0', '988', '7.9'].join(',');
+      [
+        '2026-09-12',
+        clock(s),
+        '16.5',
+        '12',
+        '-60',
+        '-70',
+        '99',
+        '5',
+        '90',
+        '0',
+        '988',
+        '7.9',
+      ].join(',');
     // The link drops for a stretch, so EdgeTX stops writing those two
     // columns until it recovers — the header still claims they are there.
     const stale = (s: number, rqly: number): string =>
-      ['2026-09-12', clock(s), '3', '-70', String(rqly), '5', '90', '0', '988', '7.9'].join(',');
+      [
+        '2026-09-12',
+        clock(s),
+        '3',
+        '-70',
+        String(rqly),
+        '5',
+        '90',
+        '0',
+        '988',
+        '7.9',
+      ].join(',');
 
     const rows = [
       ...Array.from({ length: 5 }, (_, i) => linked(i)),
       ...Array.from({ length: 10 }, (_, i) => stale(5 + i, 96)),
     ];
 
-    const { flights } = parseEdgeTxCsv([header, ...rows].join('\n'), 'Air65-2026-09-12-140000.csv');
+    const { flights } = parseEdgeTxCsv(
+      [header, ...rows].join('\n'),
+      'Air65-2026-09-12-140000.csv',
+    );
 
     expect(flights).toHaveLength(1);
     expect(flights[0].minLinkQuality).toBe(96);
@@ -545,9 +589,13 @@ describe('a log from a quad with GPS', () => {
     const maxSpeed = (unit: string): number | null => {
       const rows = Array.from(
         { length: 15 },
-        (_, i) => `2026-09-12,14:00:${String(i).padStart(2, '0')}.000,${(51.5 + i * 0.0001).toFixed(6)} -0.1,10`,
+        (_, i) =>
+          `2026-09-12,14:00:${String(i).padStart(2, '0')}.000,${(51.5 + i * 0.0001).toFixed(6)} -0.1,10`,
       );
-      const [flight] = parseEdgeTxCsv([`Date,Time,GPS,GSpd(${unit})`, ...rows].join('\n'), 'x.csv').flights;
+      const [flight] = parseEdgeTxCsv(
+        [`Date,Time,GPS,GSpd(${unit})`, ...rows].join('\n'),
+        'x.csv',
+      ).flights;
 
       return flight.maxSpeedKmh;
     };

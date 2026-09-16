@@ -10,14 +10,21 @@ import {
 } from '@spothub/shared';
 
 import { BuildsFacade } from '../builds';
+import { PostsFacade } from '../posts';
 import { SpotsFacade } from '../spots';
 import { CommentsRepository } from './abstract/comments.repository';
 import type { SubjectRef } from './comment.entity';
 import { toConversationDto } from './comments.mapper';
 
+const NOT_FOUND: Readonly<Record<CommentSubject, string>> = {
+  [CommentSubject.Spot]: 'Spot not found',
+  [CommentSubject.Build]: 'Build not found',
+  [CommentSubject.Post]: 'Post not found',
+};
+
 /**
- * Business rules for questions and replies on spots and builds. Knows nothing
- * about HTTP or Prisma.
+ * Business rules for questions and replies on spots and builds, and the
+ * discussion under a blog post. Knows nothing about HTTP or Prisma.
  *
  * Every action starts from the same question to the subject's own module: may
  * this person open it, and whose is it? A spot or build they cannot open has
@@ -32,14 +39,20 @@ export class CommentsService {
     private readonly comments: CommentsRepository,
     private readonly spots: SpotsFacade,
     private readonly builds: BuildsFacade,
+    private readonly posts: PostsFacade,
   ) {}
 
-  async list(viewerId: string, ref: SubjectRef): Promise<ConversationDto> {
+  /** A null viewer is a signed-out visitor, who may read a shared build's or post's conversation only. */
+  async list(viewerId: string | null, ref: SubjectRef): Promise<ConversationDto> {
     const ownerId = await this.ownerOfVisibleSubject(viewerId, ref);
     return this.conversation(viewerId, ref, ownerId);
   }
 
-  async create(viewerId: string, ref: SubjectRef, input: CreateCommentDto): Promise<ConversationDto> {
+  async create(
+    viewerId: string,
+    ref: SubjectRef,
+    input: CreateCommentDto,
+  ): Promise<ConversationDto> {
     const ownerId = await this.ownerOfVisibleSubject(viewerId, ref);
 
     if (input.parentId !== null) {
@@ -50,7 +63,15 @@ export class CommentsService {
       }
 
       if (parent.parentId !== null) {
-        throw new BadRequestException('Replies go one level deep — reply to the question instead');
+        throw new BadRequestException(
+          'Replies go one level deep — reply to the question instead',
+        );
+      }
+
+      if (parent.deletedAt !== null) {
+        throw new BadRequestException(
+          'That question was deleted and takes no new replies',
+        );
       }
     }
 
@@ -70,7 +91,12 @@ export class CommentsService {
     input: UpdateCommentDto,
   ): Promise<ConversationDto> {
     const ownerId = await this.ownerOfVisibleSubject(viewerId, ref);
-    const updated = await this.comments.updateBodyForAuthor(viewerId, ref, commentId, input.body);
+    const updated = await this.comments.updateBodyForAuthor(
+      viewerId,
+      ref,
+      commentId,
+      input.body,
+    );
 
     if (!updated) {
       throw new NotFoundException('Comment not found');
@@ -79,7 +105,11 @@ export class CommentsService {
     return this.conversation(viewerId, ref, ownerId);
   }
 
-  async remove(viewerId: string, ref: SubjectRef, commentId: string): Promise<ConversationDto> {
+  async remove(
+    viewerId: string,
+    ref: SubjectRef,
+    commentId: string,
+  ): Promise<ConversationDto> {
     const ownerId = await this.ownerOfVisibleSubject(viewerId, ref);
     const deleted = await this.comments.deleteForViewer(viewerId, ref, commentId);
 
@@ -97,6 +127,10 @@ export class CommentsService {
     input: MarkAnswerDto,
   ): Promise<ConversationDto> {
     const ownerId = await this.ownerOfVisibleSubject(viewerId, ref);
+
+    if (ref.subject === CommentSubject.Post) {
+      throw new BadRequestException('A comment on a post is not marked as an answer');
+    }
     const set = await this.comments.setAnswerForAskerOrOwner(
       viewerId,
       ref,
@@ -126,29 +160,52 @@ export class CommentsService {
     return {
       spots: summarize(counts[CommentSubject.Spot]),
       builds: summarize(counts[CommentSubject.Build]),
+      posts: summarize(counts[CommentSubject.Post]),
     };
   }
 
-  private async ownerOfVisibleSubject(viewerId: string, ref: SubjectRef): Promise<string> {
-    const isSpot = ref.subject === CommentSubject.Spot;
-    const ownerId = isSpot
-      ? await this.spots.ownerIfVisible(viewerId, ref.subjectId)
-      : await this.builds.ownerIfVisible(viewerId, ref.subjectId);
+  /** Whose subject it is — a post's author — when the viewer may open it; otherwise not found. */
+  private async ownerOfVisibleSubject(
+    viewerId: string | null,
+    ref: SubjectRef,
+  ): Promise<string> {
+    const ownerId = await this.ownerIfVisible(viewerId, ref);
 
     if (ownerId === null) {
-      throw new NotFoundException(isSpot ? 'Spot not found' : 'Build not found');
+      throw new NotFoundException(NOT_FOUND[ref.subject]);
     }
 
     return ownerId;
   }
 
+  private ownerIfVisible(
+    viewerId: string | null,
+    ref: SubjectRef,
+  ): Promise<string | null> {
+    switch (ref.subject) {
+      case CommentSubject.Spot:
+        // Spots are never shown to a signed-out visitor.
+        return viewerId === null
+          ? Promise.resolve(null)
+          : this.spots.ownerIfVisible(viewerId, ref.subjectId);
+      case CommentSubject.Build:
+        return this.builds.ownerIfVisible(viewerId, ref.subjectId);
+      case CommentSubject.Post:
+        return this.posts.authorIfVisible(viewerId, ref.subjectId);
+    }
+  }
+
   private async conversation(
-    viewerId: string,
+    viewerId: string | null,
     ref: SubjectRef,
     ownerId: string,
   ): Promise<ConversationDto> {
     const comments = await this.comments.findManyOn(ref);
-    return toConversationDto(comments, { viewerId, ownerId });
+    return toConversationDto(comments, {
+      viewerId,
+      ownerId,
+      answers: ref.subject !== CommentSubject.Post,
+    });
   }
 }
 

@@ -73,15 +73,26 @@ describe('comments', () => {
         lng: 11.4,
         visibility: 'PUBLIC',
       });
-      privateSpot = await createAs<SpotDto>(owner, '/api/spots', { name: 'Secret field', lat: 49.5, lng: 11.5 });
+      privateSpot = await createAs<SpotDto>(owner, '/api/spots', {
+        name: 'Secret field',
+        lat: 49.5,
+        lng: 11.5,
+      });
     });
 
     const comments = (spotId: string): string => `/api/spots/${spotId}/comments`;
 
     const post = (user: TestUser, spotId: string, body: object): request.Test =>
-      request(testApp.server).post(comments(spotId)).set('Authorization', as(user)).send(body);
+      request(testApp.server)
+        .post(comments(spotId))
+        .set('Authorization', as(user))
+        .send(body);
 
-    const markAnswer = (user: TestUser, commentId: string, isAnswer = true): request.Test =>
+    const markAnswer = (
+      user: TestUser,
+      commentId: string,
+      isAnswer = true,
+    ): request.Test =>
       request(testApp.server)
         .put(`${comments(publicSpot.id)}/${commentId}/answer`)
         .set('Authorization', as(user))
@@ -106,8 +117,9 @@ describe('comments', () => {
     });
 
     it('a pilot asks on a shared spot, and sees the question as theirs', async () => {
-      const thread = (await post(pilot, publicSpot.id, { body: '  Is parking free?  ' }).expect(201))
-        .body as ConversationDto;
+      const thread = (
+        await post(pilot, publicSpot.id, { body: '  Is parking free?  ' }).expect(201)
+      ).body as ConversationDto;
 
       expect(thread.viewerOwnsSubject).toBe(false);
       expect(thread.questions).toHaveLength(1);
@@ -125,7 +137,10 @@ describe('comments', () => {
 
     it('the owner replies, and may moderate the pilot’s question', async () => {
       const thread = (
-        await post(owner, publicSpot.id, { body: 'Yes, by the gate', parentId: question.id }).expect(201)
+        await post(owner, publicSpot.id, {
+          body: 'Yes, by the gate',
+          parentId: question.id,
+        }).expect(201)
       ).body as ConversationDto;
 
       expect(thread.viewerOwnsSubject).toBe(true);
@@ -134,11 +149,18 @@ describe('comments', () => {
       expect(asked).toMatchObject({ byViewer: false, canDelete: true });
 
       ownerReply = asked.replies[0];
-      expect(ownerReply).toMatchObject({ byOwner: true, byViewer: true, isAnswer: false });
+      expect(ownerReply).toMatchObject({
+        byOwner: true,
+        byViewer: true,
+        isAnswer: false,
+      });
     });
 
     it('replies go one level deep', async () => {
-      await post(pilot, publicSpot.id, { body: 'Thanks!', parentId: ownerReply.id }).expect(400);
+      await post(pilot, publicSpot.id, {
+        body: 'Thanks!',
+        parentId: ownerReply.id,
+      }).expect(400);
     });
 
     it('refuses an empty or overlong comment', async () => {
@@ -170,9 +192,15 @@ describe('comments', () => {
       let bystanderReply: CommentDto;
 
       beforeAll(async () => {
-        await post(pilot, publicSpot.id, { body: 'Ok, thank you', parentId: question.id }).expect(201);
+        await post(pilot, publicSpot.id, {
+          body: 'Ok, thank you',
+          parentId: question.id,
+        }).expect(201);
         const thread = (
-          await post(bystander, publicSpot.id, { body: 'The gate shuts at 20:00', parentId: question.id }).expect(201)
+          await post(bystander, publicSpot.id, {
+            body: 'The gate shuts at 20:00',
+            parentId: question.id,
+          }).expect(201)
         ).body as ConversationDto;
 
         [, askerReply, bystanderReply] = thread.questions[0].replies;
@@ -184,7 +212,9 @@ describe('comments', () => {
 
       it('offers the mark to the asker and the owner, never on the asker’s own reply', async () => {
         const marks = async (user: TestUser): Promise<boolean[]> =>
-          (await conversationFor(user)).questions[0].replies.map((reply) => reply.canMarkAnswer);
+          (await conversationFor(user)).questions[0].replies.map(
+            (reply) => reply.canMarkAnswer,
+          );
 
         // Replies in order: the owner's, the asker's thank-you, the bystander's.
         expect(await marks(pilot)).toEqual([true, false, true]);
@@ -200,13 +230,20 @@ describe('comments', () => {
       });
 
       it('the asker marks the answer, the owner can move it, and the asker can take it back', async () => {
-        let thread = (await markAnswer(pilot, ownerReply.id).expect(200)).body as ConversationDto;
+        let thread = (await markAnswer(pilot, ownerReply.id).expect(200))
+          .body as ConversationDto;
         expect(thread.questions[0].answered).toBe(true);
 
-        thread = (await markAnswer(owner, bystanderReply.id).expect(200)).body as ConversationDto;
-        expect(thread.questions[0].replies.map((reply) => reply.isAnswer)).toEqual([false, false, true]);
+        thread = (await markAnswer(owner, bystanderReply.id).expect(200))
+          .body as ConversationDto;
+        expect(thread.questions[0].replies.map((reply) => reply.isAnswer)).toEqual([
+          false,
+          false,
+          true,
+        ]);
 
-        thread = (await markAnswer(pilot, bystanderReply.id, false).expect(200)).body as ConversationDto;
+        thread = (await markAnswer(pilot, bystanderReply.id, false).expect(200))
+          .body as ConversationDto;
         expect(thread.questions[0].answered).toBe(false);
       });
     });
@@ -256,6 +293,148 @@ describe('comments', () => {
       expect(orphans).toBe(0);
     });
 
+    describe('when an asker deletes their own question', () => {
+      const questionIn = (thread: ConversationDto, id: string): QuestionDto | undefined =>
+        thread.questions.find((entry) => entry.id === id);
+
+      const questionOf = (thread: ConversationDto, id: string): QuestionDto => {
+        const found = questionIn(thread, id);
+
+        if (!found) {
+          throw new Error(`Question ${id} is not in the conversation`);
+        }
+
+        return found;
+      };
+
+      const remove = (user: TestUser, commentId: string): request.Test =>
+        request(testApp.server)
+          .delete(`${comments(publicSpot.id)}/${commentId}`)
+          .set('Authorization', as(user));
+
+      it('one nobody replied to is simply gone', async () => {
+        const asked = (
+          await post(pilot, publicSpot.id, { body: 'Never mind' }).expect(201)
+        ).body as ConversationDto;
+        const lonely = asked.questions[0];
+
+        const thread = (await remove(pilot, lonely.id).expect(200))
+          .body as ConversationDto;
+
+        expect(questionIn(thread, lonely.id)).toBeUndefined();
+        expect(
+          await testApp.app
+            .get(PrismaService)
+            .comment.count({ where: { id: lonely.id } }),
+        ).toBe(0);
+      });
+
+      describe('one that others replied to', () => {
+        let asked: QuestionDto;
+        let reply: CommentDto;
+
+        beforeAll(async () => {
+          asked = (
+            (
+              await post(pilot, publicSpot.id, {
+                body: 'Is there shelter from the wind?',
+              }).expect(201)
+            ).body as ConversationDto
+          ).questions[0];
+          const thread = (
+            await post(bystander, publicSpot.id, {
+              body: 'Behind the tree line',
+              parentId: asked.id,
+            }).expect(201)
+          ).body as ConversationDto;
+          reply = questionOf(thread, asked.id).replies[0];
+        });
+
+        it('keeps the replies under a question with no words and no author, no longer unread', async () => {
+          const unreadBefore =
+            (await unreadFor(owner)).spots.bySubject[publicSpot.id] ?? 0;
+
+          const thread = (await remove(pilot, asked.id).expect(200))
+            .body as ConversationDto;
+
+          // The question stops counting for the owner; the reply under it still does.
+          expect((await unreadFor(owner)).spots.bySubject[publicSpot.id] ?? 0).toBe(
+            unreadBefore - 1,
+          );
+
+          expect(questionIn(thread, asked.id)).toMatchObject({
+            deleted: true,
+            body: '',
+            authorName: null,
+            byViewer: false,
+            byOwner: false,
+            canDelete: false,
+            editedAt: null,
+          });
+          expect(questionIn(thread, asked.id)?.replies.map((entry) => entry.id)).toEqual([
+            reply.id,
+          ]);
+
+          const row = await testApp.app
+            .get(PrismaService)
+            .comment.findUnique({ where: { id: asked.id } });
+          expect(row?.body).toBe('');
+
+          // Only the owner may clear what is left.
+          expect(questionIn(await conversationFor(owner), asked.id)?.canDelete).toBe(
+            true,
+          );
+        });
+
+        it('the asker cannot reword or delete it again, and nobody can reply to it', async () => {
+          await request(testApp.server)
+            .patch(`${comments(publicSpot.id)}/${asked.id}`)
+            .set('Authorization', as(pilot))
+            .send({ body: 'Back again' })
+            .expect(404);
+          await remove(pilot, asked.id).expect(404);
+          await post(bystander, publicSpot.id, {
+            body: 'Also the barn',
+            parentId: asked.id,
+          }).expect(400);
+        });
+
+        it('goes for good with its last reply', async () => {
+          const thread = (await remove(bystander, reply.id).expect(200))
+            .body as ConversationDto;
+
+          expect(questionIn(thread, asked.id)).toBeUndefined();
+          expect(
+            await testApp.app
+              .get(PrismaService)
+              .comment.count({ where: { id: asked.id } }),
+          ).toBe(0);
+        });
+      });
+
+      it('the owner clearing a deleted question removes its replies too', async () => {
+        const asked = (
+          (await post(pilot, publicSpot.id, { body: 'Toilets nearby?' }).expect(201))
+            .body as ConversationDto
+        ).questions[0];
+        await post(bystander, publicSpot.id, {
+          body: 'At the petrol station',
+          parentId: asked.id,
+        }).expect(201);
+        await remove(pilot, asked.id).expect(200);
+
+        const thread = (await remove(owner, asked.id).expect(200))
+          .body as ConversationDto;
+
+        expect(questionIn(thread, asked.id)).toBeUndefined();
+        expect(
+          await testApp.app
+            .get(PrismaService)
+            .comment.count({ where: { parentId: asked.id } }),
+        ).toBe(0);
+      });
+    });
+
     it('making the spot private again closes its conversation to everyone else', async () => {
       await request(testApp.server)
         .patch(`/api/spots/${publicSpot.id}`)
@@ -281,8 +460,13 @@ describe('comments', () => {
     let question: QuestionDto;
 
     beforeAll(async () => {
-      publicBuild = await createAs<BuildDto>(owner, '/api/builds', { name: 'Asked-about five-inch', visibility: 'PUBLIC' });
-      privateBuild = await createAs<BuildDto>(owner, '/api/builds', { name: 'Private cinelifter' });
+      publicBuild = await createAs<BuildDto>(owner, '/api/builds', {
+        name: 'Asked-about five-inch',
+        visibility: 'PUBLIC',
+      });
+      privateBuild = await createAs<BuildDto>(owner, '/api/builds', {
+        name: 'Private cinelifter',
+      });
     });
 
     const comments = (buildId: string): string => `/api/builds/${buildId}/comments`;
@@ -350,13 +534,17 @@ describe('comments', () => {
 
       const prisma = testApp.app.get(PrismaService);
       expect(await prisma.comment.count({ where: { buildId: publicBuild.id } })).toBe(0);
-      expect(await prisma.commentRead.count({ where: { buildId: publicBuild.id } })).toBe(0);
+      expect(await prisma.commentRead.count({ where: { buildId: publicBuild.id } })).toBe(
+        0,
+      );
     });
   });
 
   it('a comment belongs to exactly one spot or build — the database refuses anything else', async () => {
     await expect(
-      testApp.app.get(PrismaService).comment.create({ data: { authorId: owner.id, body: 'about nothing' } }),
+      testApp.app
+        .get(PrismaService)
+        .comment.create({ data: { authorId: owner.id, body: 'about nothing' } }),
     ).rejects.toThrow();
   });
 });

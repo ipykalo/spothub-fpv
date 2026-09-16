@@ -29,7 +29,8 @@ import { BuildPartsService } from './build-parts.service';
 
 /**
  * Nested under a build, because an installation only means anything in the
- * context of one. Guarded by the global JwtAuthGuard like everything else.
+ * context of one. Guarded by the global JwtAuthGuard like everything else,
+ * except the list: a public build page shows what is fitted to anyone.
  */
 @Controller('builds/:buildId/parts')
 export class BuildPartsController {

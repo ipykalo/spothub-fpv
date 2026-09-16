@@ -7,7 +7,7 @@ import {
   toDateOnly,
 } from '../common';
 import type { FittedUnitDto } from '../parts';
-import type { BuildCost, BuildPartEntity } from './build-part.entity';
+import type { BuildAccess, BuildCost, BuildPartEntity } from './build-part.entity';
 
 /**
  * The single place a domain entity becomes a wire object.
@@ -39,20 +39,30 @@ export function toBuildPartDto(
 
 /**
  * A fitted part as someone the build is shared with sees it: what it is and
- * where it sits, never what it cost, where it was bought, when the unit was
- * acquired, the owner's notes, or the other units of that part on the shelf.
+ * where it sits, and then as much as its owner chose to share.
+ *
+ * What the owner cannot share away: when the unit was acquired, and the other
+ * units of that part on the shelf. Those describe the owner's inventory rather
+ * than this build, and no reader of a build has business with them.
  */
-export function withoutOwnersDetails(install: BuildPartDto): BuildPartDto {
+export function withoutOwnersDetails(
+  install: BuildPartDto,
+  access: BuildAccess,
+): BuildPartDto {
   return {
     ...install,
-    unit: { ...install.unit, acquiredOn: null, notes: null },
+    unit: {
+      ...install.unit,
+      acquiredOn: null,
+      notes: access.shareNotes ? install.unit.notes : null,
+    },
     part: {
       ...install.part,
-      notesMd: null,
+      notesMd: access.shareNotes ? install.part.notesMd : null,
       units: [],
-      sources: [],
-      purchasePrice: null,
-      purchaseCurrency: null,
+      sources: access.shareCosts ? install.part.sources : [],
+      purchasePrice: access.shareCosts ? install.part.purchasePrice : null,
+      purchaseCurrency: access.shareCosts ? install.part.purchaseCurrency : null,
     },
   };
 }

@@ -1,5 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { CommentSubject, type ConversationDto, type UnreadCommentsDto } from '@spothub/shared';
+import {
+  CommentSubject,
+  type ConversationDto,
+  type UnreadCommentsDto,
+} from '@spothub/shared';
 import { type Observable, firstValueFrom } from 'rxjs';
 
 import { CommentsApi } from './comments.api';
@@ -7,6 +11,7 @@ import { CommentsApi } from './comments.api';
 const NO_UNREAD: UnreadCommentsDto = {
   spots: { total: 0, bySubject: {} },
   builds: { total: 0, bySubject: {} },
+  posts: { total: 0, bySubject: {} },
 };
 
 interface OpenSubject {
@@ -39,21 +44,47 @@ export class CommentsStore {
   readonly error = this.failure.asReadonly();
   readonly unread = this.unreadCounts.asReadonly();
 
-  /** New comments waiting on one of the viewer's spots or builds. */
+  /** New comments waiting on one of the viewer's spots, builds or posts. */
   unreadFor(subject: CommentSubject, subjectId: string): number {
-    const counts =
-      subject === CommentSubject.Spot ? this.unreadCounts().spots : this.unreadCounts().builds;
+    const unread = this.unreadCounts();
+    const counts = {
+      [CommentSubject.Spot]: unread.spots,
+      [CommentSubject.Build]: unread.builds,
+      [CommentSubject.Post]: unread.posts,
+    }[subject];
 
     return counts.bySubject[subjectId] ?? 0;
   }
 
-  /** Loads a conversation; opening their own spot or build is the owner reading it. */
-  async open(subject: CommentSubject, subjectId: string): Promise<void> {
+  /**
+   * Loads a conversation; opening their own spot or build is the owner reading it.
+   *
+   * A page rendered on the server hands in the conversation it was rendered
+   * with, which is adopted at once rather than fetched: the browser's first
+   * render has to match the server's, and a fetch would only land after it.
+   */
+  async open(
+    subject: CommentSubject,
+    subjectId: string,
+    initial: ConversationDto | null = null,
+  ): Promise<void> {
     const opened: OpenSubject = { subject, subjectId };
+    const previous = this.current();
 
     this.current.set(opened);
-    this.conversation.set(null);
     this.failure.set(null);
+
+    if (initial) {
+      this.conversation.set(initial);
+      this.busy.set(false);
+      return;
+    }
+
+    // Asking again about the same subject keeps what is shown until the answer lands.
+    if (previous?.subject !== subject || previous.subjectId !== subjectId) {
+      this.conversation.set(null);
+    }
+
     this.busy.set(true);
 
     try {
@@ -103,7 +134,9 @@ export class CommentsStore {
   }
 
   remove(commentId: string): Promise<boolean> {
-    return this.change(({ subject, subjectId }) => this.api.remove(subject, subjectId, commentId));
+    return this.change(({ subject, subjectId }) =>
+      this.api.remove(subject, subjectId, commentId),
+    );
   }
 
   setAnswer(commentId: string, isAnswer: boolean): Promise<boolean> {
@@ -113,7 +146,9 @@ export class CommentsStore {
   }
 
   /** Runs one change against the open subject and adopts the conversation it answers with. */
-  private async change(call: (open: OpenSubject) => Observable<ConversationDto>): Promise<boolean> {
+  private async change(
+    call: (open: OpenSubject) => Observable<ConversationDto>,
+  ): Promise<boolean> {
     const open = this.current();
 
     if (open === null) {

@@ -43,7 +43,9 @@ describe('shared builds', () => {
       name: 'Unlisted whoop',
       visibility: 'UNLISTED',
     });
-    privateBuild = await postAs<BuildDto>(owner, '/api/builds', { name: 'Private cinelifter' });
+    privateBuild = await postAs<BuildDto>(owner, '/api/builds', {
+      name: 'Private cinelifter',
+    });
 
     // A part bought for money, with notes, fitted to the public build.
     const part = await postAs<PartDto>(owner, '/api/parts', {
@@ -93,11 +95,22 @@ describe('shared builds', () => {
       .send(body)
       .expect((res) => {
         if (res.status >= 300) {
-          throw new Error(`POST ${path} answered ${String(res.status)}: ${JSON.stringify(res.body)}`);
+          throw new Error(
+            `POST ${path} answered ${String(res.status)}: ${JSON.stringify(res.body)}`,
+          );
         }
       });
 
     return response.body as T;
+  }
+
+  /** A change by the owner — used here to switch what a shared build gives away. */
+  async function patchAs(user: TestUser, path: string, body: object): Promise<void> {
+    await request(testApp.server)
+      .patch(path)
+      .set('Authorization', as(user))
+      .send(body)
+      .expect(200);
   }
 
   async function getAs<T>(user: TestUser, path: string, status = 200): Promise<T> {
@@ -112,16 +125,25 @@ describe('shared builds', () => {
   /** The real presigned flow: ask, PUT the bytes to storage, commit. */
   async function uploadPhoto(buildId: string, fileName: string): Promise<AssetDto> {
     const image = await sharp({
-      create: { width: 320, height: 240, channels: 3, background: { r: 40, g: 90, b: 160 } },
+      create: {
+        width: 320,
+        height: 240,
+        channels: 3,
+        background: { r: 40, g: 90, b: 160 },
+      },
     })
       .jpeg()
       .toBuffer();
 
-    const ticket = await postAs<UploadTicketDto>(owner, `/api/builds/${buildId}/photos/uploads`, {
-      fileName,
-      mime: 'image/jpeg',
-      sizeBytes: image.byteLength,
-    });
+    const ticket = await postAs<UploadTicketDto>(
+      owner,
+      `/api/builds/${buildId}/photos/uploads`,
+      {
+        fileName,
+        mime: 'image/jpeg',
+        sizeBytes: image.byteLength,
+      },
+    );
 
     const put = await fetch(ticket.uploadUrl, {
       method: 'PUT',
@@ -130,16 +152,24 @@ describe('shared builds', () => {
     });
     expect(put.ok).toBe(true);
 
-    return postAs<AssetDto>(owner, `/api/builds/${buildId}/photos/${ticket.assetId}/commit`, {});
+    return postAs<AssetDto>(
+      owner,
+      `/api/builds/${buildId}/photos/${ticket.assetId}/commit`,
+      {},
+    );
   }
 
   it('lists other pilots’ Public builds, and leaves out Unlisted, Private and the viewer’s own', async () => {
-    const forPilot = (await getAs<BuildDto[]>(pilot, '/api/builds/shared')).map((build) => build.id);
+    const forPilot = (await getAs<BuildDto[]>(pilot, '/api/builds/shared')).map(
+      (build) => build.id,
+    );
     expect(forPilot).toContain(publicBuild.id);
     expect(forPilot).not.toContain(unlistedBuild.id);
     expect(forPilot).not.toContain(privateBuild.id);
 
-    const forOwner = (await getAs<BuildDto[]>(owner, '/api/builds/shared')).map((build) => build.id);
+    const forOwner = (await getAs<BuildDto[]>(owner, '/api/builds/shared')).map(
+      (build) => build.id,
+    );
     expect(forOwner).not.toContain(publicBuild.id);
 
     // The pilot's own hangar is still only theirs.
@@ -160,11 +190,16 @@ describe('shared builds', () => {
     await getAs(pilot, `/api/builds/${unlistedBuild.id}`);
     await getAs(pilot, `/api/builds/${privateBuild.id}`, 404);
 
-    expect((await getAs<BuildDto>(owner, `/api/builds/${publicBuild.id}`)).ownedByViewer).toBe(true);
+    expect(
+      (await getAs<BuildDto>(owner, `/api/builds/${publicBuild.id}`)).ownedByViewer,
+    ).toBe(true);
   });
 
   it('shows another pilot what is fitted, never what it cost, where it came from or the notes', async () => {
-    const [installed] = await getAs<BuildPartDto[]>(pilot, `/api/builds/${publicBuild.id}/parts`);
+    const [installed] = await getAs<BuildPartDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/parts`,
+    );
 
     expect(installed.position).toBe('motor FR');
     expect(installed.part).toMatchObject({
@@ -180,55 +215,143 @@ describe('shared builds', () => {
     expect(installed.unit.acquiredOn).toBeNull();
     expect(JSON.stringify(installed)).not.toContain('example.com');
 
-    const [ownView] = await getAs<BuildPartDto[]>(owner, `/api/builds/${publicBuild.id}/parts`);
+    const [ownView] = await getAs<BuildPartDto[]>(
+      owner,
+      `/api/builds/${publicBuild.id}/parts`,
+    );
     expect(ownView.part.purchasePrice).toBe(30);
     expect(ownView.part.sources).toHaveLength(1);
 
-    // Private builds list nothing, and the cost rollup reveals nothing to anyone else.
-    expect(await getAs<BuildPartDto[]>(pilot, `/api/builds/${privateBuild.id}/parts`)).toEqual([]);
-    const cost = await getAs<BuildCostDto>(pilot, `/api/builds/${publicBuild.id}/parts/cost`);
-    expect(cost).toMatchObject({ totals: [], repairTotals: [], installedCount: 0, repairCount: 0 });
+    // Private builds list nothing, and the rollup is not theirs to ask for at
+    // all — answered as no such build, rather than as a build with no costs.
+    expect(
+      await getAs<BuildPartDto[]>(pilot, `/api/builds/${privateBuild.id}/parts`),
+    ).toEqual([]);
+    await getAs(pilot, `/api/builds/${publicBuild.id}/parts/cost`, 404);
   });
 
   it('shows another pilot what broke and when, never what the repair cost', async () => {
-    const [repair] = await getAs<RepairDto[]>(pilot, `/api/builds/${publicBuild.id}/repairs`);
+    const [repair] = await getAs<RepairDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/repairs`,
+    );
 
-    expect(repair).toMatchObject({ descriptionMd: 'Arm snapped on a gap', cost: null, currency: null });
+    expect(repair).toMatchObject({
+      descriptionMd: 'Arm snapped on a gap',
+      cost: null,
+      currency: null,
+    });
 
-    const [ownView] = await getAs<RepairDto[]>(owner, `/api/builds/${publicBuild.id}/repairs`);
+    const [ownView] = await getAs<RepairDto[]>(
+      owner,
+      `/api/builds/${publicBuild.id}/repairs`,
+    );
     expect(ownView).toMatchObject({ cost: 12, currency: 'EUR' });
 
-    expect(await getAs<RepairDto[]>(pilot, `/api/builds/${privateBuild.id}/repairs`)).toEqual([]);
+    expect(
+      await getAs<RepairDto[]>(pilot, `/api/builds/${privateBuild.id}/repairs`),
+    ).toEqual([]);
+  });
+
+  it('shows the costs and the notes when the owner switches them on, and hides them again', async () => {
+    await patchAs(owner, `/api/builds/${publicBuild.id}`, {
+      shareCosts: true,
+      shareNotes: true,
+    });
+
+    const [install] = await getAs<BuildPartDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/parts`,
+    );
+    expect(install.part).toMatchObject({
+      notesMd: 'Bought used from a friend',
+      purchasePrice: 30,
+      purchaseCurrency: 'EUR',
+    });
+    expect(install.part.sources).toHaveLength(1);
+
+    // The shelf is still the owner's: other units and when this one was
+    // acquired are not part of the build, whatever is switched on.
+    expect(install.part.units).toEqual([]);
+    expect(install.unit.acquiredOn).toBeNull();
+
+    const [repair] = await getAs<RepairDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/repairs`,
+    );
+    expect(repair).toMatchObject({ cost: 12, currency: 'EUR' });
+
+    const rollup = await getAs<BuildCostDto>(
+      pilot,
+      `/api/builds/${publicBuild.id}/parts/cost`,
+    );
+    expect(rollup.installedCount).toBe(1);
+    expect(rollup.totals).toEqual([{ currency: 'EUR', amount: 30 }]);
+
+    // Switched off again, and the reader is back where they started.
+    await patchAs(owner, `/api/builds/${publicBuild.id}`, {
+      shareCosts: false,
+      shareNotes: false,
+    });
+
+    const [again] = await getAs<BuildPartDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/parts`,
+    );
+    expect(again.part).toMatchObject({ notesMd: null, purchasePrice: null });
+    await getAs(pilot, `/api/builds/${publicBuild.id}/parts/cost`, 404);
   });
 
   it('shows another pilot the photos, without the name the file had on the owner’s phone', async () => {
-    const [photo] = await getAs<AssetDto[]>(pilot, `/api/builds/${publicBuild.id}/photos`);
+    const [photo] = await getAs<AssetDto[]>(
+      pilot,
+      `/api/builds/${publicBuild.id}/photos`,
+    );
 
     expect(photo.url).not.toBeNull();
     expect(photo.fileName).toBeNull();
 
-    const [ownView] = await getAs<AssetDto[]>(owner, `/api/builds/${publicBuild.id}/photos`);
+    const [ownView] = await getAs<AssetDto[]>(
+      owner,
+      `/api/builds/${publicBuild.id}/photos`,
+    );
     expect(ownView.fileName).toBe('my-home-field.jpg');
 
     await getAs(pilot, `/api/builds/${privateBuild.id}/photos`, 404);
   });
 
   it('refuses every change from someone the build is only shared with', async () => {
-    const [installed] = await getAs<BuildPartDto[]>(owner, `/api/builds/${publicBuild.id}/parts`);
-    const [photo] = await getAs<AssetDto[]>(owner, `/api/builds/${publicBuild.id}/photos`);
-    const [repair] = await getAs<RepairDto[]>(owner, `/api/builds/${publicBuild.id}/repairs`);
+    const [installed] = await getAs<BuildPartDto[]>(
+      owner,
+      `/api/builds/${publicBuild.id}/parts`,
+    );
+    const [photo] = await getAs<AssetDto[]>(
+      owner,
+      `/api/builds/${publicBuild.id}/photos`,
+    );
+    const [repair] = await getAs<RepairDto[]>(
+      owner,
+      `/api/builds/${publicBuild.id}/repairs`,
+    );
     const base = `/api/builds/${publicBuild.id}`;
     const server = testApp.server;
     const auth = as(pilot);
 
-    await request(server).patch(base).set('Authorization', auth).send({ name: 'hijacked' }).expect(404);
+    await request(server)
+      .patch(base)
+      .set('Authorization', auth)
+      .send({ name: 'hijacked' })
+      .expect(404);
     await request(server).delete(base).set('Authorization', auth).expect(404);
     await request(server)
       .post(`${base}/repairs`)
       .set('Authorization', auth)
       .send({ occurredOn: '2026-09-06', cause: 'CRASH' })
       .expect(404);
-    await request(server).delete(`${base}/repairs/${repair.id}`).set('Authorization', auth).expect(404);
+    await request(server)
+      .delete(`${base}/repairs/${repair.id}`)
+      .set('Authorization', auth)
+      .expect(404);
     await request(server)
       .delete(`${base}/parts/${installed.id}`)
       .set('Authorization', auth)
@@ -239,7 +362,10 @@ describe('shared builds', () => {
       .set('Authorization', auth)
       .send({ fileName: 'x.jpg', mime: 'image/jpeg', sizeBytes: 100 })
       .expect(404);
-    await request(server).delete(`${base}/photos/${photo.id}`).set('Authorization', auth).expect(404);
+    await request(server)
+      .delete(`${base}/photos/${photo.id}`)
+      .set('Authorization', auth)
+      .expect(404);
     await request(server)
       .patch(`${base}/photos/cover`)
       .set('Authorization', auth)
@@ -260,8 +386,12 @@ describe('shared builds', () => {
       .expect(200);
 
     await getAs(pilot, `/api/builds/${publicBuild.id}`, 404);
-    expect(await getAs<BuildPartDto[]>(pilot, `/api/builds/${publicBuild.id}/parts`)).toEqual([]);
-    const listed = (await getAs<BuildDto[]>(pilot, '/api/builds/shared')).map((build) => build.id);
+    expect(
+      await getAs<BuildPartDto[]>(pilot, `/api/builds/${publicBuild.id}/parts`),
+    ).toEqual([]);
+    const listed = (await getAs<BuildDto[]>(pilot, '/api/builds/shared')).map(
+      (build) => build.id,
+    );
     expect(listed).not.toContain(publicBuild.id);
   });
 });

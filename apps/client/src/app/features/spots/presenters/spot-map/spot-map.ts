@@ -221,8 +221,13 @@ export class SpotMap {
       return;
     }
 
-    const on = this.coveringPage || document.fullscreenElement === this.host.nativeElement;
-    setButton(this.fullscreenButton, on ? 'fullscreen_exit' : 'fullscreen', on ? 'Exit full screen' : 'Full screen');
+    const on =
+      this.coveringPage || document.fullscreenElement === this.host.nativeElement;
+    setButton(
+      this.fullscreenButton,
+      on ? 'fullscreen_exit' : 'fullscreen',
+      on ? 'Exit full screen' : 'Full screen',
+    );
   }
 
   /** One fresh fix, drawn as a dot with its accuracy circle, then forgotten. */
@@ -239,12 +244,16 @@ export class SpotMap {
       const at: L.LatLngTuple = [fix.lat, fix.lng];
 
       this.youAreHere.clearLayers();
-      L.circle(at, { radius: fix.accuracyM, className: 'sh-accuracy', interactive: false }).addTo(
-        this.youAreHere,
-      );
-      L.circleMarker(at, { radius: 7, className: 'sh-you-are-here', interactive: false }).addTo(
-        this.youAreHere,
-      );
+      L.circle(at, {
+        radius: fix.accuracyM,
+        className: 'sh-accuracy',
+        interactive: false,
+      }).addTo(this.youAreHere);
+      L.circleMarker(at, {
+        radius: 7,
+        className: 'sh-you-are-here',
+        interactive: false,
+      }).addTo(this.youAreHere);
       map.setView(at, Math.max(map.getZoom(), SPOT_ZOOM));
     } catch (error) {
       this.showNotice(
@@ -263,7 +272,11 @@ export class SpotMap {
     }, NOTICE_MS);
   }
 
-  private drawSpots(map: L.Map, spots: readonly SpotDto[], selectedId: string | null): void {
+  private drawSpots(
+    map: L.Map,
+    spots: readonly SpotDto[],
+    selectedId: string | null,
+  ): void {
     this.pins.clearLayers();
 
     for (const spot of spots) {
@@ -300,7 +313,9 @@ export class SpotMap {
       if (spots.length === 1) {
         map.setView([spots[0].lat, spots[0].lng], SPOT_ZOOM);
       } else {
-        const bounds = L.latLngBounds(spots.map((spot): L.LatLngTuple => [spot.lat, spot.lng]));
+        const bounds = L.latLngBounds(
+          spots.map((spot): L.LatLngTuple => [spot.lat, spot.lng]),
+        );
         map.fitBounds(bounds, { padding: [32, 32], maxZoom: SPOT_ZOOM });
       }
     }

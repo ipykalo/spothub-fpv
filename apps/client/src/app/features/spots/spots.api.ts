@@ -1,6 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import type { CreateDraftSpotDto, CreateSpotDto, SpotDto, UpdateSpotDto } from '@spothub/shared';
+import type {
+  CreateDraftSpotDto,
+  CreateSpotDto,
+  SpotDto,
+  UpdateSpotDto,
+} from '@spothub/shared';
 import type { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../../core/api/api.tokens';

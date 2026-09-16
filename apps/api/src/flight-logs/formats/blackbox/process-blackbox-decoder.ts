@@ -47,7 +47,10 @@ export class ProcessBlackboxDecoder extends BlackboxDecoder {
       const [command, args] = this.command(dir);
 
       try {
-        await run(command, args, { timeout: DECODE_TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024 });
+        await run(command, args, {
+          timeout: DECODE_TIMEOUT_MS,
+          maxBuffer: 16 * 1024 * 1024,
+        });
       } catch (error) {
         // A decoder that is not installed is the server's fault, not the
         // log's: let the job fail and retry rather than mark the file unreadable.

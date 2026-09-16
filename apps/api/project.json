@@ -35,7 +35,7 @@
       "cache": true,
       "inputs": ["{projectRoot}/src/**/*"],
       "options": {
-        "command": "vitest run --root apps/api --environment node"
+        "command": "vitest run --root apps/api --environment node src"
       }
     },
     "serve": {

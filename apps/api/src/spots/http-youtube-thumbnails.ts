@@ -34,7 +34,9 @@ export class HttpYouTubeThumbnails extends YouTubeThumbnails {
       }
 
       if (!response.ok) {
-        throw new Error(`YouTube answered ${String(response.status)} for thumbnail ${size}`);
+        throw new Error(
+          `YouTube answered ${String(response.status)} for thumbnail ${size}`,
+        );
       }
 
       if (!(response.headers.get('content-type') ?? '').startsWith('image/')) {

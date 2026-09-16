@@ -31,7 +31,10 @@ import {
 } from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
-import { type ChoiceOption, choicesFrom } from '../../../../core/components/choice-option';
+import {
+  type ChoiceOption,
+  choicesFrom,
+} from '../../../../core/components/choice-option';
 import {
   DIFFICULTY_LABELS,
   type LatLng,
@@ -88,18 +91,17 @@ export class SpotForm {
     icon: SPOT_ACCESS_STYLES[access].icon,
   }));
 
-  protected readonly difficultyOptions: readonly ChoiceOption<number>[] = [1, 2, 3, 4, 5].map(
-    (value) => ({ value, label: DIFFICULTY_LABELS[value] ?? String(value) }),
-  );
+  protected readonly difficultyOptions: readonly ChoiceOption<number>[] = [
+    1, 2, 3, 4, 5,
+  ].map((value) => ({ value, label: DIFFICULTY_LABELS[value] ?? String(value) }));
 
   /** Each visibility says who can open the spot, now that others can. */
-  protected readonly visibilityOptions: readonly ChoiceOption<Visibility>[] = Object.values(
-    Visibility,
-  ).map((visibility) => ({
-    value: visibility,
-    label: VISIBILITY_LABELS[visibility],
-    hint: SPOT_VISIBILITY_HINTS[visibility],
-  }));
+  protected readonly visibilityOptions: readonly ChoiceOption<Visibility>[] =
+    Object.values(Visibility).map((visibility) => ({
+      value: visibility,
+      label: VISIBILITY_LABELS[visibility],
+      hint: SPOT_VISIBILITY_HINTS[visibility],
+    }));
 
   protected readonly hazardOptions = Object.values(SpotHazard).map((hazard) => ({
     value: hazard,
@@ -127,7 +129,9 @@ export class SpotForm {
 
   private readonly validationError = signal<string | null>(null);
 
-  protected readonly message = computed(() => this.errorMessage() ?? this.validationError());
+  protected readonly message = computed(
+    () => this.errorMessage() ?? this.validationError(),
+  );
 
   /** Saved from a GPS fix with only a placeholder name so far. */
   protected readonly isDraft = computed(() => this.spot()?.isDraft ?? false);
@@ -135,7 +139,9 @@ export class SpotForm {
   constructor() {
     const syncPoint = (): void => {
       const { lat, lng } = this.form.getRawValue();
-      this.point.set(isCoordinate(lat, 90) && isCoordinate(lng, 180) ? { lat, lng } : null);
+      this.point.set(
+        isCoordinate(lat, 90) && isCoordinate(lng, 180) ? { lat, lng } : null,
+      );
     };
 
     this.form.controls.lat.valueChanges.subscribe(syncPoint);

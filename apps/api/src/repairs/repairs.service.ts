@@ -12,22 +12,23 @@ export class RepairsService {
   constructor(private readonly repairs: RepairsRepository) {}
 
   /**
-   * The repair history of a build the viewer may see. Someone it is shared
-   * with reads what broke and when, never what putting it right cost. A build
-   * they cannot see lists nothing, as before.
+   * The repair history of a build the viewer may see. Someone it is shared with
+   * reads what broke and when, and what putting it right cost only where the
+   * owner switched costs on. A build they cannot see lists nothing, as before.
    */
-  async list(viewerId: string, buildId: string): Promise<RepairDto[]> {
-    const ownerId = await this.repairs.findBuildOwnerVisibleToViewer(viewerId, buildId);
+  async list(viewerId: string | null, buildId: string): Promise<RepairDto[]> {
+    const access = await this.repairs.findBuildAccessForViewer(viewerId, buildId);
 
-    if (ownerId === null) {
+    if (access === null) {
       return [];
     }
 
-    const repairs = await this.repairs.findManyForOwner(ownerId, buildId);
+    const repairs = await this.repairs.findManyForOwner(access.ownerId, buildId);
+    const withCosts = viewerId === access.ownerId || access.shareCosts;
 
     return repairs.map((repair) => {
       const dto = toRepairDto(repair);
-      return viewerId === ownerId ? dto : { ...dto, cost: null, currency: null };
+      return withCosts ? dto : { ...dto, cost: null, currency: null };
     });
   }
 

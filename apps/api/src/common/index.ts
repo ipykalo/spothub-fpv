@@ -6,6 +6,7 @@
  * That is what keeps it a sink in the dependency graph.
  */
 export { CurrentUser } from './decorators/current-user.decorator';
+export { CurrentViewer } from './decorators/current-viewer.decorator';
 export { IS_PUBLIC_KEY, Public } from './decorators/public.decorator';
 export { fromDateOnly, toDateOnly, toNullableDateOnly } from './domain/date-only';
 export { sumByCurrency } from './domain/currency-total';

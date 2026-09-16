@@ -9,8 +9,12 @@
         <p class="m-0 text-sm text-muted">No voltage readings yet — these flights have no telemetry.</p>
       } @else {
         <div class="mb-1 flex items-center gap-4 text-xs text-muted">
-          <span class="inline-flex items-center gap-1.5"><span class="voltage-key voltage-key--start"></span>Start</span>
-          <span class="inline-flex items-center gap-1.5"><span class="voltage-key voltage-key--min"></span>Minimum</span>
+          <span class="inline-flex items-center gap-1.5"
+            ><span class="voltage-key voltage-key--start"></span>Start</span
+          >
+          <span class="inline-flex items-center gap-1.5"
+            ><span class="voltage-key voltage-key--min"></span>Minimum</span
+          >
         </div>
         <svg
           [attr.viewBox]="'0 0 ' + width + ' ' + height"
@@ -20,13 +24,23 @@
           <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
             @for (tick of voltageYTicks(); track tick.label) {
               <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
-              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">
+                {{ tick.label }}
+              </text>
             }
             @for (tick of xTicks(); track tick.label) {
-              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">{{ tick.label }}</text>
+              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">
+                {{ tick.label }}
+              </text>
             }
             @for (row of voltageRows(); track row.hover.title) {
-              <line class="voltage-stem" [attr.x1]="row.x" [attr.x2]="row.x" [attr.y1]="row.startY" [attr.y2]="row.minY" />
+              <line
+                class="voltage-stem"
+                [attr.x1]="row.x"
+                [attr.x2]="row.x"
+                [attr.y1]="row.startY"
+                [attr.y2]="row.minY"
+              />
               <circle class="voltage-dot voltage-dot--start" [attr.cx]="row.x" [attr.cy]="row.startY" r="4" />
               <circle class="voltage-dot voltage-dot--min" [attr.cx]="row.x" [attr.cy]="row.minY" r="4" />
               <rect
@@ -62,14 +76,22 @@
       @if (linkQualityPoints().length === 0) {
         <p class="m-0 text-sm text-muted">No link-quality readings yet.</p>
       } @else {
-        <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" role="img" aria-label="Weakest link quality per flight over time">
+        <svg
+          [attr.viewBox]="'0 0 ' + width + ' ' + height"
+          role="img"
+          aria-label="Weakest link quality per flight over time"
+        >
           <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
             @for (tick of linkQualityYTicks; track tick.label) {
               <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
-              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">
+                {{ tick.label }}
+              </text>
             }
             @for (tick of xTicks(); track tick.label) {
-              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">{{ tick.label }}</text>
+              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">
+                {{ tick.label }}
+              </text>
             }
             <path class="link-area" [attr.d]="linkQualityArea()" />
             <path class="link-line" [attr.d]="linkQualityPath()" />
@@ -104,14 +126,22 @@
     <!-- Cumulative airtime -->
     <figure class="m-0">
       <figcaption class="mb-3 text-base font-semibold">Cumulative airtime</figcaption>
-      <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" role="img" aria-label="Cumulative airtime on this build over time">
+      <svg
+        [attr.viewBox]="'0 0 ' + width + ' ' + height"
+        role="img"
+        aria-label="Cumulative airtime on this build over time"
+      >
         <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
           @for (tick of airtimeYTicks(); track tick.label) {
             <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
-            <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+            <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">
+              {{ tick.label }}
+            </text>
           }
           @for (tick of xTicks(); track tick.label) {
-            <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">{{ tick.label }}</text>
+            <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">
+              {{ tick.label }}
+            </text>
           }
           <path class="airtime-area" [attr.d]="airtimeArea()" />
           <path class="airtime-line" [attr.d]="airtimePath()" />
@@ -156,10 +186,14 @@
           <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
             @for (tick of currentYTicks(); track tick.label) {
               <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
-              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">
+                {{ tick.label }}
+              </text>
             }
             @for (tick of throttleXTicks; track tick.label) {
-              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">{{ tick.label }}</text>
+              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">
+                {{ tick.label }}
+              </text>
             }
             @for (point of throttleCurrentPoints(); track point.hover.title) {
               <circle class="scatter-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="4" />
@@ -213,7 +247,9 @@
             <tr class="border-t border-outline-variant">
               <td class="py-1 pr-4">{{ shortDate(flight.startedAt) }}</td>
               <td class="py-1 pr-4">{{ airtime(flight.durationS) }}</td>
-              <td class="py-1 pr-4">{{ flight.startVoltage !== null ? flight.startVoltage.toFixed(1) + ' V' : '—' }}</td>
+              <td class="py-1 pr-4">
+                {{ flight.startVoltage !== null ? flight.startVoltage.toFixed(1) + ' V' : '—' }}
+              </td>
               <td class="py-1 pr-4">{{ flight.minVoltage !== null ? flight.minVoltage.toFixed(1) + ' V' : '—' }}</td>
               <td class="py-1 pr-4">{{ flight.minLinkQuality !== null ? flight.minLinkQuality + ' %' : '—' }}</td>
               <td class="py-1 pr-4">{{ flight.avgThrottlePct !== null ? flight.avgThrottlePct + ' %' : '—' }}</td>

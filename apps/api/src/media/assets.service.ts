@@ -24,12 +24,21 @@ import { toAssetDto } from './assets.mapper';
 /** The longest edge of a generated thumbnail, in pixels. */
 const THUMB_EDGE = 640;
 
+/** How a subject is named when it cannot be found. */
+const SUBJECT_NAMES: Readonly<Record<AssetSubject, string>> = {
+  [AssetSubject.Build]: 'Build',
+  [AssetSubject.Post]: 'Post',
+};
+
 /**
  * Business rules for media. Knows nothing about HTTP, Prisma or S3.
  *
  * The bytes never arrive here in a request. The client is handed a presigned
  * PUT, uploads straight to storage, and then asks this service to commit —
  * which is the only point at which the API reads the object.
+ *
+ * A build's photos and a post's images go through the same pipeline; the
+ * subject says which, and every step checks the subject is the uploader's.
  */
 @Injectable()
 export class AssetsService {
@@ -55,10 +64,11 @@ export class AssetsService {
    */
   async requestUpload(
     ownerId: string,
-    buildId: string,
+    subject: AssetSubject,
+    subjectId: string,
     input: RequestUploadDto,
   ): Promise<UploadTicketDto> {
-    await this.assertSubject(ownerId, buildId);
+    await this.assertSubject(ownerId, subject, subjectId);
 
     // The key is ours, never the client's file name: a name like
     // `../../etc/passwd` or a duplicate would otherwise decide where bytes land.
@@ -94,8 +104,13 @@ export class AssetsService {
    * rather than in the browser is the point: a client can lie about having
    * stripped metadata, and a home field in a photo is a home address.
    */
-  async commit(ownerId: string, buildId: string, assetId: string): Promise<AssetDto> {
-    await this.assertSubject(ownerId, buildId);
+  async commit(
+    ownerId: string,
+    subject: AssetSubject,
+    subjectId: string,
+    assetId: string,
+  ): Promise<AssetDto> {
+    await this.assertSubject(ownerId, subject, subjectId);
 
     const asset = await this.assets.findOneForOwner(ownerId, assetId);
 
@@ -117,7 +132,13 @@ export class AssetsService {
     }
 
     try {
-      const committed = await this.process(ownerId, buildId, asset, uploaded.sizeBytes);
+      const committed = await this.process(
+        ownerId,
+        subject,
+        subjectId,
+        asset,
+        uploaded.sizeBytes,
+      );
       return toAssetDto(committed, await this.signUrls(committed));
     } catch (error) {
       this.logger.warn(`Could not process asset ${assetId}`, error);
@@ -127,22 +148,27 @@ export class AssetsService {
   }
 
   /**
-   * A build's gallery, for its owner or anyone it is shared with. The photos
+   * A subject's images, for its owner or anyone it is shared with. The images
    * are already safe to show — EXIF went on commit — but the name a file had
-   * on the owner's phone is theirs, so someone else sees none.
+   * on the owner's phone is theirs, so someone else sees none — a signed-out
+   * visitor (a null viewer) included.
    */
-  async list(viewerId: string, buildId: string): Promise<AssetDto[]> {
+  async list(
+    viewerId: string | null,
+    subject: AssetSubject,
+    subjectId: string,
+  ): Promise<AssetDto[]> {
     const ownerId = await this.assets.findSubjectOwnerVisibleToViewer(
       viewerId,
-      AssetSubject.Build,
-      buildId,
+      subject,
+      subjectId,
     );
 
     if (ownerId === null) {
-      throw new NotFoundException('Build not found');
+      throw new NotFoundException(`${SUBJECT_NAMES[subject]} not found`);
     }
 
-    const assets = await this.assets.findManyForSubject(ownerId, AssetSubject.Build, buildId);
+    const assets = await this.assets.findManyForSubject(ownerId, subject, subjectId);
 
     return Promise.all(
       assets.map(async (asset) => {
@@ -152,13 +178,60 @@ export class AssetsService {
     );
   }
 
-  async remove(ownerId: string, buildId: string, assetId: string): Promise<void> {
-    await this.assertSubject(ownerId, buildId);
+  /**
+   * Where a post's image actually is at this moment: a presigned URL, for the
+   * route that redirects a reader to it. The address the reader holds never
+   * expires; this one does, which is what keeps the bucket private and lets
+   * every request ask again whether the post may be read at all.
+   */
+  async storageUrl(
+    viewerId: string | null,
+    postId: string,
+    assetId: string,
+    variant: 'full' | 'thumb',
+  ): Promise<string> {
+    const ownerId = await this.assets.findSubjectOwnerVisibleToViewer(
+      viewerId,
+      AssetSubject.Post,
+      postId,
+    );
+
+    if (ownerId === null) {
+      throw new NotFoundException('Post not found');
+    }
+
+    // The post's own images, so an id from another post cannot be served here.
+    // A post has a handful, which makes this cheaper than a lookup that would
+    // then have to prove the image belongs to it.
+    const assets = await this.assets.findManyForSubject(
+      ownerId,
+      AssetSubject.Post,
+      postId,
+    );
+    const asset = assets.find((candidate) => candidate.id === assetId);
+
+    if (!asset) {
+      throw new NotFoundException('Image not found');
+    }
+
+    const key =
+      variant === 'thumb' ? (asset.thumbKey ?? asset.storageKey) : asset.storageKey;
+
+    return this.storage.presignGet(key, this.downloadTtl);
+  }
+
+  async remove(
+    ownerId: string,
+    subject: AssetSubject,
+    subjectId: string,
+    assetId: string,
+  ): Promise<void> {
+    await this.assertSubject(ownerId, subject, subjectId);
 
     const keys = await this.assets.deleteForOwner(ownerId, assetId);
 
     if (keys.length === 0) {
-      throw new NotFoundException('Photo not found');
+      throw new NotFoundException('Image not found');
     }
 
     await this.storage.delete(keys);
@@ -169,18 +242,18 @@ export class AssetsService {
     buildId: string,
     assetIds: readonly string[],
   ): Promise<AssetDto[]> {
-    await this.assertSubject(ownerId, buildId);
+    await this.assertSubject(ownerId, AssetSubject.Build, buildId);
     await this.assets.reorderForSubject(ownerId, AssetSubject.Build, buildId, assetIds);
 
-    return this.list(ownerId, buildId);
+    return this.list(ownerId, AssetSubject.Build, buildId);
   }
 
-  async setCover(
+  async setBuildCover(
     ownerId: string,
     buildId: string,
     assetId: string | null,
   ): Promise<void> {
-    await this.assertSubject(ownerId, buildId);
+    await this.assertSubject(ownerId, AssetSubject.Build, buildId);
 
     const set = await this.assets.setBuildCoverForOwner(ownerId, buildId, assetId);
 
@@ -189,10 +262,25 @@ export class AssetsService {
     }
   }
 
+  async setPostCover(
+    ownerId: string,
+    postId: string,
+    assetId: string | null,
+  ): Promise<void> {
+    await this.assertSubject(ownerId, AssetSubject.Post, postId);
+
+    const set = await this.assets.setPostCoverForOwner(ownerId, postId, assetId);
+
+    if (!set) {
+      throw new NotFoundException('Image not found on this post');
+    }
+  }
+
   /** Strip, thumbnail, store both, record what was learned. */
   private async process(
     ownerId: string,
-    buildId: string,
+    subject: AssetSubject,
+    subjectId: string,
     asset: AssetEntity,
     sizeBytes: number,
   ): Promise<AssetEntity> {
@@ -240,9 +328,9 @@ export class AssetsService {
       throw new Error('Asset disappeared while committing');
     }
 
-    // Attaching is part of committing: a photo that processed but never
-    // reached a gallery would be invisible and unreachable.
-    await this.assets.linkForOwner(ownerId, asset.id, AssetSubject.Build, buildId);
+    // Attaching is part of committing: an image that processed but never
+    // reached its subject would be invisible and unreachable.
+    await this.assets.linkForOwner(ownerId, asset.id, subject, subjectId);
 
     return committed;
   }
@@ -269,15 +357,15 @@ export class AssetsService {
     return { url, thumbUrl };
   }
 
-  private async assertSubject(ownerId: string, buildId: string): Promise<void> {
-    const owned = await this.assets.subjectBelongsToOwner(
-      ownerId,
-      AssetSubject.Build,
-      buildId,
-    );
+  private async assertSubject(
+    ownerId: string,
+    subject: AssetSubject,
+    subjectId: string,
+  ): Promise<void> {
+    const owned = await this.assets.subjectBelongsToOwner(ownerId, subject, subjectId);
 
     if (!owned) {
-      throw new NotFoundException('Build not found');
+      throw new NotFoundException(`${SUBJECT_NAMES[subject]} not found`);
     }
   }
 }

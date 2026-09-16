@@ -1,0 +1,14 @@
+@for (button of buttons; track button.action) {
+  <!-- mousedown is cancelled so pressing a button leaves the text box's selection alone. -->
+  <button
+    matIconButton
+    type="button"
+    [disabled]="disabled()"
+    [matTooltip]="button.label"
+    [attr.aria-label]="button.label"
+    (mousedown)="$event.preventDefault()"
+    (click)="press(button)"
+  >
+    <mat-icon>{{ button.icon }}</mat-icon>
+  </button>
+}

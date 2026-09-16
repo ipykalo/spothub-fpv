@@ -20,14 +20,32 @@ export abstract class BuildsRepository {
 
   abstract findOneForOwner(ownerId: string, id: string): Promise<BuildEntity | null>;
 
-  /** A build the viewer owns, or one another owner shared as Public or Unlisted. */
-  abstract findVisibleForViewer(viewerId: string, id: string): Promise<BuildEntity | null>;
+  /**
+   * A build the viewer owns, or one shared as Public or Unlisted. A null viewer
+   * is a signed-out visitor, who gets nothing: builds are behind sign-in.
+   */
+  abstract findVisibleForViewer(
+    viewerId: string | null,
+    id: string,
+  ): Promise<BuildEntity | null>;
+
+  /** The builds among these the viewer may open, by the same rule as one. In no particular order. */
+  abstract findManyVisibleForViewer(
+    viewerId: string | null,
+    ids: readonly string[],
+  ): Promise<BuildEntity[]>;
+
+  /** Which of these ids are builds the owner has. */
+  abstract findIdsOwnedBy(ownerId: string, ids: readonly string[]): Promise<string[]>;
 
   /**
    * Other owners' Public builds. Unlisted builds are left out on purpose: they
    * open only for someone given the link.
    */
-  abstract findSharedForViewer(viewerId: string, filter: BuildFilter): Promise<BuildEntity[]>;
+  abstract findSharedForViewer(
+    viewerId: string,
+    filter: BuildFilter,
+  ): Promise<BuildEntity[]>;
 
   abstract slugExistsForOwner(ownerId: string, slug: string): Promise<boolean>;
 

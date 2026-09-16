@@ -10,9 +10,14 @@ import { BuildFilter, BuildsRepository } from './abstract/builds.repository';
  * repository, and only the name: an owner's email never leaves the users
  * table through here.
  */
-const WITH_OWNER_NAME = { owner: { select: { displayName: true } } } satisfies Prisma.BuildInclude;
+const WITH_OWNER_NAME = {
+  owner: { select: { displayName: true } },
+} satisfies Prisma.BuildInclude;
 
 type BuildRow = Prisma.BuildGetPayload<{ include: typeof WITH_OWNER_NAME }>;
+
+/** What anyone may open, signed in or not: a build shared as Public or Unlisted. */
+const SHARED: Prisma.BuildWhereInput = { visibility: { in: ['PUBLIC', 'UNLISTED'] } };
 
 /**
  * The only place in the builds feature that knows Prisma exists.
@@ -42,16 +47,60 @@ export class PrismaBuildsRepository extends BuildsRepository {
     return build ? toEntity(build) : null;
   }
 
-  async findVisibleForViewer(viewerId: string, id: string): Promise<BuildEntity | null> {
+  async findVisibleForViewer(
+    viewerId: string | null,
+    id: string,
+  ): Promise<BuildEntity | null> {
+    // Nothing is shown to a signed-out visitor, whatever a build's visibility says.
+    if (viewerId === null) {
+      return null;
+    }
+
     const build = await this.prisma.build.findFirst({
-      where: { id, OR: [{ ownerId: viewerId }, { visibility: { in: ['PUBLIC', 'UNLISTED'] } }] },
+      where: { id, OR: [{ ownerId: viewerId }, SHARED] },
       include: WITH_OWNER_NAME,
     });
 
     return build ? toEntity(build) : null;
   }
 
-  async findSharedForViewer(viewerId: string, filter: BuildFilter): Promise<BuildEntity[]> {
+  async findManyVisibleForViewer(
+    viewerId: string | null,
+    ids: readonly string[],
+  ): Promise<BuildEntity[]> {
+    // A signed-out reader of a post sees none of the builds it links.
+    if (ids.length === 0 || viewerId === null) {
+      return [];
+    }
+
+    const builds = await this.prisma.build.findMany({
+      where: {
+        id: { in: [...ids] },
+        OR: [{ ownerId: viewerId }, SHARED],
+      },
+      include: WITH_OWNER_NAME,
+    });
+
+    return builds.map(toEntity);
+  }
+
+  async findIdsOwnedBy(ownerId: string, ids: readonly string[]): Promise<string[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const builds = await this.prisma.build.findMany({
+      where: { id: { in: [...ids] }, ownerId },
+      select: { id: true },
+    });
+
+    return builds.map((build) => build.id);
+  }
+
+  async findSharedForViewer(
+    viewerId: string,
+    filter: BuildFilter,
+  ): Promise<BuildEntity[]> {
     const builds = await this.prisma.build.findMany({
       where: { visibility: 'PUBLIC', ownerId: { not: viewerId }, ...matching(filter) },
       include: WITH_OWNER_NAME,
@@ -71,7 +120,10 @@ export class PrismaBuildsRepository extends BuildsRepository {
   }
 
   async create(data: CreateBuildData): Promise<BuildEntity> {
-    const build = await this.prisma.build.create({ data: { ...data }, include: WITH_OWNER_NAME });
+    const build = await this.prisma.build.create({
+      data: { ...data },
+      include: WITH_OWNER_NAME,
+    });
     return toEntity(build);
   }
 
@@ -103,7 +155,9 @@ export class PrismaBuildsRepository extends BuildsRepository {
 function matching(filter: BuildFilter): Prisma.BuildWhereInput {
   return {
     ...(filter.status ? { status: filter.status } : {}),
-    ...(filter.search ? { name: { contains: filter.search, mode: 'insensitive' as const } } : {}),
+    ...(filter.search
+      ? { name: { contains: filter.search, mode: 'insensitive' as const } }
+      : {}),
   };
 }
 
@@ -119,6 +173,8 @@ function toEntity(build: BuildRow): BuildEntity {
     visibility: build.visibility,
     weightG: build.weightG,
     hasGps: build.hasGps,
+    shareCosts: build.shareCosts,
+    shareNotes: build.shareNotes,
     descriptionMd: build.descriptionMd,
     coverAssetId: build.coverAssetId,
     builtOn: build.builtOn,

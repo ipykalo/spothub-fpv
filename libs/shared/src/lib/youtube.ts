@@ -86,7 +86,9 @@ function parseStart(value: string | null): number | null {
   }
 
   const seconds =
-    Number(match.at(1) ?? 0) * 3600 + Number(match.at(2) ?? 0) * 60 + Number(match.at(3) ?? 0);
+    Number(match.at(1) ?? 0) * 3600 +
+    Number(match.at(2) ?? 0) * 60 +
+    Number(match.at(3) ?? 0);
 
   return seconds > 0 && seconds <= MAX_START_S ? seconds : null;
 }
@@ -137,7 +139,11 @@ const parsedVideoSchema = z.object({
  * `{ youtubeId, startS }` to an API expecting a link, and failed.
  */
 export const youTubeLinkSchema = z
-  .union([z.string().trim().max(500, 'That link is too long'), parsedVideoSchema, z.null()])
+  .union([
+    z.string().trim().max(500, 'That link is too long'),
+    parsedVideoSchema,
+    z.null(),
+  ])
   .transform((value, ctx): YouTubeVideo | null => {
     if (value === null || value === '') {
       return null;

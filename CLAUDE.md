@@ -32,7 +32,9 @@ apps/api/src/
   flights/                                   the logbook: flights, sessions
   flight-logs/                               log import, a reader per format
   spots/                                     flying spots on a map
-  comments/                                  questions and replies on spots and builds
+  comments/                                  questions and replies on spots, builds and posts
+  posts/                                     the blog: posts pilots write about their builds
+  likes/                                     hearts on posts and builds
   health/
 ```
 
@@ -111,10 +113,11 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are six: `UsersFacade` (consumed by auth),
+that module's `exports`. There are eight: `UsersFacade` (consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
-`FlightsFacade` (consumed by flight-logs), and `SpotsFacade` and
-`BuildsFacade` (both consumed by comments). A facade
+`FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
+comments), `BuildsFacade` (consumed by comments and posts), `LikesFacade`
+(consumed by builds and posts) and `PostsFacade` (consumed by comments). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -178,7 +181,9 @@ features/
   flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
-  comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot and build pages)
+  comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
+  posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
+  likes/        likes.api, like-button container (dropped into the post and build pages)
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -316,7 +321,8 @@ The rules that keep Tailwind and Angular Material from fighting:
 ## Commands
 
 ```bash
-npm run dev            # api :3000 + client :4200
+npm run dev            # api :3000 + client :4200 (public pages server-rendered)
+npx nx run client:serve-ssr   # the built client server on :4000
 npm run db:up          # postgres + minio
 npm run db:migrate     # create/apply a migration
 npm run db:studio      # stand-in admin UI
@@ -339,6 +345,9 @@ the code rather than disabling the rule; the few existing inline disables each
 carry a comment explaining why.
 
 **`npm test` is unit tests; `npm run test:e2e` is a separate suite.** The
+unit target ends in `src` (`vitest run --root apps/api --environment node
+src`) — **without it vitest also picks up `apps/api/e2e`**, which has no
+database in CI's `verify` job and failed every push until it was scoped. The
 former (`apps/api/src/**/*.spec.ts`) covers pure parsers and planners with no
 I/O. The latter (`apps/api/e2e/`) boots the real `AppModule` through
 `@nestjs/testing` and drives it with real HTTP requests, against a real
@@ -581,8 +590,12 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   deep. The question's asker or the spot's owner marks at most one reply per
   question as the answer — never a reply the asker wrote, since a follow-up
   or a thank-you cannot answer their own question (`canMarkAnswer`). Authors reword their own words; a
-  comment's author or the spot's owner deletes it, and a question takes its
-  replies with it (FK cascade). Those rules are not checks before a write —
+  comment's author or the spot's owner deletes it. The owner's delete takes a
+  question's replies with it (FK cascade); an asker deleting their own
+  question that others replied to only clears it — empty body, `deleted_at`
+  set, shown as "Question deleted" with no author — so the replies stay. That
+  placeholder takes no replies or edits, stops counting as unread, and goes
+  for good with its last reply or when the owner deletes it. Those rules are not checks before a write —
   they are the writes' own `where` clauses (`updateBodyForAuthor`,
   `deleteForViewer`'s `OR [author, spot.owner]`, `setAnswerForAskerOrOwner`), so
   a stranger's edit cannot be expressed. A spot someone cannot open answers
@@ -647,13 +660,153 @@ builds facade can be asked; instead `build-parts`, `repairs` and `media` each
 ask their own repository `findBuildOwnerVisibleToViewer` /
 `findSubjectOwnerVisibleToViewer` — a join on `builds` — and then run their
 existing owner-scoped read against that owner. What a shared reader never
-gets: purchase prices, sources, part and unit notes, other units, the cost
-rollup, repair cost and currency, a photo's original file name, firmware
-captures, flights and packs. The redaction is in the service, next to the
-read (`withoutOwnersDetails`); every write stays owner-scoped and untouched.
+gets: other units of a part, when a unit was acquired, a photo's original
+file name, firmware captures, flights and packs — those describe the owner's
+shelf and logbook rather than this build.
+
+**What it cost and what the owner wrote are the owner's to give**, through two
+switches on the build itself, both off by default so nothing was opened by
+adding them: `share_costs` (purchase prices, part sources, the cost rollup,
+repair cost and currency) and `share_notes` (part and unit notes). The reads
+that redact — `withoutOwnersDetails` in build-parts, the repair mapper, and
+the rollup route, which answers 404 rather than zeroes to someone who may not
+have it — take them from `findBuildAccessForViewer`, the same join on
+`builds` that already said who may read at all, so the rule travels in the
+query with the rows it guards. Every write stays owner-scoped and untouched.
 The client hides every owner section and control where `ownedByViewer` is
 false, and does not even request configs, the inventory or the logbook;
-`?scope=shared` on `/hangar` is the shared list.
+`?scope=shared` on `/hangar` is the shared list. **Sharing decides which
+signed-in pilots may open a build, never whether a signed-out visitor may** —
+every build read is guarded, whatever its visibility says.
+
+**The blog is the public face of the site, and nothing else is.** It is the
+home page (`/`, with `/blog` redirecting there so the feed has one address)
+and it renders on the server. The hangar, parts, flights and spots are behind
+sign-in, and so are builds: a hangar is personal kit, and a gear list is not
+what anybody searches for. Builds were public for one release; the reasoning
+and what it cost to undo it are worth remembering before opening anything else.
+
+- **A read a visitor may make is `@Public()` and takes `@CurrentViewer()`**
+  — the signed-in user, or null. On a public route the global guard still
+  checks a bearer token when one is sent, so an author is recognised there
+  too; a missing or bad token just leaves the request a visitor. The public
+  reads are the published posts, one post, its images, its comments and its
+  likes — and nothing else. Every other read is guarded, so a visitor gets
+  401 rather than a redacted answer
+  (`apps/api/e2e/private-builds.e2e.spec.ts`).
+- **A post a visitor reads simply leaves its builds out.** The builds
+  repository answers a null viewer with nothing, so `BuildsFacade.visibleToViewer`
+  comes back empty and the post's tags and build cards disappear for a
+  visitor while a signed-in reader still sees them. That is deliberate: a tag
+  linking to a sign-in wall is worse than no tag. Old `/builds/:id` links
+  redirect into `/hangar/:id`, which lands on the build once its reader signs in.
+- **Posts are their own module**, `posts`: Markdown by any signed-in pilot,
+  with the build visibility rule (Private is a draft, Unlisted opens by link,
+  Public is also listed) and `published_at` stamped the first time a post
+  leaves Private, then kept. `post_builds` links a post to builds; linking
+  asks `BuildsFacade.idsOwnedBy`, so only the author's own builds, and
+  reading asks `BuildsFacade.visibleToViewer`, so a build its owner makes
+  private drops out of the post for everyone else. The raw link list goes to
+  the author only. A summary carries those visible builds as tags (asked for
+  once for the whole list), its cover thumbnail and a reading time, which is
+  what the blog feed's full-width `sh-post-card` rows show.
+- **Likes are one heart per pilot**, on posts and builds, in their own
+  dependency-free `likes` module. One `likes` table holds both: a `post_id` or
+  a `build_id`, exactly one by a CHECK constraint in the migration, unique per
+  user and subject, cascading with either. Anyone who can open the subject
+  sees the count (a post's `GET …/likes` is public, a build's is guarded with
+  the build); liking is `PUT` and taking it back
+  is `DELETE`, both idempotent and both answering the new count. Whether a
+  subject may be liked is a join on `posts` / `builds` inside the likes
+  repository — a draft or a private build answers 404. Builds and posts carry
+  `likes` (`count`, `likedByViewer`) on every DTO, batched for a whole list
+  through `LikesFacade`. The client's `sh-like-button` starts from that count
+  (so the server's HTML and the browser agree), updates at once and settles on
+  the API's answer, and sends a visitor to sign in
+  (`apps/api/e2e/likes.e2e.spec.ts`).
+- **A post carries a discussion, which is the same `comments` module.** `POST`
+  joins `SPOT` and `BUILD` as a comment subject: a third nullable column on
+  `comments` and `comment_reads`, with the CHECK widened to
+  `num_nonnulls(spot_id, build_id, post_id) = 1`, and the same routes under
+  `posts/:postId/comments`. `comments` asks the new `PostsFacade.authorIfVisible`
+  who may open a post and who wrote it, so a draft answers 404 to everyone but
+  its author. What differs is only the words and one rule: a post has
+  "Comments", not "Questions", its author may join in rather than only answer,
+  and no reply is marked as the answer — `canMarkAnswer` is false throughout
+  and there is no answer route. A summary carries `commentCount`, counted as a
+  join inside the posts repository rather than through a facade, which the feed
+  rows show beside the likes (`apps/api/e2e/post-comments.e2e.spec.ts`).
+- **Markdown is rendered by `sh-markdown`** (`marked`): raw HTML in the
+  source is escaped, an image at any outside address becomes a link (loading
+  it would tell its host who read the page), and the result still goes
+  through Angular's `[innerHTML]` sanitizer.
+- **A post's images are uploads, not addresses.** They go through the same
+  presigned pipeline as build photos — `media` has a `post` subject beside
+  `build`, with routes under `posts/:postId/images` — and the body refers to
+  one as `![caption](image:<asset id>)`, which `sh-markdown` resolves against
+  the post's `images`. `posts.cover_asset_id` is the cover. Saving a body
+  deletes the images it no longer shows (the cover excepted) and deleting a
+  post deletes them all, through `MediaFacade`, so storage never keeps an
+  image nobody can reach (`apps/api/e2e/post-images.e2e.spec.ts`).
+- **The editor is our own toolbar over a textarea**, not an editor library:
+  images needed our pipeline either way, and posts stay Markdown.
+  `core/components/markdown-editor` holds the text transforms
+  (`markdown-edits.ts`, no DOM) and `sh-markdown-toolbar`, which writes
+  through `execCommand('insertText')` so Ctrl+Z undoes a button. An image is
+  a placeholder line until it uploads; the first image on a never-saved post
+  saves it as a draft and swaps the address to its edit page with
+  `Location.replaceState`, so nothing typed is lost. The toolbar is `sticky`,
+  so nothing around it may clip overflow; and the body textarea has no padding
+  of its own, because `cdkTextareaAutosize` sizes it to its content and
+  padding inside that height scrolls. A loaded post calls
+  `resizeToFitContent` itself — the autosize only measures on input. Tables
+  are GFM; `sh-markdown` wraps each in a sideways-scrolling
+  `.sh-markdown-table`.
+- **Only the home page and `blog/:id` render on the server**
+  (`app.routes.server.ts`); everything behind sign-in stays browser-rendered,
+  since the server holds no session and the map touches browser APIs as it
+  loads. `apps/client` builds
+  to a Node server (`src/server.ts`) instead of static files, and its image
+  runs that rather than nginx. It needs `API_INTERNAL_ORIGIN` (how it reaches
+  the API without leaving the network) and `NG_ALLOWED_HOSTS` (the site's
+  domain — Angular answers any other Host header with 400).
+- **The blog is written to be found.** Every public page sets its own title,
+  description, canonical address and Open Graph and Twitter tags
+  (`core/seo/page-meta.ts`), and a schema.org block beside them
+  (`core/seo/structured-data.ts`): `Blog` on the feed, `BlogPosting` on a
+  post with its author, dates and word count. `SITE_ORIGIN` is the request's
+  own origin on the server and `location.origin` in the browser, so no domain
+  is configured anywhere. The Node server itself serves `/robots.txt` — every
+  signed-in path disallowed, since a crawler would only meet the login page —
+  and `/sitemap.xml`, built from `GET /posts/published` and cached for five
+  minutes.
+- **A post's images have addresses that do not expire.** `postImageUrl`
+  (`libs/shared`) builds `/api/posts/<post>/images/<asset>/file` — and
+  `/thumb` — which a public route answers with a redirect to a freshly
+  presigned URL, cacheable for five minutes. The bucket stays private and
+  every request asks again whether the post may be read, so a draft's images
+  are still nobody else's. That address is what a post's DTO carries, which
+  is what makes `og:image` and a picture card possible at all, and it also
+  fixes a page left open losing its images when the signature expired. Build
+  photos stay presigned: they are not public reading.
+- **A server-rendered page renders from data resolved before it exists.** The
+  browser's first render must match the server's HTML, and anything fetched
+  after a component is created lands too late for that. So the public pages
+  load through route resolvers and hand the result to the read-only
+  presenters, with no store; `sh-comments-section` takes the resolved
+  conversation as `initial`. In the browser the resolvers get the server's
+  responses back from the transfer cache and fetch nothing.
+- **The server's API rewrite is a root interceptor**, registered in
+  `app.config.server.ts` through `ɵHTTP_ROOT_INTERCEPTOR_FNS`.
+  `withInterceptors` ones run before the transfer cache keys a request, and a
+  rewritten URL there made the browser fetch every response a second time.
+  `API_BASE_URL` stays `/api` on both sides so the keys match.
+- **A public page asks again once it knows the reader is signed in.**
+  `App` restores the session after the first render, on public pages only
+  (on the OAuth callback a failed refresh would race the handed-over token),
+  and shows a guest header until then. The build and post pages then re-read
+  as that user: the owner gets their controls, and their own private build
+  or draft opens.
 
 **Next, in order:** VPS + Caddy first deploy, then database backups with a
 tested restore. V1 is feature-complete; what is left is getting it off the
@@ -671,7 +824,9 @@ re-encodes rather than copying, which is what drops the metadata; `rotate()`
 runs first so the orientation tag is applied before it is discarded.
 
 The `assets` table is polymorphic on `subject_type`, so parts and repairs get
-photos later with a row rather than a table. Only `build` exists today.
+photos later with a row rather than a table. `build` and `post` exist today;
+a subject added to `AssetSubject` without its ownership and visibility
+lookups in `prisma-assets.repository.ts` fails to compile.
 
 **Storage CORS is per-environment.** MinIO allows the browser preflight for a
 presigned PUT out of the box; R2 and Blob do not and need explicit

@@ -30,7 +30,12 @@ export class FlightsService {
   /** The same change across many flights: all of them, or none. */
   async updateMany(ownerId: string, input: UpdateFlightsDto): Promise<FlightDto[]> {
     const { flightIds, ...change } = input;
-    return this.assign(ownerId, flightIds, change, 'Some of those flights were not found');
+    return this.assign(
+      ownerId,
+      flightIds,
+      change,
+      'Some of those flights were not found',
+    );
   }
 
   /** The session it was in is regrouped: it may split, or disappear. */

@@ -1,0 +1,12 @@
+<button
+  matButton="outlined"
+  type="button"
+  [class.liked]="current().likedByViewer"
+  [attr.aria-pressed]="current().likedByViewer"
+  [attr.aria-label]="label()"
+  [disabled]="busy()"
+  (click)="toggle()"
+>
+  <mat-icon>{{ current().likedByViewer ? 'favorite' : 'favorite_border' }}</mat-icon>
+  {{ current().count }}
+</button>

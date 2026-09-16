@@ -31,6 +31,7 @@ import {
   type RepairDto,
 } from '@spothub/shared';
 
+import { Markdown } from '../../../core/components/markdown/markdown';
 import { Section } from '../../../core/components/section/section';
 import { CollapseAll } from '../../../core/components/section/collapse-all';
 import { SectionGroup } from '../../../core/components/section/section-group';
@@ -84,6 +85,7 @@ import { BuildsStore } from '../builds.store';
     ConfigPasteForm,
     FlightTrends,
     CommentsSection,
+    Markdown,
   ],
   hostDirectives: [SectionGroup],
   templateUrl: './build-detail.page.html',
@@ -180,11 +182,15 @@ export class BuildDetailPage {
    * even asked for on a build someone only shares.
    */
   private loadOwnersSections(id: string): void {
+    // The rollup is the one part of this a reader may be shown.
+    if (this.owned() || (this.build()?.shareCosts ?? false)) {
+      void this.installs.loadCost(id);
+    }
+
     if (!this.owned()) {
       return;
     }
 
-    void this.installs.loadCost(id);
     void this.configs.load(id);
 
     // The install picker needs the inventory; harmless if already loaded.

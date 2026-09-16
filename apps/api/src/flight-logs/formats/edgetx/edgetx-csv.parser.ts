@@ -134,7 +134,9 @@ export function parseEdgeTxCsv(text: string, fileName: string): ParsedLog {
 function readHeader(header: string): Columns {
   // Some editors and exports open a file with a byte-order mark.
   const byteOrderMark = String.fromCharCode(0xfeff);
-  const headings = (header.startsWith(byteOrderMark) ? header.slice(1) : header).split(',');
+  const headings = (header.startsWith(byteOrderMark) ? header.slice(1) : header).split(
+    ',',
+  );
   const names = headings.map((name) =>
     name
       .replace(/\(.*\)\s*$/, '')
@@ -207,7 +209,11 @@ function readHeader(header: string): Columns {
  * by `cell` as "no reading" — when the column was never in the header at
  * all, or when a row is short enough that even the far end has gone missing.
  */
-function endIndex(columns: Pick<Columns, 'width'>, leftIndex: number, cells: readonly string[]): number {
+function endIndex(
+  columns: Pick<Columns, 'width'>,
+  leftIndex: number,
+  cells: readonly string[],
+): number {
   if (leftIndex === -1) {
     return -1;
   }
@@ -260,15 +266,22 @@ function readRow(cells: readonly string[], columns: Columns): Sample | null {
     // from the block simply being there, so a throttle reading during such a
     // burst can land on a neighbouring field. It is a handful of rows out of
     // a whole flight either way.
-    throttlePct: stickPercent(numeric(cell(cells, endIndex(columns, columns.throttle, cells)))),
+    throttlePct: stickPercent(
+      numeric(cell(cells, endIndex(columns, columns.throttle, cells))),
+    ),
     radioVoltage: numeric(cell(cells, endIndex(columns, columns.radioVoltage, cells))),
     armed: driftedBeforeLinkQuality ? null : armedFrom(cell(cells, columns.flightMode)),
-    armSwitch: switchOn(numeric(cell(cells, endIndex(columns, columns.armChannel, cells)))),
+    armSwitch: switchOn(
+      numeric(cell(cells, endIndex(columns, columns.armChannel, cells))),
+    ),
     lat,
     lon,
     altitude: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.altitude)),
-    speedKmh: driftedBeforeLinkQuality || speed === null ? null : speed * columns.speedToKmh,
-    satellites: driftedBeforeLinkQuality ? null : numeric(cell(cells, columns.satellites)),
+    speedKmh:
+      driftedBeforeLinkQuality || speed === null ? null : speed * columns.speedToKmh,
+    satellites: driftedBeforeLinkQuality
+      ? null
+      : numeric(cell(cells, columns.satellites)),
   };
 }
 

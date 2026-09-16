@@ -133,7 +133,11 @@ export class SpotsService {
     let staleCover: string | null = null;
     let videoChanged = false;
 
-    if (current && input.video !== undefined && input.video?.youtubeId !== current.video?.youtubeId) {
+    if (
+      current &&
+      input.video !== undefined &&
+      input.video?.youtubeId !== current.video?.youtubeId
+    ) {
       videoChanged = true;
       staleCover = current.coverStorageKey;
       data.coverStorageKey = null;
@@ -170,7 +174,9 @@ export class SpotsService {
   }
 
   private slugFor(ownerId: string, name: string): Promise<string> {
-    return uniqueSlug(name, (candidate) => this.spots.slugExistsForOwner(ownerId, candidate));
+    return uniqueSlug(name, (candidate) =>
+      this.spots.slugExistsForOwner(ownerId, candidate),
+    );
   }
 
   /** Signing is a local computation, so a page of cards costs no extra round trips. */
@@ -202,7 +208,9 @@ export class SpotsService {
  * Copies only the keys actually present on the patch, so an absent field is
  * left alone rather than being written as null.
  */
-function toUpdateData(input: UpdateSpotDto): { -readonly [K in keyof UpdateSpotData]: UpdateSpotData[K] } {
+function toUpdateData(input: UpdateSpotDto): {
+  -readonly [K in keyof UpdateSpotData]: UpdateSpotData[K];
+} {
   const data: { -readonly [K in keyof UpdateSpotData]: UpdateSpotData[K] } = {};
 
   if (input.name !== undefined) data.name = input.name;

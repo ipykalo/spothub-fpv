@@ -83,7 +83,9 @@
       <sh-spot-video [video]="video" [cover]="spot().coverUrl" />
     } @else {
       <p class="m-0 text-muted italic">
-        {{ spot().ownedByViewer ? 'No video yet. Edit the spot to add a YouTube link.' : 'No flight video for this spot.' }}
+        {{
+          spot().ownedByViewer ? 'No video yet. Edit the spot to add a YouTube link.' : 'No flight video for this spot.'
+        }}
       </p>
     }
   </sh-section>
@@ -109,8 +111,7 @@
     @if (spot().descriptionMd; as description) {
       <pre
         class="m-0 max-h-96 overflow-auto rounded bg-surface-container px-4.5 py-4 text-sm leading-[1.55] whitespace-pre-wrap wrap-anywhere [font-family:inherit]"
-        >{{ description }}</pre
-      >
+        >{{ description }}</pre>
     } @else {
       <p class="m-0 text-muted italic">Nothing written yet.</p>
     }
@@ -120,8 +121,7 @@
     @if (spot().accessNotesMd; as notes) {
       <pre
         class="m-0 max-h-72 overflow-auto rounded bg-surface-container px-4.5 py-4 text-sm leading-[1.55] whitespace-pre-wrap wrap-anywhere [font-family:inherit]"
-        >{{ notes }}</pre
-      >
+        >{{ notes }}</pre>
     } @else {
       <p class="m-0 text-muted italic">No parking or access notes.</p>
     }

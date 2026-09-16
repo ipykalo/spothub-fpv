@@ -13,6 +13,9 @@ export interface BuildEntity {
   readonly visibility: Visibility;
   readonly weightG: number | null;
   readonly hasGps: boolean;
+  /** What a reader who is not the owner sees of a shared build. */
+  readonly shareCosts: boolean;
+  readonly shareNotes: boolean;
   readonly descriptionMd: string | null;
   /** The chosen cover photo. The URL for it comes from the media facade. */
   readonly coverAssetId: string | null;
@@ -32,6 +35,8 @@ export interface CreateBuildData {
   readonly visibility: Visibility;
   readonly weightG: number | null;
   readonly hasGps: boolean;
+  readonly shareCosts: boolean;
+  readonly shareNotes: boolean;
   readonly descriptionMd: string | null;
   readonly builtOn: Date | null;
   readonly retiredOn: Date | null;

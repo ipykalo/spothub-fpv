@@ -13,8 +13,10 @@ import { FlightLogsModule } from '../flight-logs';
 import { FlightsModule } from '../flights';
 import { HealthModule } from '../health';
 import { JobsModule } from '../jobs';
+import { LikesModule } from '../likes';
 import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
+import { PostsModule } from '../posts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
 import { SpotsModule } from '../spots';
@@ -48,6 +50,8 @@ import { UsersModule } from '../users';
     FlightLogsModule,
     SpotsModule,
     CommentsModule,
+    PostsModule,
+    LikesModule,
     HealthModule,
   ],
   providers: [

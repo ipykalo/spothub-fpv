@@ -50,7 +50,9 @@ export class FlightsStore {
     const updated =
       flightIds.length === 1
         ? [await firstValueFrom(this.api.updateFlight(flightIds[0], change))]
-        : await firstValueFrom(this.api.updateFlights({ ...change, flightIds: [...flightIds] }));
+        : await firstValueFrom(
+            this.api.updateFlights({ ...change, flightIds: [...flightIds] }),
+          );
 
     const byId = new Map(updated.map((flight) => [flight.id, flight]));
 

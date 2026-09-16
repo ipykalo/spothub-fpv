@@ -25,7 +25,9 @@ import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../commo
 import { BuildsService } from './builds.service';
 
 /**
- * Guarded by the global JwtAuthGuard — no route here is `@Public()`.
+ * Guarded by the global JwtAuthGuard: a build is never shown to a signed-out
+ * visitor. Sharing decides which signed-in pilots may open someone else's —
+ * Public is listed, Unlisted opens by link — and every write needs its owner.
  *
  * The owner id comes from the verified token, never from the payload, so a
  * client cannot ask for someone else's builds.
@@ -57,7 +59,7 @@ export class BuildsController {
     return this.builds.listShared(user.id, query);
   }
 
-  /** One of yours, or one someone shared as Public or Unlisted. */
+  /** One of yours, or one another pilot shared as Public or Unlisted. */
   @Get(':id')
   getOne(
     @CurrentUser() user: AuthenticatedUser,

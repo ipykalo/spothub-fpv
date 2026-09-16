@@ -57,9 +57,12 @@ export class PrismaFlightsRepository extends FlightsRepository {
       return 0;
     }
 
-    return this.prisma.$transaction((tx) => storeNew(tx, ownerId, flights, sessionGapMs), {
-      timeout: TRANSACTION_TIMEOUT_MS,
-    });
+    return this.prisma.$transaction(
+      (tx) => storeNew(tx, ownerId, flights, sessionGapMs),
+      {
+        timeout: TRANSACTION_TIMEOUT_MS,
+      },
+    );
   }
 
   async addTracks(
@@ -89,7 +92,13 @@ export class PrismaFlightsRepository extends FlightsRepository {
                 lte: new Date(track.startedAt.getTime() + TRACK_SEARCH_WINDOW_MS),
               },
             },
-            select: { id: true, startedAt: true, endedAt: true, hasGps: true, trackLogFileId: true },
+            select: {
+              id: true,
+              startedAt: true,
+              endedAt: true,
+              hasGps: true,
+              trackLogFileId: true,
+            },
           });
 
           const match = matchTrack(track, candidates);
@@ -105,7 +114,9 @@ export class PrismaFlightsRepository extends FlightsRepository {
             data: {
               // The radio log's own GPS stays; a track only fills a flight that had none.
               ...(flight.hasGps ? {} : trackFigures(track)),
-              ...(flight.trackLogFileId === null ? { trackLogFileId: track.logFileId } : {}),
+              ...(flight.trackLogFileId === null
+                ? { trackLogFileId: track.logFileId }
+                : {}),
             },
           });
           joined += 1;
@@ -375,7 +386,8 @@ async function regroup(
 
 /** Named as the parts page names a unit: the part, then its label or its number. */
 function batteryName(unit: BatteryUnitRow): string {
-  const part = [unit.part.manufacturer, unit.part.model].filter(Boolean).join(' ') || 'Battery';
+  const part =
+    [unit.part.manufacturer, unit.part.model].filter(Boolean).join(' ') || 'Battery';
   return `${part} ${unitLabel(unit)}`;
 }
 

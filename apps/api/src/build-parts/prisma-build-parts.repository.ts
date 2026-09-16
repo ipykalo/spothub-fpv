@@ -3,7 +3,11 @@ import type { BuildPart } from '@prisma/client';
 
 import { PrismaService } from '../prisma';
 import { BuildPartFilter, BuildPartsRepository } from './abstract/build-parts.repository';
-import type { BuildPartEntity, CreateBuildPartData } from './build-part.entity';
+import type {
+  BuildAccess,
+  BuildPartEntity,
+  CreateBuildPartData,
+} from './build-part.entity';
 
 /**
  * The only place this feature knows Prisma exists.
@@ -19,17 +23,21 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
     super();
   }
 
-  async findBuildOwnerVisibleToViewer(viewerId: string, buildId: string): Promise<string | null> {
+  async findBuildAccessForViewer(
+    viewerId: string | null,
+    buildId: string,
+  ): Promise<BuildAccess | null> {
     // The same rule as a build's own page: the viewer's build, or a shared one.
+    const shared = { visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] } };
     const build = await this.prisma.build.findFirst({
       where: {
         id: buildId,
-        OR: [{ ownerId: viewerId }, { visibility: { in: ['PUBLIC', 'UNLISTED'] } }],
+        ...(viewerId === null ? shared : { OR: [{ ownerId: viewerId }, shared] }),
       },
-      select: { ownerId: true },
+      select: { ownerId: true, shareCosts: true, shareNotes: true },
     });
 
-    return build?.ownerId ?? null;
+    return build;
   }
 
   async findManyForOwner(

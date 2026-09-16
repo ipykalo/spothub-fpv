@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { LikesModule } from '../likes';
 import { MediaModule } from '../media';
 import { BuildsFacade } from './abstract/builds.facade';
 import { BuildsRepository } from './abstract/builds.repository';
@@ -13,13 +14,13 @@ import { BuildsService } from './builds.service';
  *
  * What is fitted to one, what broke on it and what firmware it ran are three
  * other modules. They reach a build only through a join in their own
- * repositories, so they do not depend on this module. `comments` does, through
- * `BuildsFacade` — the only provider exported.
+ * repositories, so they do not depend on this module. `comments` and `posts`
+ * do, through `BuildsFacade` — the only provider exported.
  */
 @Module({
-  // For MediaFacade only: a build card shows its cover photo. Media depends on
-  // no feature module, so this edge does not close a cycle.
-  imports: [MediaModule],
+  // MediaFacade for a card's cover photo, LikesFacade for its likes. Neither
+  // depends on a feature module, so these edges do not close a cycle.
+  imports: [MediaModule, LikesModule],
   controllers: [BuildsController],
   providers: [
     BuildsService,

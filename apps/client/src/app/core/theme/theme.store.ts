@@ -1,5 +1,5 @@
-import { DOCUMENT } from '@angular/common';
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -19,10 +19,15 @@ export const THEME_STORAGE_KEY = 'spothub.theme';
  * applies the saved choice before Angular loads. This store takes over from
  * there; without that script a returning dark-mode visitor would see a white
  * flash on every page load.
+ *
+ * On the server there is no viewer to have a preference: nothing is read or
+ * applied there, and the same inline script picks the theme before the
+ * server-rendered page is shown.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeStore {
   private readonly document = inject(DOCUMENT);
+  private readonly inBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   private readonly mode = signal<ThemeMode>(this.initial());
 
@@ -31,7 +36,11 @@ export class ThemeStore {
 
   constructor() {
     effect(() => {
-      this.apply(this.mode());
+      const mode = this.mode();
+
+      if (this.inBrowser) {
+        this.apply(mode);
+      }
     });
   }
 
@@ -41,6 +50,10 @@ export class ThemeStore {
 
   /** A saved choice wins; otherwise follow the operating system. */
   private initial(): ThemeMode {
+    if (!this.inBrowser) {
+      return 'light';
+    }
+
     const saved = this.read();
 
     if (saved) {

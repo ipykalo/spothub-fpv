@@ -233,7 +233,10 @@ const changesSomething = (change: z.infer<typeof flightAssignment>): boolean =>
 const NOTHING_TO_CHANGE = 'Say which build or battery pack to set';
 
 /** Changing one flight's build or battery pack. */
-export const updateFlightSchema = flightAssignment.refine(changesSomething, NOTHING_TO_CHANGE);
+export const updateFlightSchema = flightAssignment.refine(
+  changesSomething,
+  NOTHING_TO_CHANGE,
+);
 export type UpdateFlightDto = z.infer<typeof updateFlightSchema>;
 
 /** The same change, applied to many flights at once. */
@@ -242,7 +245,10 @@ export const updateFlightsSchema = flightAssignment
     flightIds: z
       .array(z.uuid())
       .min(1, 'Choose at least one flight')
-      .max(MAX_FLIGHTS_PER_UPDATE, `Change at most ${MAX_FLIGHTS_PER_UPDATE} flights at once`),
+      .max(
+        MAX_FLIGHTS_PER_UPDATE,
+        `Change at most ${MAX_FLIGHTS_PER_UPDATE} flights at once`,
+      ),
   })
   .refine(changesSomething, NOTHING_TO_CHANGE);
 export type UpdateFlightsDto = z.infer<typeof updateFlightsSchema>;

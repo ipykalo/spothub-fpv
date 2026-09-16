@@ -1,0 +1,11 @@
+<sh-post-form
+  [post]="post()"
+  [builds]="builds.builds()"
+  [isEdit]="isEdit()"
+  [saving]="saving()"
+  [errorMessage]="failure()"
+  [uploadImage]="uploadImage"
+  [changeCover]="changeCover"
+  (saved)="save($event)"
+  (cancelled)="cancel()"
+/>
