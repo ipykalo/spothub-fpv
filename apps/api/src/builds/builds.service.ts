@@ -42,17 +42,9 @@ export class BuildsService {
   }
 
   /**
-   * Every Public build, the viewer's own included — what a signed-out visitor
-   * browses. `viewerId` is null for a visitor.
-   */
-  async listPublic(viewerId: string | null, query: ListBuildsQuery): Promise<BuildDto[]> {
-    const builds = await this.builds.findPublic(query);
-    return this.withCovers(viewerId, builds);
-  }
-
-  /**
    * The builds among these the viewer may open, in the order asked — what a
-   * post shows of the builds it links. The rest are left out silently.
+   * post shows of the builds it links. The rest are left out silently, and a
+   * signed-out reader of that post sees none of them.
    */
   async listVisible(
     viewerId: string | null,
@@ -73,10 +65,10 @@ export class BuildsService {
   }
 
   /**
-   * The viewer's own build, or one shared as Public or Unlisted — which a
-   * signed-out visitor (a null viewer) may open too. Anything else is not found.
+   * The viewer's own build, or one another pilot shared as Public or Unlisted.
+   * Anything else is not found.
    */
-  async getOne(viewerId: string | null, id: string): Promise<BuildDto> {
+  async getOne(viewerId: string, id: string): Promise<BuildDto> {
     const build = await this.builds.findVisibleForViewer(viewerId, id);
 
     if (!build) {

@@ -19,8 +19,8 @@ import { AuthStore } from './core/auth/auth.store';
 import { ThemeStore } from './core/theme/theme.store';
 import { CommentsStore } from './features/comments/comments.store';
 
-/** The pages anyone may open, signed in or not. */
-const PUBLIC_PAGE = /^\/(?:builds|blog)(?:[/?#]|$)/;
+/** The pages anyone may open, signed in or not: the blog feed at the root, and a post. */
+const PUBLIC_PAGE = /^\/(?:$|[?#]|blog(?:[/?#]|$))/;
 
 @Component({
   selector: 'sh-root',

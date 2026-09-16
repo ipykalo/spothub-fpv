@@ -10,7 +10,10 @@ import type { BuildDto } from '@spothub/shared';
  */
 export abstract class BuildsFacade {
   /** Which of these builds belong to the owner. Ids that are not theirs, or not builds, are absent. */
-  abstract idsOwnedBy(ownerId: string, buildIds: readonly string[]): Promise<ReadonlySet<string>>;
+  abstract idsOwnedBy(
+    ownerId: string,
+    buildIds: readonly string[],
+  ): Promise<ReadonlySet<string>>;
 
   /**
    * The builds among these the viewer may open — their own, or shared as
@@ -28,5 +31,8 @@ export abstract class BuildsFacade {
    * may open only the shared ones. Null when it does not exist or is not
    * theirs to see, which a caller should report exactly as "not found".
    */
-  abstract ownerIfVisible(viewerId: string | null, buildId: string): Promise<string | null>;
+  abstract ownerIfVisible(
+    viewerId: string | null,
+    buildId: string,
+  ): Promise<string | null>;
 }

@@ -37,7 +37,7 @@
         <ul class="m-0 mb-2 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-sm" aria-label="Builds in this post">
           @for (tag of post().tags; track tag.id) {
             <li>
-              <a class="text-muted no-underline hover:text-primary" [routerLink]="['/builds', tag.id, tag.slug]"
+              <a class="text-muted no-underline hover:text-primary" [routerLink]="['/hangar', tag.id]"
                 >#{{ tag.name }}</a
               >
             </li>

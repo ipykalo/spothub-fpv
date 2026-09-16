@@ -130,18 +130,13 @@ export class CommentsController {
 
   // --- On a build ---
 
-  /**
-   * Readable by a signed-out visitor too, on a build shared as Public or
-   * Unlisted: a public build page shows its questions and answers, and asking
-   * still needs signing in.
-   */
-  @Public()
+  /** Behind sign-in with the build itself: only pilots it is shared with read it. */
   @Get('builds/:buildId/comments')
   listOnBuild(
-    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<ConversationDto> {
-    return this.comments.list(viewer?.id ?? null, build(buildId));
+    return this.comments.list(user.id, build(buildId));
   }
 
   @Post('builds/:buildId/comments')

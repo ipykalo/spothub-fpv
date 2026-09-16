@@ -18,13 +18,7 @@ import {
   updateRepairSchema,
 } from '@spothub/shared';
 
-import {
-  type AuthenticatedUser,
-  CurrentUser,
-  CurrentViewer,
-  Public,
-  ZodValidationPipe,
-} from '../common';
+import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
 import { RepairsService } from './repairs.service';
 
 /**
@@ -36,13 +30,12 @@ import { RepairsService } from './repairs.service';
 export class RepairsController {
   constructor(private readonly repairs: RepairsService) {}
 
-  @Public()
   @Get()
   list(
-    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<RepairDto[]> {
-    return this.repairs.list(viewer?.id ?? null, buildId);
+    return this.repairs.list(user.id, buildId);
   }
 
   @Post()

@@ -45,13 +45,13 @@ export class LikesController {
     return this.likes.unlike(user.id, post(postId));
   }
 
-  @Public()
+  /** Behind sign-in with the build itself; a post's count stays public. */
   @Get('builds/:buildId/likes')
   getOnBuild(
-    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<LikesDto> {
-    return this.likes.get(viewer?.id ?? null, build(buildId));
+    return this.likes.get(user.id, build(buildId));
   }
 
   @Put('builds/:buildId/likes')

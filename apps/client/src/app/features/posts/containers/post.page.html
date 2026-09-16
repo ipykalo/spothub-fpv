@@ -57,7 +57,7 @@
           <ul class="m-0 mb-2 flex list-none flex-wrap gap-x-3 gap-y-1 p-0" aria-label="Builds in this post">
             @for (tag of post.tags; track tag.id) {
               <li>
-                <a class="text-muted no-underline hover:text-primary" [routerLink]="['/builds', tag.id, tag.slug]"
+                <a class="text-muted no-underline hover:text-primary" [routerLink]="['/hangar', tag.id]"
                   >#{{ tag.name }}</a
                 >
               </li>
@@ -75,7 +75,7 @@
           <h2 class="mt-12 mb-4 text-xl">The builds in this post</h2>
           <div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
             @for (build of post.builds; track build.id) {
-              <sh-build-card [build]="build" link="/builds" [actions]="false" />
+              <sh-build-card [build]="build" link="/hangar" [actions]="false" />
             }
           </div>
         }

@@ -33,7 +33,7 @@
           </span>
         }
       </a>
-      <a matButton routerLink="/blog">Blog</a>
+      <a matButton routerLink="/">Blog</a>
     </nav>
     <span class="flex-1"></span>
     <span class="max-[40rem]:hidden">{{ auth.displayName() }}</span>
@@ -50,14 +50,11 @@
     </button>
   </mat-toolbar>
 } @else if (isPublicPage()) {
-  <!-- What a visitor sees on a shared build or the blog: where else to look, and a way in. -->
+  <!-- What a visitor sees on the blog: the way back to it, and a way in. -->
   <mat-toolbar>
-    <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/builds">SpotHub FPV</a>
-    <nav
-      class="ml-2 flex min-w-0 gap-1 min-[40rem]:ml-6 max-[40rem]:overflow-x-auto max-[40rem]:overflow-y-hidden max-[40rem]:[scrollbar-width:none]"
-    >
-      <a matButton routerLink="/builds">Builds</a>
-      <a matButton routerLink="/blog">Blog</a>
+    <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/">SpotHub FPV</a>
+    <nav class="ml-2 flex min-w-0 gap-1 min-[40rem]:ml-6">
+      <a matButton routerLink="/">Blog</a>
     </nav>
     <span class="flex-1"></span>
     <button

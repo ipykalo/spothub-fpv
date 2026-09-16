@@ -24,11 +24,17 @@ export class BuildsFacadeImpl extends BuildsFacade {
     return build?.ownerId ?? null;
   }
 
-  async idsOwnedBy(ownerId: string, buildIds: readonly string[]): Promise<ReadonlySet<string>> {
+  async idsOwnedBy(
+    ownerId: string,
+    buildIds: readonly string[],
+  ): Promise<ReadonlySet<string>> {
     return new Set(await this.builds.findIdsOwnedBy(ownerId, buildIds));
   }
 
-  visibleToViewer(viewerId: string | null, buildIds: readonly string[]): Promise<BuildDto[]> {
+  visibleToViewer(
+    viewerId: string | null,
+    buildIds: readonly string[],
+  ): Promise<BuildDto[]> {
     return this.service.listVisible(viewerId, buildIds);
   }
 }

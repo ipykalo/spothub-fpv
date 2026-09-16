@@ -2,10 +2,6 @@ import { type Route } from '@angular/router';
 
 import { authGuard, guestGuard } from './core/auth/auth.guard';
 import {
-  publicBuildResolver,
-  publicBuildsResolver,
-} from './features/builds/public-build.resolvers';
-import {
   postConversationResolver,
   postResolver,
   publishedPostsResolver,
@@ -15,12 +11,21 @@ import {
  * Every route is lazily loaded, so the login screen does not ship the hangar
  * and the initial bundle stays small.
  *
- * `builds` and `blog` are the public pages: no guard, rendered on the server
- * (`app.routes.server.ts`), and everything they show resolved before they
- * render so the browser picks up the server's page rather than drawing its own.
+ * The blog is the whole public face of the site: the feed is the home page and
+ * a post opens under `/blog`. Both are rendered on the server
+ * (`app.routes.server.ts`) with everything they show resolved before they
+ * render, so the browser picks up the server's page rather than drawing its
+ * own. Everything else — the hangar, parts, flights, spots — is behind sign-in.
  */
 export const appRoutes: Route[] = [
-  { path: '', pathMatch: 'full', redirectTo: 'hangar' },
+  {
+    // The home page, for anyone: the blog.
+    path: '',
+    pathMatch: 'full',
+    resolve: { posts: publishedPostsResolver },
+    loadComponent: () =>
+      import('./features/posts/containers/blog.page').then((m) => m.BlogPage),
+  },
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -34,47 +39,19 @@ export const appRoutes: Route[] = [
         (m) => m.AuthCallbackPage,
       ),
   },
+  // Builds moved behind sign-in, into the hangar, and /builds follows them
+  // there. Only the bare path: the server resolves these redirects itself and
+  // neither substitutes a parameter (`hangar/:id` went out as the literal
+  // /builds/hangar/:id) nor carries the rest of the address over, so a
+  // /builds/<id> link lands on the blog through the wildcard below. Nothing
+  // was ever deployed under those addresses, so nothing is owed them.
+  { path: 'builds', redirectTo: '/hangar' },
   {
-    // Public: every build shared as Public, and any shared build's own page.
-    // The slug is only for people reading the link; the id finds the build.
-    path: 'builds',
-    children: [
-      {
-        path: '',
-        resolve: { builds: publicBuildsResolver },
-        loadComponent: () =>
-          import('./features/builds/containers/public-builds.page').then(
-            (m) => m.PublicBuildsPage,
-          ),
-      },
-      {
-        path: ':id',
-        resolve: { view: publicBuildResolver },
-        loadComponent: () =>
-          import('./features/builds/containers/public-build.page').then(
-            (m) => m.PublicBuildPage,
-          ),
-      },
-      {
-        path: ':id/:slug',
-        resolve: { view: publicBuildResolver },
-        loadComponent: () =>
-          import('./features/builds/containers/public-build.page').then(
-            (m) => m.PublicBuildPage,
-          ),
-      },
-    ],
-  },
-  {
-    // Public: the blog and its posts.
+    // Public: the posts. The feed itself lives at the home page, and /blog
+    // redirects there so the list has one address for a search engine.
     path: 'blog',
     children: [
-      {
-        path: '',
-        resolve: { posts: publishedPostsResolver },
-        loadComponent: () =>
-          import('./features/posts/containers/blog.page').then((m) => m.BlogPage),
-      },
+      { path: '', pathMatch: 'full', redirectTo: '/' },
       {
         path: ':id',
         resolve: { post: postResolver, conversation: postConversationResolver },
@@ -237,5 +214,5 @@ export const appRoutes: Route[] = [
       },
     ],
   },
-  { path: '**', redirectTo: 'hangar' },
+  { path: '**', redirectTo: '' },
 ];

@@ -135,7 +135,7 @@ describe('posts', () => {
     );
   });
 
-  it('publishing opens it to anyone, without the builds they may not open', async () => {
+  it('publishing opens it to anyone, with the builds left to signed-in readers', async () => {
     const published = await send<PostDto>(author, 'patch', `/api/posts/${post.id}`, {
       visibility: 'PUBLIC',
     });
@@ -147,16 +147,26 @@ describe('posts', () => {
       bodyMd: '## Frame\n\nStarted with the arms.',
       buildIds: [],
     });
-    expect(read.builds.map((build) => build.id)).toEqual([publicBuild.id]);
-    expect(read.builds[0].ownedByViewer).toBe(false);
+    // Builds are behind sign-in, so a visitor is shown none of them.
+    expect(read.builds).toEqual([]);
+
+    const forPilot = await get<PostDto>(pilot, `/api/posts/${post.id}`);
+    expect(forPilot.builds.map((build) => build.id)).toEqual([publicBuild.id]);
+    expect(forPilot.builds[0].ownedByViewer).toBe(false);
 
     expect(await publishedIds()).toContain(post.id);
 
-    // On the blog, its tags are the linked builds a visitor may open, and it reads in a minute.
+    // On the blog, its tags are the linked builds the reader may open — none for a
+    // visitor, the shared one for a signed-in pilot — and it reads in a minute.
     const listed = (await get<PostSummaryDto[]>(null, '/api/posts/published')).find(
       (entry) => entry.id === post.id,
     );
-    expect(listed?.tags).toEqual([
+    expect(listed?.tags).toEqual([]);
+
+    const listedForPilot = (
+      await get<PostSummaryDto[]>(pilot, '/api/posts/published')
+    ).find((entry) => entry.id === post.id);
+    expect(listedForPilot?.tags).toEqual([
       { id: publicBuild.id, name: publicBuild.name, slug: publicBuild.slug },
     ]);
     expect(listed?.readingMinutes).toBe(1);

@@ -12,9 +12,12 @@ import { CommentsApi } from '../comments/comments.api';
 import { PostsApi } from './posts.api';
 
 /*
- * The blog's pages are rendered on the server and picked up in the browser, so
- * what they show is resolved before they render — see
- * `builds/public-build.resolvers.ts` for why.
+ * Why resolvers, when the app's own pages load from their stores after they
+ * render: the blog is rendered on the server and then picked up in the browser,
+ * and the browser's first render has to match the server's. Data fetched after
+ * a page is created lands after that first render; data resolved before it is
+ * there from the start, on both sides — and in the browser it comes from the
+ * responses the server rendered with, not a second fetch.
  */
 
 /** The blog. Null when it could not be loaded. */

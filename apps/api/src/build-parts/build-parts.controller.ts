@@ -24,13 +24,7 @@ import {
   removeInstallSchema,
 } from '@spothub/shared';
 
-import {
-  type AuthenticatedUser,
-  CurrentUser,
-  CurrentViewer,
-  Public,
-  ZodValidationPipe,
-} from '../common';
+import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
 import { BuildPartsService } from './build-parts.service';
 
 /**
@@ -42,10 +36,9 @@ import { BuildPartsService } from './build-parts.service';
 export class BuildPartsController {
   constructor(private readonly installs: BuildPartsService) {}
 
-  @Public()
   @Get()
   list(
-    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('buildId', ParseUUIDPipe) buildId: string,
     // Scoped to the query, not the method. A method-level @UsePipes runs the
     // schema over *every* parameter, and this handler also takes a `buildId`
@@ -53,7 +46,7 @@ export class BuildPartsController {
     // answered 400 before it reached the service.
     @Query(new ZodValidationPipe(listBuildPartsQuerySchema)) query: ListBuildPartsQuery,
   ): Promise<BuildPartDto[]> {
-    return this.installs.list(viewer?.id ?? null, buildId, query);
+    return this.installs.list(user.id, buildId, query);
   }
 
   @Get('cost')

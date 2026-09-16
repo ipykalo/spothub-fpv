@@ -143,8 +143,13 @@ describe('likes', () => {
       likedByViewer: true,
     });
 
-    const listed = (await request(testApp.server).get('/api/builds/public').expect(200))
-      .body as BuildDto[];
+    // Builds are behind sign-in, so the list another pilot browses is the shared one.
+    const listed = (
+      await request(testApp.server)
+        .get('/api/builds/shared')
+        .set('Authorization', as(other))
+        .expect(200)
+    ).body as BuildDto[];
     expect(listed.find((entry) => entry.id === build.id)?.likes).toEqual({
       count: 1,
       likedByViewer: false,

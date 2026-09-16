@@ -27,13 +27,6 @@
 
     <div class="flex items-center gap-2">
       <sh-collapse-all />
-      <!-- A shared build has a page anyone may open, signed in or not. -->
-      @if (quad.visibility !== 'PRIVATE') {
-        <a matButton [routerLink]="['/builds', quad.id, quad.slug]">
-          <mat-icon>public</mat-icon>
-          Public page
-        </a>
-      }
       <!-- Only its owner changes a build; a shared one is read-only. -->
       @if (quad.ownedByViewer) {
         <a matButton="outlined" [routerLink]="['/hangar', quad.id, 'edit']">
@@ -258,10 +251,6 @@
 
   <!-- Open to anyone the build is shared with: they ask, its owner answers. -->
   @if (build(); as quad) {
-    <sh-comments-section
-      [subject]="commentSubject"
-      [subjectId]="quad.id"
-      [ownedByViewer]="quad.ownedByViewer"
-    />
+    <sh-comments-section [subject]="commentSubject" [subjectId]="quad.id" [ownedByViewer]="quad.ownedByViewer" />
   }
 </div>

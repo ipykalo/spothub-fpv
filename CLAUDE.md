@@ -183,7 +183,7 @@ features/
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
   posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
-  likes/        likes.api, like-button container (dropped into the post and public build pages)
+  likes/        likes.api, like-button container (dropped into the post and build pages)
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -663,22 +663,31 @@ captures, flights and packs. The redaction is in the service, next to the
 read (`withoutOwnersDetails`); every write stays owner-scoped and untouched.
 The client hides every owner section and control where `ownedByViewer` is
 false, and does not even request configs, the inventory or the logbook;
-`?scope=shared` on `/hangar` is the shared list.
+`?scope=shared` on `/hangar` is the shared list. **Sharing decides which
+signed-in pilots may open a build, never whether a signed-out visitor may** —
+every build read is guarded, whatever its visibility says.
 
-**Public pages and the blog** open shared builds and posts to anyone, signed
-in or not, and render them on the server.
+**The blog is the public face of the site, and nothing else is.** It is the
+home page (`/`, with `/blog` redirecting there so the feed has one address)
+and it renders on the server. The hangar, parts, flights and spots are behind
+sign-in, and so are builds: a hangar is personal kit, and a gear list is not
+what anybody searches for. Builds were public for one release; the reasoning
+and what it cost to undo it are worth remembering before opening anything else.
 
 - **A read a visitor may make is `@Public()` and takes `@CurrentViewer()`**
   — the signed-in user, or null. On a public route the global guard still
-  checks a bearer token when one is sent, so an owner is recognised there
+  checks a bearer token when one is sent, so an author is recognised there
   too; a missing or bad token just leaves the request a visitor. The public
-  reads are the Public builds list (`GET /builds/public`), one build, its
-  parts, repairs, photos and questions, and the published posts and one post.
-  Every repository read that takes a viewer accepts null and then lets
-  through only what is shared; the owner-only redaction is unchanged, so a
-  visitor sees exactly what a signed-in stranger does. Spots stay behind
-  sign-in, as do every write and the cost rollup
-  (`apps/api/e2e/public-builds.e2e.spec.ts`).
+  reads are the published posts, one post, its images, its comments and its
+  likes — and nothing else. Every other read is guarded, so a visitor gets
+  401 rather than a redacted answer
+  (`apps/api/e2e/private-builds.e2e.spec.ts`).
+- **A post a visitor reads simply leaves its builds out.** The builds
+  repository answers a null viewer with nothing, so `BuildsFacade.visibleToViewer`
+  comes back empty and the post's tags and build cards disappear for a
+  visitor while a signed-in reader still sees them. That is deliberate: a tag
+  linking to a sign-in wall is worse than no tag. Old `/builds/:id` links
+  redirect into `/hangar/:id`, which lands on the build once its reader signs in.
 - **Posts are their own module**, `posts`: Markdown by any signed-in pilot,
   with the build visibility rule (Private is a draft, Unlisted opens by link,
   Public is also listed) and `published_at` stamped the first time a post
@@ -693,7 +702,8 @@ in or not, and render them on the server.
   dependency-free `likes` module. One `likes` table holds both: a `post_id` or
   a `build_id`, exactly one by a CHECK constraint in the migration, unique per
   user and subject, cascading with either. Anyone who can open the subject
-  sees the count (`GET …/likes` is public); liking is `PUT` and taking it back
+  sees the count (a post's `GET …/likes` is public, a build's is guarded with
+  the build); liking is `PUT` and taking it back
   is `DELETE`, both idempotent and both answering the new count. Whether a
   subject may be liked is a join on `posts` / `builds` inside the likes
   repository — a draft or a private build answers 404. Builds and posts carry
@@ -740,9 +750,10 @@ in or not, and render them on the server.
   `resizeToFitContent` itself — the autosize only measures on input. Tables
   are GFM; `sh-markdown` wraps each in a sideways-scrolling
   `.sh-markdown-table`.
-- **Only `builds` and `blog` render on the server** (`app.routes.server.ts`);
-  everything behind sign-in stays browser-rendered, since the server holds no
-  session and the map touches browser APIs as it loads. `apps/client` builds
+- **Only the home page and `blog/:id` render on the server**
+  (`app.routes.server.ts`); everything behind sign-in stays browser-rendered,
+  since the server holds no session and the map touches browser APIs as it
+  loads. `apps/client` builds
   to a Node server (`src/server.ts`) instead of static files, and its image
   runs that rather than nginx. It needs `API_INTERNAL_ORIGIN` (how it reaches
   the API without leaving the network) and `NG_ALLOWED_HOSTS` (the site's

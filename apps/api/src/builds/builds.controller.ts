@@ -21,19 +21,13 @@ import {
   updateBuildSchema,
 } from '@spothub/shared';
 
-import {
-  type AuthenticatedUser,
-  CurrentUser,
-  CurrentViewer,
-  Public,
-  ZodValidationPipe,
-} from '../common';
+import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
 import { BuildsService } from './builds.service';
 
 /**
- * Guarded by the global JwtAuthGuard. The two reads a public build page needs
- * — the Public list and one build — are `@Public()`, and answer a signed-out
- * visitor with only what is shared; every write still needs a signed-in owner.
+ * Guarded by the global JwtAuthGuard: a build is never shown to a signed-out
+ * visitor. Sharing decides which signed-in pilots may open someone else's —
+ * Public is listed, Unlisted opens by link — and every write needs its owner.
  *
  * The owner id comes from the verified token, never from the payload, so a
  * client cannot ask for someone else's builds.
@@ -65,24 +59,13 @@ export class BuildsController {
     return this.builds.listShared(user.id, query);
   }
 
-  /** Every Public build, for anyone. Declared before `:id` for the same reason as `shared`. */
-  @Public()
-  @Get('public')
-  listPublic(
-    @CurrentViewer() viewer: AuthenticatedUser | null,
-    @Query(new ZodValidationPipe(listBuildsQuerySchema)) query: ListBuildsQuery,
-  ): Promise<BuildDto[]> {
-    return this.builds.listPublic(viewer?.id ?? null, query);
-  }
-
-  /** One of yours, or one someone shared as Public or Unlisted — which a visitor may open too. */
-  @Public()
+  /** One of yours, or one another pilot shared as Public or Unlisted. */
   @Get(':id')
   getOne(
-    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<BuildDto> {
-    return this.builds.getOne(viewer?.id ?? null, id);
+    return this.builds.getOne(user.id, id);
   }
 
   @Post()
