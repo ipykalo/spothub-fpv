@@ -283,6 +283,11 @@ export class FlightsPage {
     }
   }
 
+  /** The path of the flight just asked for, or closing the one already open. */
+  protected onTrackRequested(flight: FlightDto): void {
+    void this.imports.showTrack(flight.id);
+  }
+
   protected async onRemove(flight: FlightDto): Promise<void> {
     this.pendingRemoval.set(flight.id);
 

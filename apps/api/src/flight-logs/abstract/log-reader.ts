@@ -1,3 +1,4 @@
+import type { Fix } from '../formats/gps-track';
 import type { ParsedLog } from '../formats/parsed-log';
 
 /** What a reader is told about a file beyond its bytes. */
@@ -24,4 +25,11 @@ export abstract class LogReader {
 
   /** Throws `LogParseError` when the file cannot be read into flights as it stands. */
   abstract read(body: Buffer, context: LogReadContext): Promise<ParsedLog>;
+
+  /**
+   * Every GPS fix in the file, in time order, for drawing a flight's path
+   * back from the log it came in — the whole file, since the caller knows
+   * which window it wants. Empty for a format that records no position.
+   */
+  abstract fixes(body: Buffer): Promise<readonly Fix[]>;
 }

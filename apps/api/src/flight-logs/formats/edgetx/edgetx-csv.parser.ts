@@ -502,11 +502,50 @@ function summarise(run: readonly Sample[]): ParsedFlight {
   };
 }
 
+/**
+ * Every GPS fix in the file, in time order — for drawing a flight's path back
+ * from the log it came in. Not split into flights: the caller knows the window
+ * of the flight it is asking about, and a fix outside one belongs to no flight.
+ */
+export function edgeTxFixes(text: string): readonly Fix[] {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const header = lines.at(0);
+
+  if (header === undefined) {
+    return [];
+  }
+
+  const columns = readHeader(header);
+  const samples: Sample[] = [];
+
+  for (const line of lines.slice(1)) {
+    const sample = readRow(line.split(','), columns);
+
+    if (sample) {
+      samples.push(sample);
+    }
+  }
+
+  samples.sort((first, second) => first.t - second.t);
+
+  return trustedFixes(samples);
+}
+
 /** The fixes worth trusting, summed by the same arithmetic every log's track gets. */
 function gpsSummary(run: readonly Sample[]): TrackFigures {
+  // The GPS module's own speed readings: the radio logs them, so nothing is
+  // measured from the positions.
+  return summariseTrack(
+    trustedFixes(run),
+    values(run, (sample) => sample.speedKmh),
+  );
+}
+
+/** A fix with too few satellites behind it is the receiver guessing. */
+function trustedFixes(samples: readonly Sample[]): readonly Fix[] {
   const fixes: Fix[] = [];
 
-  for (const sample of run) {
+  for (const sample of samples) {
     if (
       sample.lat !== null &&
       sample.lon !== null &&
@@ -521,12 +560,7 @@ function gpsSummary(run: readonly Sample[]): TrackFigures {
     }
   }
 
-  // The GPS module's own speed readings: the radio logs them, so nothing is
-  // measured from the positions.
-  return summariseTrack(
-    fixes,
-    values(run, (sample) => sample.speedKmh),
-  );
+  return fixes;
 }
 
 /**

@@ -8,7 +8,10 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../prisma';
-import { FlightLogsRepository } from './abstract/flight-logs.repository';
+import {
+  FlightLogsRepository,
+  type TrackSource,
+} from './abstract/flight-logs.repository';
 import type {
   LogFileEntity,
   LogFileResult,
@@ -46,6 +49,33 @@ const STILL_IMPORTED = {
 export class PrismaFlightLogsRepository extends FlightLogsRepository {
   constructor(private readonly prisma: PrismaService) {
     super();
+  }
+
+  async findTrackSource(ownerId: string, flightId: string): Promise<TrackSource | null> {
+    const flight = await this.prisma.flight.findFirst({
+      where: { id: flightId, ownerId },
+      select: {
+        startedAt: true,
+        endedAt: true,
+        // The GPX that joined this flight, when one did; otherwise the radio
+        // log it was read from, which is where its own GPS fixes are.
+        trackLogFile: { select: { storageKey: true, format: true } },
+        logFile: { select: { storageKey: true, format: true } },
+      },
+    });
+
+    const file = flight?.trackLogFile ?? flight?.logFile;
+
+    if (!flight || !file) {
+      return null;
+    }
+
+    return {
+      storageKey: file.storageKey,
+      format: file.format,
+      startedAt: flight.startedAt,
+      endedAt: flight.endedAt,
+    };
   }
 
   async findImportedChecksums(

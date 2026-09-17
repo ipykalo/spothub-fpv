@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { BlackboxDecoder } from '../../abstract/blackbox-decoder';
 import { type LogReadContext, LogReader } from '../../abstract/log-reader';
+import type { Fix } from '../gps-track';
 import { LogParseError, type ParsedLog } from '../parsed-log';
 import { blackboxOrigin, craftNameFrom, parseBlackboxLogs } from './blackbox-csv.parser';
 
@@ -31,5 +32,14 @@ export class BlackboxReader extends LogReader {
       craftNameFrom(body),
       blackboxOrigin(context.flownOn, context.fileName),
     );
+  }
+
+  /**
+   * None: a blackbox log records no time of day, so even where the quad had
+   * GPS its fixes could not be placed against a flight's clock. A track for
+   * one of these flights comes from a GPX that joined it.
+   */
+  fixes(): Promise<readonly Fix[]> {
+    return Promise.resolve([]);
   }
 }

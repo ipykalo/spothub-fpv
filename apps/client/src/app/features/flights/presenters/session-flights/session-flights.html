@@ -146,8 +146,20 @@
           </span>
         }
         @if (flight.hasGps) {
-          <span class="inline-flex items-center gap-1" title="Distance flown · height above take-off · top speed">
-            <mat-icon class="icon-sm text-muted" aria-hidden="true">route</mat-icon>
+          <!-- The figures double as the way in: this flight has a path to draw. -->
+          <button
+            type="button"
+            class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left [font:inherit] hover:text-primary"
+            [class.text-primary]="openTrackFlightId() === flight.id"
+            [attr.aria-expanded]="openTrackFlightId() === flight.id"
+            [title]="
+              openTrackFlightId() === flight.id
+                ? 'Hide the path'
+                : 'Distance flown · height above take-off · top speed — show the path'
+            "
+            (click)="trackRequested.emit(flight)"
+          >
+            <mat-icon class="icon-sm" aria-hidden="true">route</mat-icon>
             @if (flight.distanceM !== null) {
               {{ distance(flight.distanceM) }}
             }
@@ -157,7 +169,7 @@
             @if (flight.maxSpeedKmh !== null) {
               · {{ flight.maxSpeedKmh }} km/h
             }
-          </span>
+          </button>
         }
       </span>
 
@@ -170,6 +182,22 @@
       >
         {{ pendingRemoval() === flight.id ? 'Deleting…' : 'Delete' }}
       </button>
+
+      @if (openTrackFlightId() === flight.id) {
+        <div class="col-span-full">
+          @if (trackLoading()) {
+            <p class="m-0 py-3 text-sm text-muted">Reading the path from the log…</p>
+          } @else if (trackError(); as message) {
+            <p class="m-0 py-3 text-sm text-status-stop" role="alert">{{ message }}</p>
+          } @else if (track(); as path) {
+            @if (path.points.length) {
+              <sh-flight-map [points]="path.points" [takeoffAltitudeM]="path.takeoffAltitudeM" />
+            } @else {
+              <p class="m-0 py-3 text-sm text-muted">This flight logged no position worth drawing.</p>
+            }
+          }
+        </div>
+      }
     </li>
   }
 </ol>

@@ -8,10 +8,11 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
-import type { FlightDto, SessionDto } from '@spothub/shared';
+import type { FlightDto, FlightTrackDto, SessionDto } from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import type { ChoiceOption } from '../../../../core/components/choice-option';
+import { FlightMap } from '../flight-map/flight-map';
 
 /** The radio's clock, shown as recorded: stored as UTC, so rendered as UTC. */
 const CLOCK = new Intl.DateTimeFormat(undefined, {
@@ -32,7 +33,7 @@ const CLOCK = new Intl.DateTimeFormat(undefined, {
 @Component({
   selector: 'sh-session-flights',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Autocomplete, MatButtonModule, MatCheckboxModule, MatIconModule],
+  imports: [FlightMap, Autocomplete, MatButtonModule, MatCheckboxModule, MatIconModule],
   templateUrl: './session-flights.html',
   styleUrl: './session-flights.scss',
 })
@@ -42,6 +43,11 @@ export class SessionFlights {
   readonly batteries = input<readonly ChoiceOption<string>[]>([]);
   readonly selected = input<ReadonlySet<string>>(new Set());
   readonly pendingRemoval = input<string | null>(null);
+  /** Which flight's path is open, and what has been read of it so far. */
+  readonly openTrackFlightId = input<string | null>(null);
+  readonly track = input<FlightTrackDto | null>(null);
+  readonly trackLoading = input(false);
+  readonly trackError = input<string | null>(null);
 
   readonly buildChanged = output<{ flight: FlightDto; buildId: string | null }>();
   readonly batteryChanged = output<{ flight: FlightDto; batteryUnitId: string | null }>();
@@ -50,6 +56,8 @@ export class SessionFlights {
     selected: boolean;
   }>();
   readonly removeRequested = output<FlightDto>();
+  /** Show this flight's path, or hide it when it is the one already open. */
+  readonly trackRequested = output<FlightDto>();
 
   protected readonly allSelected = computed(() => {
     const selected = this.selected();

@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
+  type FlightTrackDto,
   LogImportStatus,
   type LogImportDto,
   MAX_LOG_BYTES,
@@ -57,6 +58,10 @@ const CHECKSUMS_PER_REQUEST = MAX_LOGS_PER_IMPORT * 4;
  *
  * It does not reload the logbook when it is done: the page that composes both
  * features does, so this store never reaches into another.
+ *
+ * It also holds the track of whichever flight is open on the map. That lives
+ * here rather than in the logbook because a track is read back out of a log
+ * file, which is this feature's to ask for.
  */
 @Injectable({ providedIn: 'root' })
 export class FlightLogsStore {
@@ -66,6 +71,11 @@ export class FlightLogsStore {
   private readonly importPhase = signal<ImportPhase>('idle');
   private readonly importBatches = signal<readonly LogImportDto[]>([]);
   private readonly importMessage = signal<string | null>(null);
+
+  private readonly openTrackId = signal<string | null>(null);
+  private readonly trackPoints = signal<FlightTrackDto | null>(null);
+  private readonly trackBusy = signal(false);
+  private readonly trackFailure = signal<string | null>(null);
 
   readonly files = this.importFiles.asReadonly();
   readonly phase = this.importPhase.asReadonly();
@@ -81,6 +91,11 @@ export class FlightLogsStore {
   readonly importedFlights = computed(() =>
     this.importBatches().reduce((sum, batch) => sum + batch.flightCount, 0),
   );
+
+  readonly openTrackFlightId = this.openTrackId.asReadonly();
+  readonly track = this.trackPoints.asReadonly();
+  readonly trackLoading = this.trackBusy.asReadonly();
+  readonly trackError = this.trackFailure.asReadonly();
 
   /**
    * Imports whatever was dropped: a whole LOGS folder, or a handful of files.
@@ -155,6 +170,38 @@ export class FlightLogsStore {
       this.finish(failed ? 'failed' : 'done', null);
     } catch (error) {
       this.finish('failed', messageOf(error, 'The import could not be started.'));
+    }
+  }
+
+  /**
+   * Opens one flight's path, or closes what is open when given null or the
+   * flight already showing. The track is not kept once it is closed: it is a
+   * few hundred points read back on demand, not state the page is built on.
+   */
+  async showTrack(flightId: string | null): Promise<void> {
+    const open = flightId === null || flightId === this.openTrackId() ? null : flightId;
+
+    this.openTrackId.set(open);
+    this.trackPoints.set(null);
+    this.trackFailure.set(null);
+
+    if (open === null) {
+      return;
+    }
+
+    this.trackBusy.set(true);
+
+    try {
+      const path = await firstValueFrom(this.api.track(open));
+
+      // The reader may have moved on to another flight while this loaded.
+      if (this.openTrackId() === open) {
+        this.trackPoints.set(path);
+      }
+    } catch {
+      this.trackFailure.set('That flight’s path could not be read from its log.');
+    } finally {
+      this.trackBusy.set(false);
     }
   }
 

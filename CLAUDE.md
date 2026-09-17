@@ -178,7 +178,7 @@ features/
   configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
   photos/       photos.api/store, photo-gallery presenter
   parts/        catalogue, units, sources
-  flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends presenters
+  flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends/flight-map presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
@@ -464,6 +464,26 @@ quad with telemetry off never sends the radio: pack voltage and current.
 - Builds match a craft name or radio model ignoring case and spaces, so the
   flight controller's "Cinelog  20" finds the build Cinelog20.
 
+**A flight's path is read back out of its log, never stored again.**
+`GET /flight-logs/tracks/:flightId` finds the file the flight's fixes are in —
+the GPX that joined it, or the radio log it was read from — fetches it from
+storage, parses it again, cuts it to the flight's own window with a few
+seconds of slack either side, and thins it to at most 600 points. The route
+lives in `flight-logs` because the file is that module's to parse, and the
+flight is reached by a join on `flights` inside its repository, as
+`findImportedChecksums` already does. A blackbox flight has a path only where
+a GPX joined it: its own log records no time of day to place fixes against.
+The map (`sh-flight-map`) opens under a flight's row in the logbook and
+scrubs through the track.
+
+**The trend charts are three, not four.** Pack sag and worst link quality per
+flight earn their place — the second is a failsafe risk nobody feels while
+flying — and cumulative airtime is a running total worth seeing. Average
+throttle against peak current was dropped: it was a scatter plot of two
+numbers that say almost nothing about a flight. Betaflight's own Blackbox
+Explorer is the microscope for one flight at kHz rates; what this app can
+show and that cannot is the quad, the pack, the spot and the history.
+
 **Import and the logbook are two modules.** `flight-logs` owns uploads, the
 import job and the log formats; `flights` owns flights and sessions, and
 `flight-logs` reaches it only through `FlightsFacade` — sessions regroup on
@@ -554,7 +574,11 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
 - **Coordinates are `Decimal(9, 6)`** — about 11 cm — and the contract rounds
   to six places, so what the form shows is what is stored. The repository hands
   them out as numbers.
-- **Leaflet is touched in one presenter, `spot-map`.** Pins are `divIcon`s
+- **Leaflet is touched in two presenters, `spot-map` and `flight-map`.** They
+  are not one component: a map of pins someone picks a point on is not a single
+  line played back, and what they share — the tile source, the glyph markers,
+  the resize — is small enough to copy rather than wrap in a map framework.
+  Pins are `divIcon`s
   holding a Material Icons glyph: Leaflet's default marker images are URLs a
   bundler rewrites into paths that do not exist. **`leaflet.css` is `@use`d
   from `styles.scss`.** Without it the panes lose their absolute positioning,

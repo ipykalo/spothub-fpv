@@ -118,6 +118,11 @@
         (batteryChanged)="onBatteryChanged($event)"
         (selectionChanged)="onSelectionChanged($event)"
         (removeRequested)="onRemove($event)"
+        [openTrackFlightId]="imports.openTrackFlightId()"
+        [track]="imports.track()"
+        [trackLoading]="imports.trackLoading()"
+        [trackError]="imports.trackError()"
+        (trackRequested)="onTrackRequested($event)"
       />
     </sh-section>
   }
