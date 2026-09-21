@@ -1,0 +1,93 @@
+/*
+ * The traces' colours are the one thing a Tailwind utility cannot express:
+ * they are a validated categorical set carrying each figure's identity, not
+ * theme colours. Both steps were checked for colour-vision separation against
+ * their own surface, light and dark; `light-dark()` swaps them with the
+ * toolbar's theme toggle, which sets `color-scheme` on the root.
+ *
+ * Every row is also labelled in words beside its key, so identity is never
+ * carried by colour alone.
+ */
+.viz {
+  --trace-voltage: light-dark(#2a78d6, #3987e5);
+  --trace-currentA: light-dark(#eb6834, #e2683a);
+  --trace-throttlePct: light-dark(#1baf7a, #1da874);
+  --trace-linkQuality: light-dark(#8a63d2, #9070dc);
+  --chart-gridline: light-dark(#e1e0d9, #2c2c2a);
+
+  /* A moment is picked by pointing, so the charts read as one control. */
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.axis {
+  margin-top: -0.25rem;
+}
+
+.gridline {
+  stroke: var(--chart-gridline);
+  stroke-width: 1;
+}
+
+.axis-label {
+  fill: var(--mat-sys-on-surface-variant, #898781);
+  font-size: 9px;
+}
+
+.trace {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.crosshair {
+  stroke: var(--mat-sys-on-surface, #1b1b19);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* The swatch beside each row's name, in the colour of the trace it names. */
+.key {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.1875rem;
+  border-radius: 999px;
+}
+
+.key--voltage {
+  background: var(--trace-voltage);
+}
+.trace--voltage {
+  stroke: var(--trace-voltage);
+}
+
+.key--currentA {
+  background: var(--trace-currentA);
+}
+.trace--currentA {
+  stroke: var(--trace-currentA);
+}
+
+.key--throttlePct {
+  background: var(--trace-throttlePct);
+}
+.trace--throttlePct {
+  stroke: var(--trace-throttlePct);
+}
+
+.key--linkQuality {
+  background: var(--trace-linkQuality);
+}
+.trace--linkQuality {
+  stroke: var(--trace-linkQuality);
+}

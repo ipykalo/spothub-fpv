@@ -9,6 +9,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   type CreateLogImportDto,
+  type FlightTimelineDto,
+  type FlightTimelinePointDto,
   type FlightTrackDto,
   type FlightTrackPointDto,
   type KnownLogsDto,
@@ -31,6 +33,13 @@ import { LogReaders } from './formats/log-readers';
 
 /** More than a map can draw apart: beyond this a track is dots on dots. */
 const MAX_TRACK_POINTS = 600;
+
+/**
+ * More than a chart this size can show. A blackbox log holds a frame every
+ * millisecond or two — a four-minute flight is a quarter of a million of
+ * them — and every one past this would be a pixel already drawn.
+ */
+const MAX_TIMELINE_POINTS = 400;
 
 /**
  * A fix this far outside the flight still belongs to it: a radio's clock and
@@ -152,6 +161,52 @@ export class FlightLogsService {
   }
 
   /**
+   * What happened during one flight: its pack, its throttle and its link, from
+   * the log it arrived in.
+   *
+   * Read back rather than stored, like the track. A GPX flight has nothing to
+   * show — a track records where the quad was, never what it was doing — and
+   * nor has a blackbox flight whose day was never recorded, since its frames
+   * could not be placed against the flight's clock.
+   */
+  async timeline(ownerId: string, flightId: string): Promise<FlightTimelineDto> {
+    const source = await this.logs.findLogSource(ownerId, flightId);
+
+    if (!source) {
+      throw new NotFoundException('Flight not found');
+    }
+
+    const stored = await this.storage.get(source.storageKey);
+
+    if (!stored) {
+      throw new NotFoundException('The log this flight came in is no longer stored');
+    }
+
+    const samples = await this.readers.for(source.format).samples(stored.body, {
+      fileName: source.fileName,
+      // The day the flight sits on is the day the import placed it on, which
+      // is what a blackbox file's own clock is rebuilt from.
+      flownOn: source.startedAt.toISOString().slice(0, 10),
+    });
+
+    const from = source.startedAt.getTime() - WINDOW_SLACK_MS;
+    const to = source.endedAt.getTime() + WINDOW_SLACK_MS;
+    const own = samples.filter((sample) => sample.t >= from && sample.t <= to);
+    const started = source.startedAt.getTime();
+
+    return {
+      flightId,
+      points: thinTo(own, MAX_TIMELINE_POINTS).map((sample): FlightTimelinePointDto => ({
+        t: sample.t - started,
+        voltage: sample.voltage,
+        currentA: sample.currentA,
+        throttlePct: sample.throttlePct,
+        linkQuality: sample.linkQuality,
+      })),
+    };
+  }
+
+  /**
    * A flight's path, read back from the log it arrived in.
    *
    * Nothing is stored twice: the file is still in the bucket, so the fixes are
@@ -187,16 +242,20 @@ export class FlightLogsService {
 
 /** Every nth fix, so a long track still draws as the same shape. */
 function thin(fixes: readonly Fix[]): readonly Fix[] {
-  if (fixes.length <= MAX_TRACK_POINTS) {
-    return fixes;
+  return thinTo(fixes, MAX_TRACK_POINTS);
+}
+
+/** Every nth one, and always the last: the end of a flight is never dropped. */
+function thinTo<T>(items: readonly T[], most: number): readonly T[] {
+  if (items.length <= most) {
+    return items;
   }
 
-  const step = Math.ceil(fixes.length / MAX_TRACK_POINTS);
-  const kept = fixes.filter((_, index) => index % step === 0);
-  const last = fixes.at(-1);
+  const step = Math.ceil(items.length / most);
+  const kept = items.filter((_, index) => index % step === 0);
+  const last = items.at(-1);
 
-  // The landing is worth keeping whatever the arithmetic says.
-  return last && kept.at(-1) !== last ? [...kept, last] : kept;
+  return last !== undefined && kept.at(-1) !== last ? [...kept, last] : kept;
 }
 
 /**

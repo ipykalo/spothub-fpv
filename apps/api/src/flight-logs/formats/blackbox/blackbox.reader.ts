@@ -3,8 +3,13 @@ import { Injectable } from '@nestjs/common';
 import { BlackboxDecoder } from '../../abstract/blackbox-decoder';
 import { type LogReadContext, LogReader } from '../../abstract/log-reader';
 import type { Fix } from '../gps-track';
-import { LogParseError, type ParsedLog } from '../parsed-log';
-import { blackboxOrigin, craftNameFrom, parseBlackboxLogs } from './blackbox-csv.parser';
+import { LogParseError, type LogSample, type ParsedLog } from '../parsed-log';
+import {
+  blackboxOrigin,
+  blackboxSamples,
+  craftNameFrom,
+  parseBlackboxLogs,
+} from './blackbox-csv.parser';
 
 /**
  * A Betaflight blackbox log: binary, decoded by Betaflight's own decoder and
@@ -41,5 +46,22 @@ export class BlackboxReader extends LogReader {
    */
   fixes(): Promise<readonly Fix[]> {
     return Promise.resolve([]);
+  }
+
+  /**
+   * The frames, placed on the same invented clock the import gave this file's
+   * flights: the day it was flown plus a slot per file number. Without that
+   * day the times would not line up with any flight, so there is nothing to
+   * show rather than something wrong.
+   */
+  async samples(body: Buffer, context: LogReadContext): Promise<readonly LogSample[]> {
+    if (context.flownOn === null) {
+      return [];
+    }
+
+    return blackboxSamples(
+      await this.decoder.decode(body),
+      blackboxOrigin(context.flownOn, context.fileName),
+    );
   }
 }

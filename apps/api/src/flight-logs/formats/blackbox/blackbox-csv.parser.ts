@@ -20,6 +20,7 @@
 
 import {
   LogParseError,
+  type LogSample,
   MIN_FLIGHT_MS,
   type ParsedFlight,
   type ParsedLog,
@@ -115,6 +116,46 @@ export function parseBlackboxLogs(
     discarded: runs.length - flights.length,
     rowCount: frames.length,
   };
+}
+
+/**
+ * Every frame in the file as a sample, timed from the same origin its flights
+ * were stored against — what the pack was doing a thousand times a second,
+ * which is the half a radio's telemetry never sees.
+ */
+export function blackboxSamples(
+  logs: readonly string[],
+  origin: number,
+): readonly LogSample[] {
+  const samples: LogSample[] = [];
+
+  for (const [log, csv] of logs.entries()) {
+    const lines = csv.split(/\r?\n/);
+    const columns = readHeader(lines[0]);
+
+    if (columns === null) {
+      continue;
+    }
+
+    for (let index = 1; index < lines.length; index += 1) {
+      const frame = readFrame(lines[index], columns, log);
+
+      if (frame) {
+        samples.push({
+          t: origin + Math.round(frame.t * 1000),
+          voltage: frame.voltage,
+          currentA: frame.current,
+          throttlePct: frame.throttlePct,
+          // A flight controller knows nothing about the radio's link.
+          linkQuality: null,
+        });
+      }
+    }
+  }
+
+  samples.sort((first, second) => first.t - second.t);
+
+  return samples;
 }
 
 /** The craft name a flight controller writes into each log's header, or null. */

@@ -171,6 +171,27 @@ export interface FlightTrackPointDto {
 }
 
 /**
+ * One moment of a flight, as its log recorded it. Timed from the flight's own
+ * start, like a track point, so a chart and a map read the same clock.
+ *
+ * What is filled in depends on the log: a radio heard the link and the
+ * sticks, a flight controller watched the pack a thousand times a second.
+ */
+export interface FlightTimelinePointDto {
+  readonly t: number;
+  readonly voltage: number | null;
+  readonly currentA: number | null;
+  readonly throttlePct: number | null;
+  readonly linkQuality: number | null;
+}
+
+/** What happened during one flight, read back out of its log. */
+export interface FlightTimelineDto {
+  readonly flightId: string;
+  readonly points: readonly FlightTimelinePointDto[];
+}
+
+/**
  * A flight's path, read back from the log it arrived in rather than stored a
  * second time, and thinned to something a map can draw.
  */

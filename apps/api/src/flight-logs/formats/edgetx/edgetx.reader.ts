@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 
 import { type LogReadContext, LogReader } from '../../abstract/log-reader';
 import type { Fix } from '../gps-track';
-import type { ParsedLog } from '../parsed-log';
-import { edgeTxFixes, parseEdgeTxCsv } from './edgetx-csv.parser';
+import type { LogSample, ParsedLog } from '../parsed-log';
+import { edgeTxFixes, edgeTxSamples, parseEdgeTxCsv } from './edgetx-csv.parser';
 
 /** The radio's EdgeTX telemetry log: a CSV, read as text. */
 @Injectable()
@@ -17,5 +17,9 @@ export class EdgeTxReader extends LogReader {
 
   fixes(body: Buffer): Promise<readonly Fix[]> {
     return Promise.resolve(edgeTxFixes(body.toString('utf8')));
+  }
+
+  samples(body: Buffer): Promise<readonly LogSample[]> {
+    return Promise.resolve(edgeTxSamples(body.toString('utf8')));
   }
 }

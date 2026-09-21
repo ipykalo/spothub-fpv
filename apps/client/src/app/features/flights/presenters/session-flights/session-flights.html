@@ -31,6 +31,10 @@
       <mat-icon class="icon-xs" aria-hidden="true">route</mat-icon>
       distance · height above take-off · top speed (GPS logs only)
     </span>
+    <span class="inline-flex items-center gap-1">
+      <mat-icon class="icon-xs" aria-hidden="true">show_chart</mat-icon>
+      the flight second by second, read back from its log
+    </span>
   </p>
 </div>
 
@@ -173,15 +177,42 @@
         }
       </span>
 
-      <button
-        matButton
-        type="button"
-        class="row-start-1 col-start-3 min-[60rem]:row-auto min-[60rem]:col-auto"
-        [disabled]="pendingRemoval() === flight.id"
-        (click)="removeRequested.emit(flight)"
-      >
-        {{ pendingRemoval() === flight.id ? 'Deleting…' : 'Delete' }}
-      </button>
+      <span class="row-start-1 col-start-3 flex items-center gap-1 min-[60rem]:row-auto min-[60rem]:col-auto">
+        @if (hasFigures(flight)) {
+          <button
+            matIconButton
+            type="button"
+            [attr.aria-expanded]="openTimelineFlightId() === flight.id"
+            [attr.aria-label]="'Show flight ' + (n + 1) + ' second by second'"
+            [title]="openTimelineFlightId() === flight.id ? 'Hide the charts' : 'What happened during this flight'"
+            [class.text-primary]="openTimelineFlightId() === flight.id"
+            (click)="timelineRequested.emit(flight)"
+          >
+            <mat-icon>show_chart</mat-icon>
+          </button>
+        }
+
+        <button
+          matButton
+          type="button"
+          [disabled]="pendingRemoval() === flight.id"
+          (click)="removeRequested.emit(flight)"
+        >
+          {{ pendingRemoval() === flight.id ? 'Deleting…' : 'Delete' }}
+        </button>
+      </span>
+
+      @if (openTimelineFlightId() === flight.id) {
+        <div class="col-span-full">
+          @if (timelineLoading()) {
+            <p class="m-0 py-3 text-sm text-muted">Reading the flight back from its log…</p>
+          } @else if (timelineError(); as message) {
+            <p class="m-0 py-3 text-sm text-status-stop" role="alert">{{ message }}</p>
+          } @else if (timeline(); as detail) {
+            <sh-flight-timeline [points]="detail.points" />
+          }
+        </div>
+      }
 
       @if (openTrackFlightId() === flight.id) {
         <div class="col-span-full">

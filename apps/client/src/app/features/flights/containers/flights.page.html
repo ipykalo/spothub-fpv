@@ -122,7 +122,12 @@
         [track]="imports.track()"
         [trackLoading]="imports.trackLoading()"
         [trackError]="imports.trackError()"
+        [openTimelineFlightId]="imports.openTimelineFlightId()"
+        [timeline]="imports.timeline()"
+        [timelineLoading]="imports.timelineLoading()"
+        [timelineError]="imports.timelineError()"
         (trackRequested)="onTrackRequested($event)"
+        (timelineRequested)="onTimelineRequested($event)"
       />
     </sh-section>
   }

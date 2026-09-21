@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../prisma';
 import {
   FlightLogsRepository,
+  type LogSource,
   type TrackSource,
 } from './abstract/flight-logs.repository';
 import type {
@@ -73,6 +74,31 @@ export class PrismaFlightLogsRepository extends FlightLogsRepository {
     return {
       storageKey: file.storageKey,
       format: file.format,
+      startedAt: flight.startedAt,
+      endedAt: flight.endedAt,
+    };
+  }
+
+  async findLogSource(ownerId: string, flightId: string): Promise<LogSource | null> {
+    const flight = await this.prisma.flight.findFirst({
+      where: { id: flightId, ownerId },
+      select: {
+        startedAt: true,
+        endedAt: true,
+        // The log this flight was read from, never a GPX that joined it: a
+        // track says where the quad was, not what it was doing.
+        logFile: { select: { storageKey: true, format: true, fileName: true } },
+      },
+    });
+
+    if (!flight) {
+      return null;
+    }
+
+    return {
+      storageKey: flight.logFile.storageKey,
+      format: flight.logFile.format,
+      fileName: flight.logFile.fileName,
       startedAt: flight.startedAt,
       endedAt: flight.endedAt,
     };

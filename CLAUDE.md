@@ -178,7 +178,7 @@ features/
   configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
   photos/       photos.api/store, photo-gallery presenter
   parts/        catalogue, units, sources
-  flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends/flight-map presenters
+  flights/      flights.api/store, chart-scale, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends/flight-map/flight-timeline presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
@@ -462,7 +462,7 @@ quad with telemetry off never sends the radio: pack voltage and current.
 - A flight controller's USB drive also offers `btfl_all.bbl`, the whole flash
   repeating every log, and a `padding.txt` of zeros. Both are skipped.
 - Builds match a craft name or radio model ignoring case and spaces, so the
-  flight controller's "Cinelog  20" finds the build Cinelog20.
+  flight controller's "Cinelog 20" finds the build Cinelog20.
 
 **A flight's path is read back out of its log, never stored again.**
 `GET /flight-logs/tracks/:flightId` finds the file the flight's fixes are in —
@@ -476,13 +476,32 @@ a GPX joined it: its own log records no time of day to place fixes against.
 The map (`sh-flight-map`) opens under a flight's row in the logbook and
 scrubs through the track.
 
+**And so is what the quad was doing.** `GET /flight-logs/timelines/:flightId`
+is the same journey for the figures rather than the positions: the flight's
+own log — never a GPX that joined it, which records where the quad was and
+nothing else — parsed again into `LogSample`s, cut to the flight's window and
+thinned to at most 400 points. What a log holds decides what is drawn: a
+radio heard the link, the sticks and its own battery; a flight controller
+watched the pack a thousand times a second and knows nothing of the link. A
+blackbox flight is placed by rebuilding `blackboxOrigin` from the day the
+import stored the flight on, which is the only clock its frames have.
+`sh-flight-timeline` draws one row per figure — volts, amps and percentages
+share no axis, and two y-scales on one chart is the mistake that makes a
+chart lie — with a crosshair that reads every row at the same moment.
+The arithmetic is in `timeline-series.ts` and the scales both it and the
+trend charts use are in `flights/chart-scale.ts`, because a spec may not
+import a component.
+
 **The trend charts are three, not four.** Pack sag and worst link quality per
 flight earn their place — the second is a failsafe risk nobody feels while
 flying — and cumulative airtime is a running total worth seeing. Average
 throttle against peak current was dropped: it was a scatter plot of two
-numbers that say almost nothing about a flight. Betaflight's own Blackbox
-Explorer is the microscope for one flight at kHz rates; what this app can
-show and that cannot is the quad, the pack, the spot and the history.
+numbers that say almost nothing about a flight. The trends answer "how is
+this quad, this pack, this season going?"; one flight's own timeline answers
+"what happened on this flight?". Betaflight's own Blackbox Explorer remains
+the microscope for a log at kHz rates, PID traces and all — what this app
+adds is that every flight, from any log format, tells its story in the same
+row of the same logbook.
 
 **Import and the logbook are two modules.** `flight-logs` owns uploads, the
 import job and the log formats; `flights` owns flights and sessions, and
@@ -875,12 +894,12 @@ every report (`scripts/coverage-paths.mjs`).
 
 Each area is then held to a floor in `coverage.thresholds.json`:
 
-| area | what it is |
-| --- | --- |
-| `libs/shared` | the contracts and their helpers |
-| `apps/api/src` | measured from the unit **and** e2e runs together |
-| `apps/client (logic)` | client files with no template beside them — stores, pure helpers, resolvers |
-| `apps/client (components)` | everything with a template: counted and shown, never gated |
+| area                       | what it is                                                                  |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `libs/shared`              | the contracts and their helpers                                             |
+| `apps/api/src`             | measured from the unit **and** e2e runs together                            |
+| `apps/client (logic)`      | client files with no template beside them — stores, pure helpers, resolvers |
+| `apps/client (components)` | everything with a template: counted and shown, never gated                  |
 
 **The floors ratchet.** Each starts at what its area measured and rises as
 tests land; `npm run coverage -- --update` rewrites them from a full run.

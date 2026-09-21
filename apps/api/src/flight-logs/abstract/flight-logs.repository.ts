@@ -17,6 +17,15 @@ export interface TrackSource {
 }
 
 /**
+ * The same, for the log the flight was read from rather than a GPX that
+ * joined it, and with the name the import knew it by — which is what places a
+ * blackbox file's frames back on the clock its flights were stored against.
+ */
+export interface LogSource extends TrackSource {
+  readonly fileName: string;
+}
+
+/**
  * Persistence contract for log files and the batches that import them.
  * `ownerId` first on every method, as everywhere else.
  */
@@ -34,6 +43,13 @@ export abstract class FlightLogsRepository {
     ownerId: string,
     flightId: string,
   ): Promise<TrackSource | null>;
+
+  /**
+   * The log the flight itself was read from — never a GPX that joined it,
+   * which records where the quad was and nothing about what it was doing.
+   * Null when the flight is not this owner's.
+   */
+  abstract findLogSource(ownerId: string, flightId: string): Promise<LogSource | null>;
 
   /**
    * Which of these checksums are already imported: parsed, and with a flight

@@ -7,6 +7,7 @@ import {
 import { Injectable, inject } from '@angular/core';
 import type {
   CreateLogImportDto,
+  FlightTimelineDto,
   FlightTrackDto,
   KnownLogsResultDto,
   LogImportDto,
@@ -29,6 +30,13 @@ export class FlightLogsApi {
    */
   track(flightId: string): Observable<FlightTrackDto> {
     return this.http.get<FlightTrackDto>(`${this.base}/flight-logs/tracks/${flightId}`);
+  }
+
+  /** What one flight's pack, sticks and link did, read back out of its log. */
+  timeline(flightId: string): Observable<FlightTimelineDto> {
+    return this.http.get<FlightTimelineDto>(
+      `${this.base}/flight-logs/timelines/${flightId}`,
+    );
   }
 
   /** Which of these checksums are already imported. */

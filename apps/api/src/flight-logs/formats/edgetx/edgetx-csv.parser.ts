@@ -22,6 +22,7 @@ import {
   LogParseError,
   MIN_FLIGHT_MS,
   type ParsedFlight,
+  type LogSample,
   type ParsedLog,
   SPLIT_GAP_MS,
   maxOf,
@@ -503,11 +504,30 @@ function summarise(run: readonly Sample[]): ParsedFlight {
 }
 
 /**
+ * Every sample in the file, in time order — what the radio heard, for showing
+ * a flight back moment by moment rather than as one row of figures.
+ */
+export function edgeTxSamples(text: string): readonly LogSample[] {
+  return readSamples(text).map((sample) => ({
+    t: sample.t,
+    voltage: sample.voltage,
+    currentA: sample.current,
+    throttlePct: sample.throttlePct,
+    linkQuality: sample.linkQuality,
+  }));
+}
+
+/**
  * Every GPS fix in the file, in time order — for drawing a flight's path back
  * from the log it came in. Not split into flights: the caller knows the window
  * of the flight it is asking about, and a fix outside one belongs to no flight.
  */
 export function edgeTxFixes(text: string): readonly Fix[] {
+  return trustedFixes(readSamples(text));
+}
+
+/** The file's rows as samples, in time order. Shared by every read of one. */
+function readSamples(text: string): readonly Sample[] {
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
   const header = lines.at(0);
 
@@ -528,7 +548,7 @@ export function edgeTxFixes(text: string): readonly Fix[] {
 
   samples.sort((first, second) => first.t - second.t);
 
-  return trustedFixes(samples);
+  return samples;
 }
 
 /** The fixes worth trusting, summed by the same arithmetic every log's track gets. */

@@ -2,7 +2,7 @@
   "//": "Floors per area, in percent of statements covered, checked by `npm run coverage`. They ratchet: each starts at what the area measured when it was last raised, and goes up as tests land — never down without a reason written into the commit. `npm run coverage -- --update` rewrites them from a full run.",
   "areas": {
     "libs/shared": 83,
-    "apps/api/src": 79,
-    "apps/client (logic)": 32
+    "apps/api/src": 80,
+    "apps/client (logic)": 36
   }
 }

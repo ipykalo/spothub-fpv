@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
+  type FlightTimelineDto,
   type FlightTrackDto,
   LogImportStatus,
   type LogImportDto,
@@ -59,9 +60,10 @@ const CHECKSUMS_PER_REQUEST = MAX_LOGS_PER_IMPORT * 4;
  * It does not reload the logbook when it is done: the page that composes both
  * features does, so this store never reaches into another.
  *
- * It also holds the track of whichever flight is open on the map. That lives
- * here rather than in the logbook because a track is read back out of a log
- * file, which is this feature's to ask for.
+ * It also holds the track of whichever flight is open on the map, and the
+ * timeline of whichever flight is open as a chart. Those live here rather
+ * than in the logbook because both are read back out of a log file, which is
+ * this feature's to ask for.
  */
 @Injectable({ providedIn: 'root' })
 export class FlightLogsStore {
@@ -71,6 +73,11 @@ export class FlightLogsStore {
   private readonly importPhase = signal<ImportPhase>('idle');
   private readonly importBatches = signal<readonly LogImportDto[]>([]);
   private readonly importMessage = signal<string | null>(null);
+
+  private readonly openTimelineId = signal<string | null>(null);
+  private readonly timelineData = signal<FlightTimelineDto | null>(null);
+  private readonly timelineBusy = signal(false);
+  private readonly timelineFailure = signal<string | null>(null);
 
   private readonly openTrackId = signal<string | null>(null);
   private readonly trackPoints = signal<FlightTrackDto | null>(null);
@@ -91,6 +98,11 @@ export class FlightLogsStore {
   readonly importedFlights = computed(() =>
     this.importBatches().reduce((sum, batch) => sum + batch.flightCount, 0),
   );
+
+  readonly openTimelineFlightId = this.openTimelineId.asReadonly();
+  readonly timeline = this.timelineData.asReadonly();
+  readonly timelineLoading = this.timelineBusy.asReadonly();
+  readonly timelineError = this.timelineFailure.asReadonly();
 
   readonly openTrackFlightId = this.openTrackId.asReadonly();
   readonly track = this.trackPoints.asReadonly();
@@ -202,6 +214,39 @@ export class FlightLogsStore {
       this.trackFailure.set('That flight’s path could not be read from its log.');
     } finally {
       this.trackBusy.set(false);
+    }
+  }
+
+  /**
+   * Opens one flight's charts, or closes what is open when given null or the
+   * flight already showing. Kept only while it is open, like the track: a few
+   * hundred readings re-read on demand cost less than holding every flight's.
+   */
+  async showTimeline(flightId: string | null): Promise<void> {
+    const open =
+      flightId === null || flightId === this.openTimelineId() ? null : flightId;
+
+    this.openTimelineId.set(open);
+    this.timelineData.set(null);
+    this.timelineFailure.set(null);
+
+    if (open === null) {
+      return;
+    }
+
+    this.timelineBusy.set(true);
+
+    try {
+      const detail = await firstValueFrom(this.api.timeline(open));
+
+      // The reader may have moved on to another flight while this loaded.
+      if (this.openTimelineId() === open) {
+        this.timelineData.set(detail);
+      }
+    } catch {
+      this.timelineFailure.set('That flight could not be read back from its log.');
+    } finally {
+      this.timelineBusy.set(false);
     }
   }
 
