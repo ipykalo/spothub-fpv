@@ -903,8 +903,11 @@ Each area is then held to a floor in `coverage.thresholds.json`:
 
 **The floors ratchet.** Each starts at what its area measured and rises as
 tests land; `npm run coverage -- --update` rewrites them from a full run.
-Lowering one needs a reason in the commit. A single flat target was considered
-and rejected: on the API it would only be reachable by mocking repositories —
+Lowering one needs a reason in the commit. They stand at 83 / 80 / 88: every
+client store, resolver, interceptor and pure helper is covered, so the
+remaining 11% of the logic area is the handful of browser-facing functions
+named at the end of this section. A single flat target was considered and
+rejected: on the API it would only be reachable by mocking repositories —
 which this codebase deliberately does not do — and on the client it would force
 component tests, when a component here is a thin presenter over signals and its
 template is already type-checked by the production build.
@@ -921,7 +924,31 @@ fails before a test runs. A consequence worth knowing: **a spec must import the
 logic, not the component that uses it.** Importing a component file pulls in
 Angular Material, whose partially-compiled code then demands the JIT compiler.
 That is why `packStats` lives in `pack-stats.ts` beside the component that
-renders it, and it is the shape any new logic should take.
+renders it, and it is the shape any new logic should take — `timeline-series.ts`
+and `crawler-files.ts` (`robots.txt` and `sitemap.xml`, lifted out of
+`server.ts`, which is otherwise express wiring) were both split the same way.
+
+**A store is tested by constructing it, not by booting Angular.** Every one is
+a class holding signals, so `Injector.create` with a fake API service and
+`runInInjectionContext` is the whole harness — `builds.store.spec.ts` is the
+pattern. Three things need more than that, and each is contained:
+
+- **`PageMeta` and `StructuredData` write into the head**, so they take a
+  stand-in document from `core/seo/__fixtures__/fake-document.ts` — four DOM
+  methods, under `__fixtures__` so coverage ignores it. Booting a real DOM for
+  those four would cost more than it proves.
+- **`ThemeStore` creates an `effect`**, which outside an application asks for
+  `ɵEffectScheduler` and `ɵChangeDetectionScheduler`. Its spec provides a
+  scheduler that collects effects and runs them on demand, which is also what
+  lets it check what the store applied.
+- **Anything reading `window` or `navigator`** (`DeviceLocation`, the object
+  URLs `PhotosStore` makes for a preview) uses `vi.stubGlobal`, undone in
+  `afterEach`.
+
+What is deliberately **not** covered: the presigned PUT in `PhotosApi` and
+`FlightLogsApi` (an `HttpRequest` against storage, reporting progress) and the
+textarea functions in `markdown-edits.ts`. Those are the browser's work, and
+the rule for this suite is logic, never UI.
 
 ## Verification
 

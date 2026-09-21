@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injector, runInInjectionContext } from '@angular/core';
 import {
+  type FlightTimelineDto,
+  type FlightTrackDto,
   type KnownLogsResultDto,
   type LogImportDto,
   LogImportStatus,
@@ -83,6 +85,54 @@ describe('FlightLogsStore', () => {
 
     getImport(): Observable<LogImportDto> {
       return of(batch());
+    }
+
+    /** Held open when set, so a test can start a second read during the first. */
+    holdReads = false;
+    private release: (() => void)[] = [];
+    readFails = false;
+    asked: string[] = [];
+
+    track(flightId: string): Observable<FlightTrackDto> {
+      return this.read(flightId, {
+        flightId,
+        takeoffAltitudeM: 142,
+        points: [{ t: 0, lat: 50.45, lng: 30.52, altM: 142, speedKmh: 0 }],
+      });
+    }
+
+    timeline(flightId: string): Observable<FlightTimelineDto> {
+      return this.read(flightId, {
+        flightId,
+        points: [{ t: 0, voltage: 16.8, currentA: 2, throttlePct: 0, linkQuality: 100 }],
+      });
+    }
+
+    /** Answers everyone still waiting. */
+    releaseReads(): void {
+      const waiting = this.release;
+      this.release = [];
+
+      for (const resolve of waiting) {
+        resolve();
+      }
+    }
+
+    private read<T>(flightId: string, answer: T): Observable<T> {
+      this.asked.push(flightId);
+
+      if (this.readFails) {
+        return throwError(() => new Error('gone'));
+      }
+
+      return this.holdReads
+        ? new Observable<T>((subscriber) => {
+            this.release.push(() => {
+              subscriber.next(answer);
+              subscriber.complete();
+            });
+          })
+        : of(answer);
     }
   }
 
@@ -211,6 +261,100 @@ describe('FlightLogsStore', () => {
 
     expect(asked).toHaveBeenCalledOnce();
     expect(store.phase()).toBe('done');
+  });
+
+  describe('reading one flight back out of its log', () => {
+    it('opens a flight’s path, and closes it when the same one is asked for again', async () => {
+      await store.showTrack('f1');
+
+      expect(store.openTrackFlightId()).toBe('f1');
+      expect(store.track()?.points).toHaveLength(1);
+
+      await store.showTrack('f1');
+
+      expect(store.openTrackFlightId()).toBeNull();
+      // Not kept once closed: a few hundred points read back on demand.
+      expect(store.track()).toBeNull();
+    });
+
+    it('closes what is open when asked for nothing, without a request', async () => {
+      await store.showTrack('f1');
+      api.asked = [];
+
+      await store.showTrack(null);
+
+      expect(store.openTrackFlightId()).toBeNull();
+      expect(api.asked).toEqual([]);
+    });
+
+    it('moves straight from one flight to another', async () => {
+      await store.showTrack('f1');
+
+      await store.showTrack('f2');
+
+      expect(store.openTrackFlightId()).toBe('f2');
+      expect(api.asked).toEqual(['f1', 'f2']);
+    });
+
+    it('says a path could not be read rather than leaving the row spinning', async () => {
+      api.readFails = true;
+
+      await store.showTrack('f1');
+
+      expect(store.trackError()).toBe(
+        'That flight’s path could not be read from its log.',
+      );
+      expect(store.trackLoading()).toBe(false);
+      expect(store.track()).toBeNull();
+    });
+
+    it('drops an answer for a flight the reader has already moved on from', async () => {
+      api.holdReads = true;
+      const first = store.showTrack('f1');
+
+      // Opening another while the first is still in flight.
+      api.holdReads = false;
+      await store.showTrack('f2');
+      api.releaseReads();
+      await first;
+
+      expect(store.openTrackFlightId()).toBe('f2');
+      expect(store.track()?.flightId).toBe('f2');
+    });
+
+    it('opens a flight’s charts the same way, and closes them the same way', async () => {
+      await store.showTimeline('f1');
+
+      expect(store.openTimelineFlightId()).toBe('f1');
+      expect(store.timeline()?.points).toHaveLength(1);
+
+      await store.showTimeline('f1');
+
+      expect(store.openTimelineFlightId()).toBeNull();
+      expect(store.timeline()).toBeNull();
+    });
+
+    it('says a flight could not be read back rather than leaving it spinning', async () => {
+      api.readFails = true;
+
+      await store.showTimeline('f1');
+
+      expect(store.timelineError()).toBe(
+        'That flight could not be read back from its log.',
+      );
+      expect(store.timelineLoading()).toBe(false);
+    });
+
+    it('keeps the map and the charts apart: one closing does not close the other', async () => {
+      await store.showTrack('f1');
+      await store.showTimeline('f1');
+
+      await store.showTrack('f1');
+
+      expect(store.openTrackFlightId()).toBeNull();
+      expect(store.openTimelineFlightId()).toBe('f1');
+      expect(store.timeline()).not.toBeNull();
+    });
   });
 
   it('forgets the last import when the panel is reset', async () => {
