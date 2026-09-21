@@ -6,70 +6,10 @@ import {
   output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  PART_CONDITION_LABELS,
-  type FlightDto,
-  type PartDto,
-  type PartUnitDto,
-} from '@spothub/shared';
+import { PART_CONDITION_LABELS, type FlightDto, type PartDto } from '@spothub/shared';
 
-import { PART_CONDITION_STYLES, unitName } from '../../part-condition';
-
-/** One pack's history, drawn from the flights flown on it. */
-export interface PackStats {
-  readonly unit: PartUnitDto;
-  readonly name: string;
-  /**
-   * Flights flown on the pack. A log records no charge, so each flight is
-   * taken as one cycle — the count a pack's rated cycle life is judged by.
-   */
-  readonly cycles: number;
-  readonly airtimeS: number;
-  /** Take-off voltage minus the flight's lowest, averaged over flights that logged both. */
-  readonly averageSagV: number | null;
-  readonly lowestVoltage: number | null;
-  readonly lastFlownAt: string | null;
-}
-
-/**
- * Every unit of the part, flown or not, in the part's own order — so a pack
- * that has never been flown still shows, with nothing against it.
- */
-export function packStats(
-  part: PartDto,
-  flights: readonly FlightDto[],
-): readonly PackStats[] {
-  return part.units.map((unit) => {
-    const own = flights.filter((flight) => flight.batteryUnitId === unit.id);
-
-    const sags = own.flatMap((flight) =>
-      flight.startVoltage !== null && flight.minVoltage !== null
-        ? [flight.startVoltage - flight.minVoltage]
-        : [],
-    );
-    const lows = own.flatMap((flight) =>
-      flight.minVoltage === null ? [] : [flight.minVoltage],
-    );
-
-    // ISO timestamps in one format compare correctly as strings.
-    const lastFlownAt = own.reduce<string | null>(
-      (latest, flight) =>
-        latest === null || flight.startedAt > latest ? flight.startedAt : latest,
-      null,
-    );
-
-    return {
-      unit,
-      name: unitName(part, unit),
-      cycles: own.length,
-      airtimeS: own.reduce((sum, flight) => sum + flight.durationS, 0),
-      averageSagV:
-        sags.length > 0 ? sags.reduce((sum, sag) => sum + sag, 0) / sags.length : null,
-      lowestVoltage: lows.length > 0 ? Math.min(...lows) : null,
-      lastFlownAt,
-    };
-  });
-}
+import { PART_CONDITION_STYLES } from '../../part-condition';
+import { TIRED_SAG_TREND, packStats } from './pack-stats';
 
 /** The radio's clock, stored as UTC, so rendered as UTC. */
 const SHORT_DATE = new Intl.DateTimeFormat(undefined, {
@@ -118,5 +58,24 @@ export class PackSummary {
 
   protected date(iso: string): string {
     return SHORT_DATE.format(new Date(iso));
+  }
+
+  /** A pack sagging a fifth more than it used to is worth saying out loud. */
+  protected trendTone(trend: number | null): string {
+    if (trend === null) {
+      return 'tone-idle';
+    }
+
+    return trend >= TIRED_SAG_TREND ? 'tone-stop' : 'tone-go';
+  }
+
+  protected trendLabel(trend: number | null): string {
+    if (trend === null) {
+      return '—';
+    }
+
+    const percent = Math.round(trend * 100);
+
+    return percent > 0 ? `+${String(percent)}%` : `${String(percent)}%`;
   }
 }

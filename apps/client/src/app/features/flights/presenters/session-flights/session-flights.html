@@ -31,6 +31,10 @@
       <mat-icon class="icon-xs" aria-hidden="true">route</mat-icon>
       distance · height above take-off · top speed (GPS logs only)
     </span>
+    <span class="inline-flex items-center gap-1">
+      <mat-icon class="icon-xs" aria-hidden="true">show_chart</mat-icon>
+      the flight second by second, read back from its log
+    </span>
   </p>
 </div>
 
@@ -146,8 +150,20 @@
           </span>
         }
         @if (flight.hasGps) {
-          <span class="inline-flex items-center gap-1" title="Distance flown · height above take-off · top speed">
-            <mat-icon class="icon-sm text-muted" aria-hidden="true">route</mat-icon>
+          <!-- The figures double as the way in: this flight has a path to draw. -->
+          <button
+            type="button"
+            class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left [font:inherit] hover:text-primary"
+            [class.text-primary]="openTrackFlightId() === flight.id"
+            [attr.aria-expanded]="openTrackFlightId() === flight.id"
+            [title]="
+              openTrackFlightId() === flight.id
+                ? 'Hide the path'
+                : 'Distance flown · height above take-off · top speed — show the path'
+            "
+            (click)="trackRequested.emit(flight)"
+          >
+            <mat-icon class="icon-sm" aria-hidden="true">route</mat-icon>
             @if (flight.distanceM !== null) {
               {{ distance(flight.distanceM) }}
             }
@@ -157,19 +173,62 @@
             @if (flight.maxSpeedKmh !== null) {
               · {{ flight.maxSpeedKmh }} km/h
             }
-          </span>
+          </button>
         }
       </span>
 
-      <button
-        matButton
-        type="button"
-        class="row-start-1 col-start-3 min-[60rem]:row-auto min-[60rem]:col-auto"
-        [disabled]="pendingRemoval() === flight.id"
-        (click)="removeRequested.emit(flight)"
-      >
-        {{ pendingRemoval() === flight.id ? 'Deleting…' : 'Delete' }}
-      </button>
+      <span class="row-start-1 col-start-3 flex items-center gap-1 min-[60rem]:row-auto min-[60rem]:col-auto">
+        @if (hasFigures(flight)) {
+          <button
+            matIconButton
+            type="button"
+            [attr.aria-expanded]="openTimelineFlightId() === flight.id"
+            [attr.aria-label]="'Show flight ' + (n + 1) + ' second by second'"
+            [title]="openTimelineFlightId() === flight.id ? 'Hide the charts' : 'What happened during this flight'"
+            [class.text-primary]="openTimelineFlightId() === flight.id"
+            (click)="timelineRequested.emit(flight)"
+          >
+            <mat-icon>show_chart</mat-icon>
+          </button>
+        }
+
+        <button
+          matButton
+          type="button"
+          [disabled]="pendingRemoval() === flight.id"
+          (click)="removeRequested.emit(flight)"
+        >
+          {{ pendingRemoval() === flight.id ? 'Deleting…' : 'Delete' }}
+        </button>
+      </span>
+
+      @if (openTimelineFlightId() === flight.id) {
+        <div class="col-span-full">
+          @if (timelineLoading()) {
+            <p class="m-0 py-3 text-sm text-muted">Reading the flight back from its log…</p>
+          } @else if (timelineError(); as message) {
+            <p class="m-0 py-3 text-sm text-status-stop" role="alert">{{ message }}</p>
+          } @else if (timeline(); as detail) {
+            <sh-flight-timeline [points]="detail.points" />
+          }
+        </div>
+      }
+
+      @if (openTrackFlightId() === flight.id) {
+        <div class="col-span-full">
+          @if (trackLoading()) {
+            <p class="m-0 py-3 text-sm text-muted">Reading the path from the log…</p>
+          } @else if (trackError(); as message) {
+            <p class="m-0 py-3 text-sm text-status-stop" role="alert">{{ message }}</p>
+          } @else if (track(); as path) {
+            @if (path.points.length) {
+              <sh-flight-map [points]="path.points" [takeoffAltitudeM]="path.takeoffAltitudeM" />
+            } @else {
+              <p class="m-0 py-3 text-sm text-muted">This flight logged no position worth drawing.</p>
+            }
+          }
+        </div>
+      }
     </li>
   }
 </ol>

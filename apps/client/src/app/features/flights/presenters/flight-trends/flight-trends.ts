@@ -7,6 +7,8 @@ import {
 } from '@angular/core';
 import type { FlightDto } from '@spothub/shared';
 
+import { type NiceScale, niceScale, padded, scale } from '../../chart-scale';
+
 interface HoverPoint {
   readonly title: string;
   readonly lines: readonly string[];
@@ -27,21 +29,11 @@ interface LinePoint {
   readonly hover: HoverPoint;
 }
 
-interface ScatterPoint {
-  readonly x: number;
-  readonly y: number;
-  readonly hover: HoverPoint;
-}
-
 type WithVoltage = FlightDto & {
   readonly startVoltage: number;
   readonly minVoltage: number;
 };
 type WithLinkQuality = FlightDto & { readonly minLinkQuality: number };
-type WithThrottleAndCurrent = FlightDto & {
-  readonly avgThrottlePct: number;
-  readonly maxCurrentA: number;
-};
 
 function hasVoltage(flight: FlightDto): flight is WithVoltage {
   return flight.startVoltage !== null && flight.minVoltage !== null;
@@ -51,13 +43,9 @@ function hasLinkQuality(flight: FlightDto): flight is WithLinkQuality {
   return flight.minLinkQuality !== null;
 }
 
-function hasThrottleAndCurrent(flight: FlightDto): flight is WithThrottleAndCurrent {
-  return flight.avgThrottlePct !== null && flight.maxCurrentA !== null;
-}
-
 /**
- * Every chart — the scatter included — shares one box. A scatter plot does
- * not need to be square, and giving it the same width, height and padding as
+ * Every chart shares one box. A chart does not need to be square, and giving
+ * each the same width, height and padding as
  * its three siblings is what lines up all four titles, axes and plot areas
  * into one even grid instead of leaving the fourth chart an island.
  */
@@ -66,68 +54,6 @@ const HEIGHT = 200;
 const PAD = { top: 12, right: 16, bottom: 24, left: 34 };
 const PLOT_W = WIDTH - PAD.left - PAD.right;
 const PLOT_H = HEIGHT - PAD.top - PAD.bottom;
-
-function scale(
-  value: number,
-  domain: readonly [number, number],
-  range: readonly [number, number],
-): number {
-  const [d0, d1] = domain;
-  const [r0, r1] = range;
-
-  return d0 === d1 ? (r0 + r1) / 2 : r0 + ((value - d0) / (d1 - d0)) * (r1 - r0);
-}
-
-/** The classic "nice numbers for graph labels" step, so ticks land on 0 / 25 / 50 rather than 0 / 23.7 / 47.4. */
-function niceStep(roughStep: number): number {
-  const exponent = Math.floor(Math.log10(roughStep));
-  const fraction = roughStep / 10 ** exponent;
-  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
-
-  return niceFraction * 10 ** exponent;
-}
-
-interface NiceScale {
-  /** The axis's actual extent — the rounded bounds, not the raw data's. */
-  readonly domain: readonly [number, number];
-  readonly ticks: readonly number[];
-}
-
-/**
- * Nice round ticks (0 / 25 / 50, never 23.7 / 47.4) — and, critically, a
- * domain that reaches exactly as far as the widest tick. `niceMax` almost
- * never lands on the data's own max, so scaling data against the raw padded
- * range while drawing gridlines at the rounded one used to send the topmost
- * gridline past the plot's edge — invisible on its own axis, but painted
- * anyway thanks to `overflow: visible`, bleeding into whatever sits above.
- */
-function niceScale(min: number, max: number, count = 4): NiceScale {
-  if (min === max) {
-    return { domain: [min - 1, max + 1], ticks: [min] };
-  }
-
-  const step = niceStep((max - min) / count);
-  const niceMin = Math.floor(min / step) * step;
-  const niceMax = Math.ceil(max / step) * step;
-  // An integer step count, not a float accumulator: `value += step` drifts
-  // just enough on values like 0.1 to sometimes overshoot into an extra tick.
-  const steps = Math.round((niceMax - niceMin) / step);
-  const ticks = Array.from(
-    { length: steps + 1 },
-    (_, i) => Math.round((niceMin + step * i) * 1000) / 1000,
-  );
-
-  return { domain: [niceMin, niceMax], ticks };
-}
-
-function padded(min: number, max: number, fraction = 0.15): readonly [number, number] {
-  if (min === max) {
-    return [min - 1, max + 1];
-  }
-
-  const pad = (max - min) * fraction;
-  return [Math.max(0, min - pad), max + pad];
-}
 
 const SHORT_DATE = new Intl.DateTimeFormat(undefined, {
   day: 'numeric',
@@ -345,65 +271,11 @@ export class FlightTrends {
     }));
   });
 
-  // --- Chart 4: throttle stick position against peak current draw --------
-
-  private readonly currentScale = computed<NiceScale>(() => {
-    const currents = this.chronological()
-      .filter(hasThrottleAndCurrent)
-      .map((flight) => flight.maxCurrentA);
-
-    if (currents.length === 0) {
-      return { domain: [0, 1], ticks: [] };
-    }
-
-    const [min, max] = padded(0, Math.max(...currents));
-    return niceScale(min, max, 3);
-  });
-
-  protected readonly throttleCurrentPoints = computed<readonly ScatterPoint[]>(() => {
-    const flights = this.chronological().filter(hasThrottleAndCurrent);
-    const { domain } = this.currentScale();
-
-    return flights.map((flight) => {
-      const throttle = flight.avgThrottlePct;
-      const current = flight.maxCurrentA;
-      const x = scale(throttle, [0, 100], [0, PLOT_W]);
-      const y = scale(current, domain, [PLOT_H, 0]);
-
-      return {
-        x,
-        y,
-        hover: {
-          title: LONG_DATE.format(new Date(flight.startedAt)),
-          lines: [
-            `Average throttle ${throttle.toFixed(0)} %`,
-            `Peak current ${current.toFixed(1)} A`,
-          ],
-        },
-      };
-    });
-  });
-
-  protected readonly throttleXTicks = [0, 50, 100].map((value) => ({
-    x: scale(value, [0, 100], [0, PLOT_W]),
-    label: `${String(value)} %`,
-  }));
-
-  protected readonly currentYTicks = computed(() => {
-    const { domain, ticks } = this.currentScale();
-
-    return ticks.map((value) => ({
-      y: scale(value, domain, [PLOT_H, 0]),
-      label: `${value.toFixed(0)} A`,
-    }));
-  });
-
   protected readonly tableRows = computed(() => this.chronological());
 
   protected readonly hoveredVoltage = signal<HoverPoint | null>(null);
   protected readonly hoveredLinkQuality = signal<HoverPoint | null>(null);
   protected readonly hoveredAirtime = signal<HoverPoint | null>(null);
-  protected readonly hoveredThrottle = signal<HoverPoint | null>(null);
 
   protected airtime(seconds: number): string {
     return airtimeLabel(seconds);

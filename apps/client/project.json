@@ -8,9 +8,7 @@
   "targets": {
     "build": {
       "executor": "@angular/build:application",
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/apps/client",
@@ -22,9 +20,7 @@
         },
         "tsConfig": "apps/client/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
-        "allowedCommonJsDependencies": [
-          "leaflet"
-        ],
+        "allowedCommonJsDependencies": ["leaflet"],
         "assets": [
           {
             "glob": "**/*",
@@ -80,9 +76,11 @@
       "executor": "@nx/eslint:lint"
     },
     "test": {
-      "executor": "@angular/build:unit-test",
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["{projectRoot}/src/**/*"],
       "options": {
-        "watch": false
+        "command": "vitest run --config apps/client/vitest.config.ts"
       }
     },
     "serve-ssr": {

@@ -26,6 +26,30 @@ export function parseGpx(text: string): ParsedLog {
     throw new LogParseError('Not a GPX file: there is no <gpx> element');
   }
 
+  const fixes = gpxFixes(text);
+
+  if (fixes.length === 0) {
+    throw new LogParseError('That GPX file has no track points with a time');
+  }
+
+  const runs = split(fixes);
+  const flights = runs.filter((run) => span(run) >= MIN_FLIGHT_MS).map(toFlight);
+
+  return {
+    modelName: trackName(text),
+    flights,
+    discarded: runs.length - flights.length,
+    rowCount: fixes.length,
+    tracksOnly: true,
+  };
+}
+
+/**
+ * Every track point with a position and a time, in time order — the file's
+ * whole track, for drawing a flight's path back as well as for splitting it
+ * into flights.
+ */
+export function gpxFixes(text: string): Fix[] {
   const fixes: Fix[] = [];
 
   for (const match of text.matchAll(POINT)) {
@@ -45,22 +69,9 @@ export function parseGpx(text: string): ParsedLog {
     fixes.push({ t, lat, lon, altitude: Number.isFinite(ele) ? ele : null });
   }
 
-  if (fixes.length === 0) {
-    throw new LogParseError('That GPX file has no track points with a time');
-  }
+  fixes.sort((first, second) => first.t - second.t);
 
-  fixes.sort((a, b) => a.t - b.t);
-
-  const runs = split(fixes);
-  const flights = runs.filter((run) => span(run) >= MIN_FLIGHT_MS).map(toFlight);
-
-  return {
-    modelName: trackName(text),
-    flights,
-    discarded: runs.length - flights.length,
-    rowCount: fixes.length,
-    tracksOnly: true,
-  };
+  return fixes;
 }
 
 /** A pause longer than any flight has ends one track and starts another. */

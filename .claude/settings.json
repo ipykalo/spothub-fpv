@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "mcp__notion__notion-fetch",
+      "mcp__notion__notion-create-pages",
+      "Bash(node \"C:/Users/ipyka/AppData/Local/Temp/claude/d--Workspace-repos-spothub-fpv/3bd298fb-b19b-4e11-a5ee-7608fa4528c7/scratchpad/flight-track-api.cjs\")"
+    ]
+  },
   "enabledPlugins": {
     "nx@nx-claude-plugins": true
   },
@@ -16,10 +23,5 @@
         "www.google-analytics.com"
       ]
     }
-  },
-  "permissions": {
-    "allow": [
-      "mcp__notion__notion-fetch"
-    ]
   }
 }

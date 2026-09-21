@@ -8,10 +8,17 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
-import type { FlightDto, SessionDto } from '@spothub/shared';
+import type {
+  FlightDto,
+  FlightTimelineDto,
+  FlightTrackDto,
+  SessionDto,
+} from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import type { ChoiceOption } from '../../../../core/components/choice-option';
+import { FlightMap } from '../flight-map/flight-map';
+import { FlightTimeline } from '../flight-timeline/flight-timeline';
 
 /** The radio's clock, shown as recorded: stored as UTC, so rendered as UTC. */
 const CLOCK = new Intl.DateTimeFormat(undefined, {
@@ -32,7 +39,14 @@ const CLOCK = new Intl.DateTimeFormat(undefined, {
 @Component({
   selector: 'sh-session-flights',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Autocomplete, MatButtonModule, MatCheckboxModule, MatIconModule],
+  imports: [
+    FlightMap,
+    FlightTimeline,
+    Autocomplete,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatIconModule,
+  ],
   templateUrl: './session-flights.html',
   styleUrl: './session-flights.scss',
 })
@@ -42,6 +56,16 @@ export class SessionFlights {
   readonly batteries = input<readonly ChoiceOption<string>[]>([]);
   readonly selected = input<ReadonlySet<string>>(new Set());
   readonly pendingRemoval = input<string | null>(null);
+  /** Which flight's path is open, and what has been read of it so far. */
+  readonly openTrackFlightId = input<string | null>(null);
+  readonly track = input<FlightTrackDto | null>(null);
+  readonly trackLoading = input(false);
+  readonly trackError = input<string | null>(null);
+  /** Which flight is open as charts, and what has been read of it so far. */
+  readonly openTimelineFlightId = input<string | null>(null);
+  readonly timeline = input<FlightTimelineDto | null>(null);
+  readonly timelineLoading = input(false);
+  readonly timelineError = input<string | null>(null);
 
   readonly buildChanged = output<{ flight: FlightDto; buildId: string | null }>();
   readonly batteryChanged = output<{ flight: FlightDto; batteryUnitId: string | null }>();
@@ -50,6 +74,10 @@ export class SessionFlights {
     selected: boolean;
   }>();
   readonly removeRequested = output<FlightDto>();
+  /** Show this flight's path, or hide it when it is the one already open. */
+  readonly trackRequested = output<FlightDto>();
+  /** Show this flight second by second, or hide it when it is already open. */
+  readonly timelineRequested = output<FlightDto>();
 
   protected readonly allSelected = computed(() => {
     const selected = this.selected();
@@ -64,6 +92,19 @@ export class SessionFlights {
       this.session().flights.some((flight) => selected.has(flight.id))
     );
   });
+
+  /**
+   * Whether there is anything to chart: a GPX track knows where the quad was
+   * and nothing about what it was doing, so a flight that came in as one has
+   * no second-by-second story to tell.
+   */
+  protected hasFigures(flight: FlightDto): boolean {
+    return (
+      flight.startVoltage !== null ||
+      flight.minLinkQuality !== null ||
+      flight.avgThrottlePct !== null
+    );
+  }
 
   /** A blackbox flight records no time of day; its place in the list is its order. */
   protected when(flight: FlightDto): string {

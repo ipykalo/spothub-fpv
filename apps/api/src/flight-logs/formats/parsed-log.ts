@@ -34,6 +34,21 @@ export interface ParsedLog {
 }
 
 /** The file is not a log of its format at all, as opposed to one with no flights. */
+/**
+ * One moment of a flight as its log recorded it, with the clock the flight is
+ * stored against — so a sample can be placed inside a flight's own window.
+ *
+ * Every format fills in what it has: a radio log knows the link and the
+ * sticks, a blackbox log knows what the pack was actually doing.
+ */
+export interface LogSample {
+  readonly t: number;
+  readonly voltage: number | null;
+  readonly currentA: number | null;
+  readonly throttlePct: number | null;
+  readonly linkQuality: number | null;
+}
+
 export class LogParseError extends Error {}
 
 export function values<T>(rows: readonly T[], pick: (row: T) => number | null): number[] {

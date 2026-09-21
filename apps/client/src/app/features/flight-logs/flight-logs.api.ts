@@ -7,6 +7,8 @@ import {
 import { Injectable, inject } from '@angular/core';
 import type {
   CreateLogImportDto,
+  FlightTimelineDto,
+  FlightTrackDto,
   KnownLogsResultDto,
   LogImportDto,
   LogUploadTicketDto,
@@ -21,6 +23,21 @@ import { API_BASE_URL } from '../../core/api/api.tokens';
 export class FlightLogsApi {
   private readonly http = inject(HttpClient);
   private readonly base = inject(API_BASE_URL);
+
+  /**
+   * One flight's path, read back out of the log it arrived in. Under
+   * flight-logs because that is whose file it is parsed from.
+   */
+  track(flightId: string): Observable<FlightTrackDto> {
+    return this.http.get<FlightTrackDto>(`${this.base}/flight-logs/tracks/${flightId}`);
+  }
+
+  /** What one flight's pack, sticks and link did, read back out of its log. */
+  timeline(flightId: string): Observable<FlightTimelineDto> {
+    return this.http.get<FlightTimelineDto>(
+      `${this.base}/flight-logs/timelines/${flightId}`,
+    );
+  }
 
   /** Which of these checksums are already imported. */
   known(checksums: readonly string[]): Observable<KnownLogsResultDto> {

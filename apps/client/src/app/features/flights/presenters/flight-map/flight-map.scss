@@ -1,0 +1,15 @@
+/*
+ * Leaflet draws a marker as a plain div, so the glyph inside one is sized and
+ * coloured here. Unlayered and global to the marker, because the element is
+ * created by Leaflet outside this component's own DOM.
+ */
+:host ::ng-deep .sh-flight-marker {
+  display: grid;
+  place-items: center;
+  color: var(--mat-sys-primary);
+  text-shadow: 0 0 3px rgb(0 0 0 / 70%);
+
+  .material-icons {
+    font-size: 1.5rem;
+  }
+}

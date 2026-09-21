@@ -1,0 +1,41 @@
+<div class="grid gap-2">
+  <!-- Leaflet measures this element, so it needs a height of its own. -->
+  <div
+    #map
+    class="h-72 w-full rounded border border-outline-variant"
+    role="application"
+    aria-label="The flight's path"
+  ></div>
+
+  @if (count() > 1) {
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+      <input
+        class="min-w-40 flex-auto accent-[var(--mat-sys-primary)]"
+        type="range"
+        min="0"
+        [max]="count() - 1"
+        [value]="at()"
+        aria-label="Follow the flight"
+        (input)="scrubTo($any($event.target).value)"
+      />
+
+      <span class="inline-flex items-center gap-3 tabular-nums text-muted">
+        <span title="Time into the flight">{{ elapsed() }}</span>
+
+        @if (height() !== null) {
+          <span class="inline-flex items-center gap-1" title="Height above take-off">
+            <mat-icon class="icon-sm" aria-hidden="true">height</mat-icon>
+            {{ height() }} m
+          </span>
+        }
+
+        @if (current()?.speedKmh; as speed) {
+          <span class="inline-flex items-center gap-1" title="Speed, measured from the track">
+            <mat-icon class="icon-sm" aria-hidden="true">speed</mat-icon>
+            {{ speed }} km/h
+          </span>
+        }
+      </span>
+    </div>
+  }
+</div>

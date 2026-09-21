@@ -9,6 +9,8 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  type FlightTimelineDto,
+  type FlightTrackDto,
   type CreateLogImportDto,
   type KnownLogsDto,
   type KnownLogsResultDto,
@@ -59,6 +61,27 @@ export class FlightLogsController {
     @Body(new ZodValidationPipe(createLogImportSchema)) body: CreateLogImportDto,
   ): Promise<LogImportDto> {
     return this.logs.startImport(user.id, body);
+  }
+
+  /**
+   * A flight's path, for the map. Under this module because the track is read
+   * out of the log file it arrived in, which is this module's to parse.
+   */
+  @Get('tracks/:flightId')
+  track(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('flightId', ParseUUIDPipe) flightId: string,
+  ): Promise<FlightTrackDto> {
+    return this.logs.track(user.id, flightId);
+  }
+
+  /** What the pack, the sticks and the link did during one flight. */
+  @Get('timelines/:flightId')
+  timeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('flightId', ParseUUIDPipe) flightId: string,
+  ): Promise<FlightTimelineDto> {
+    return this.logs.timeline(user.id, flightId);
   }
 
   @Get('imports/:id')

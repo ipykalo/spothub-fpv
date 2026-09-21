@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
 import { LogReader } from '../../abstract/log-reader';
-import type { ParsedLog } from '../parsed-log';
-import { parseGpx } from './gpx.parser';
+import type { Fix } from '../gps-track';
+import type { LogSample, ParsedLog } from '../parsed-log';
+import { gpxFixes, parseGpx } from './gpx.parser';
 
 /**
  * A GPX track from any GPS: read as text. Its times are true UTC, so it needs
@@ -15,5 +16,14 @@ export class GpxReader extends LogReader {
 
   read(body: Buffer): Promise<ParsedLog> {
     return Promise.resolve(parseGpx(body.toString('utf8')));
+  }
+
+  fixes(body: Buffer): Promise<readonly Fix[]> {
+    return Promise.resolve(gpxFixes(body.toString('utf8')));
+  }
+
+  /** None: a GPX track records where the quad was, never what it was doing. */
+  samples(): Promise<readonly LogSample[]> {
+    return Promise.resolve([]);
   }
 }

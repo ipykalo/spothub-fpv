@@ -178,7 +178,7 @@ features/
   configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
   photos/       photos.api/store, photo-gallery presenter
   parts/        catalogue, units, sources
-  flights/      flights.api/store, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends presenters
+  flights/      flights.api/store, chart-scale, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends/flight-map/flight-timeline presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
   spots/        spots.api/store, spot-style, containers (list + map, form, detail), spot-map/-card/-details/-form presenters
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
@@ -332,6 +332,8 @@ npm run lint           # type-aware, zero warnings tolerated
 npm run typecheck
 npm test               # API unit tests (Vitest) — from PowerShell on Windows
 npm run test:e2e       # API end-to-end, needs db:up first
+npm run coverage       # every suite, then each area against its floor
+npm run coverage -- --skip-e2e   # without a database; floors not enforced
 npm run build
 ```
 
@@ -420,10 +422,15 @@ so the job retries, and a retry skips what was already parsed.
 - **A flight's battery pack is set by hand** — a log never says which pack was
   plugged in. It is a unit of a `BATTERY` part (`flights.battery_unit_id`, SET
   NULL), set on one flight or on many at once through `PATCH /flights`, which
-  changes every named flight or none of them. A battery part's page lists each
-  pack's cycles, airtime, average sag and lowest voltage, and charts its
-  flights one pack at a time, which is where a pack's wear shows. A cycle is a
-  flight — counted from the flights, never stored, as `fitted` is for units.
+  changes every named flight or none of them. **A battery part's page is the
+  pack registry**: each unit, by the label written on the pack, with its
+  cycles, airtime, average sag, lowest voltage, the charge an average flight
+  drew, and how its sag is trending — the average of its last third of flights
+  against its first third, shown from six flights on and coloured once a fifth
+  worse than it started (`pack-summary.ts`). Picking a pack filters the charts
+  below it. A cycle is a flight — counted from the flights, never stored, as
+  `fitted` is for units — and retiring a pack is its unit's condition, so
+  none of this needed a `batteries` table of its own.
 - **A log counts as imported while a flight from it is still in the
   logbook** (or if it never held one). Delete every flight a log gave and the
   next drop imports it again; delete only some and the rest keep it imported,
@@ -455,7 +462,46 @@ quad with telemetry off never sends the radio: pack voltage and current.
 - A flight controller's USB drive also offers `btfl_all.bbl`, the whole flash
   repeating every log, and a `padding.txt` of zeros. Both are skipped.
 - Builds match a craft name or radio model ignoring case and spaces, so the
-  flight controller's "Cinelog  20" finds the build Cinelog20.
+  flight controller's "Cinelog 20" finds the build Cinelog20.
+
+**A flight's path is read back out of its log, never stored again.**
+`GET /flight-logs/tracks/:flightId` finds the file the flight's fixes are in —
+the GPX that joined it, or the radio log it was read from — fetches it from
+storage, parses it again, cuts it to the flight's own window with a few
+seconds of slack either side, and thins it to at most 600 points. The route
+lives in `flight-logs` because the file is that module's to parse, and the
+flight is reached by a join on `flights` inside its repository, as
+`findImportedChecksums` already does. A blackbox flight has a path only where
+a GPX joined it: its own log records no time of day to place fixes against.
+The map (`sh-flight-map`) opens under a flight's row in the logbook and
+scrubs through the track.
+
+**And so is what the quad was doing.** `GET /flight-logs/timelines/:flightId`
+is the same journey for the figures rather than the positions: the flight's
+own log — never a GPX that joined it, which records where the quad was and
+nothing else — parsed again into `LogSample`s, cut to the flight's window and
+thinned to at most 400 points. What a log holds decides what is drawn: a
+radio heard the link, the sticks and its own battery; a flight controller
+watched the pack a thousand times a second and knows nothing of the link. A
+blackbox flight is placed by rebuilding `blackboxOrigin` from the day the
+import stored the flight on, which is the only clock its frames have.
+`sh-flight-timeline` draws one row per figure — volts, amps and percentages
+share no axis, and two y-scales on one chart is the mistake that makes a
+chart lie — with a crosshair that reads every row at the same moment.
+The arithmetic is in `timeline-series.ts` and the scales both it and the
+trend charts use are in `flights/chart-scale.ts`, because a spec may not
+import a component.
+
+**The trend charts are three, not four.** Pack sag and worst link quality per
+flight earn their place — the second is a failsafe risk nobody feels while
+flying — and cumulative airtime is a running total worth seeing. Average
+throttle against peak current was dropped: it was a scatter plot of two
+numbers that say almost nothing about a flight. The trends answer "how is
+this quad, this pack, this season going?"; one flight's own timeline answers
+"what happened on this flight?". Betaflight's own Blackbox Explorer remains
+the microscope for a log at kHz rates, PID traces and all — what this app
+adds is that every flight, from any log format, tells its story in the same
+row of the same logbook.
 
 **Import and the logbook are two modules.** `flight-logs` owns uploads, the
 import job and the log formats; `flights` owns flights and sessions, and
@@ -547,7 +593,11 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
 - **Coordinates are `Decimal(9, 6)`** — about 11 cm — and the contract rounds
   to six places, so what the form shows is what is stored. The repository hands
   them out as numbers.
-- **Leaflet is touched in one presenter, `spot-map`.** Pins are `divIcon`s
+- **Leaflet is touched in two presenters, `spot-map` and `flight-map`.** They
+  are not one component: a map of pins someone picks a point on is not a single
+  line played back, and what they share — the tile source, the glyph markers,
+  the resize — is small enough to copy rather than wrap in a map framework.
+  Pins are `divIcon`s
   holding a Material Icons glyph: Leaflet's default marker images are URLs a
   bundler rewrites into paths that do not exist. **`leaflet.css` is `@use`d
   from `styles.scss`.** Without it the panes lose their absolute positioning,
@@ -832,6 +882,73 @@ lookups in `prisma-assets.repository.ts` fails to compile.
 presigned PUT out of the box; R2 and Blob do not and need explicit
 configuration for `PUT` from the app's origin. Nothing in the code changes —
 which is the point of `StorageGateway` — but the first deploy has to set it.
+
+## Coverage
+
+`npm run coverage` runs the three suites that measure it — the API's unit
+tests, its e2e suite, the client's logic tests — and adds their reports
+together file by file, because **the API is proven by driving the real app**:
+without the e2e run counted, `apps/api/src` measures 15%, and with it, 81%.
+All three are rooted at the repository so the same path means the same file in
+every report (`scripts/coverage-paths.mjs`).
+
+Each area is then held to a floor in `coverage.thresholds.json`:
+
+| area                       | what it is                                                                  |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `libs/shared`              | the contracts and their helpers                                             |
+| `apps/api/src`             | measured from the unit **and** e2e runs together                            |
+| `apps/client (logic)`      | client files with no template beside them — stores, pure helpers, resolvers |
+| `apps/client (components)` | everything with a template: counted and shown, never gated                  |
+
+**The floors ratchet.** Each starts at what its area measured and rises as
+tests land; `npm run coverage -- --update` rewrites them from a full run.
+Lowering one needs a reason in the commit. They stand at 83 / 80 / 88: every
+client store, resolver, interceptor and pure helper is covered, so the
+remaining 11% of the logic area is the handful of browser-facing functions
+named at the end of this section. A single flat target was considered and
+rejected: on the API it would only be reachable by mocking repositories —
+which this codebase deliberately does not do — and on the client it would force
+component tests, when a component here is a thin presenter over signals and its
+template is already type-checked by the production build.
+
+Not counted at all, because coverage of them says nothing about whether the
+code works: Nest modules (dependency wiring the app fails to start without),
+barrels, entities, DI tokens, route tables, `main.ts`. Counting those moves
+the number without moving the risk.
+
+**Client tests run on plain Vitest, not Angular's `unit-test` builder**
+(`apps/client/vitest.config.ts`). The builder boots a TestBed and a DOM per
+file, which logic tests need for nothing — and under Vitest 4 its TestBed init
+fails before a test runs. A consequence worth knowing: **a spec must import the
+logic, not the component that uses it.** Importing a component file pulls in
+Angular Material, whose partially-compiled code then demands the JIT compiler.
+That is why `packStats` lives in `pack-stats.ts` beside the component that
+renders it, and it is the shape any new logic should take — `timeline-series.ts`
+and `crawler-files.ts` (`robots.txt` and `sitemap.xml`, lifted out of
+`server.ts`, which is otherwise express wiring) were both split the same way.
+
+**A store is tested by constructing it, not by booting Angular.** Every one is
+a class holding signals, so `Injector.create` with a fake API service and
+`runInInjectionContext` is the whole harness — `builds.store.spec.ts` is the
+pattern. Three things need more than that, and each is contained:
+
+- **`PageMeta` and `StructuredData` write into the head**, so they take a
+  stand-in document from `core/seo/__fixtures__/fake-document.ts` — four DOM
+  methods, under `__fixtures__` so coverage ignores it. Booting a real DOM for
+  those four would cost more than it proves.
+- **`ThemeStore` creates an `effect`**, which outside an application asks for
+  `ɵEffectScheduler` and `ɵChangeDetectionScheduler`. Its spec provides a
+  scheduler that collects effects and runs them on demand, which is also what
+  lets it check what the store applied.
+- **Anything reading `window` or `navigator`** (`DeviceLocation`, the object
+  URLs `PhotosStore` makes for a preview) uses `vi.stubGlobal`, undone in
+  `afterEach`.
+
+What is deliberately **not** covered: the presigned PUT in `PhotosApi` and
+`FlightLogsApi` (an `HttpRequest` against storage, reporting progress) and the
+textarea functions in `markdown-edits.ts`. Those are the browser's work, and
+the rule for this suite is logic, never UI.
 
 ## Verification
 

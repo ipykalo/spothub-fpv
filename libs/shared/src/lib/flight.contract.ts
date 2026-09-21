@@ -154,6 +154,54 @@ export interface LogImportDto {
   readonly finishedAt: string | null;
 }
 
+/**
+ * One point of a flight's path, as it was recorded.
+ *
+ * `t` is milliseconds since the flight started rather than a clock time: a
+ * track is drawn and scrubbed against the flight's own length, and a radio's
+ * clock is often wrong anyway.
+ */
+export interface FlightTrackPointDto {
+  readonly t: number;
+  readonly lat: number;
+  readonly lng: number;
+  readonly altM: number | null;
+  /** Measured from the positions around it; null where there are too few. */
+  readonly speedKmh: number | null;
+}
+
+/**
+ * One moment of a flight, as its log recorded it. Timed from the flight's own
+ * start, like a track point, so a chart and a map read the same clock.
+ *
+ * What is filled in depends on the log: a radio heard the link and the
+ * sticks, a flight controller watched the pack a thousand times a second.
+ */
+export interface FlightTimelinePointDto {
+  readonly t: number;
+  readonly voltage: number | null;
+  readonly currentA: number | null;
+  readonly throttlePct: number | null;
+  readonly linkQuality: number | null;
+}
+
+/** What happened during one flight, read back out of its log. */
+export interface FlightTimelineDto {
+  readonly flightId: string;
+  readonly points: readonly FlightTimelinePointDto[];
+}
+
+/**
+ * A flight's path, read back from the log it arrived in rather than stored a
+ * second time, and thinned to something a map can draw.
+ */
+export interface FlightTrackDto {
+  readonly flightId: string;
+  readonly points: readonly FlightTrackPointDto[];
+  /** The height of the first fix: what the rest are climbs above. */
+  readonly takeoffAltitudeM: number | null;
+}
+
 export interface FlightDto {
   readonly id: string;
   readonly sessionId: string;

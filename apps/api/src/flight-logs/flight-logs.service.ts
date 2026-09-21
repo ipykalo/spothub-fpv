@@ -9,6 +9,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   type CreateLogImportDto,
+  type FlightTimelineDto,
+  type FlightTimelinePointDto,
+  type FlightTrackDto,
+  type FlightTrackPointDto,
   type KnownLogsDto,
   type KnownLogsResultDto,
   type LogImportDto,
@@ -24,7 +28,28 @@ import { StorageGateway } from '../storage';
 import { FlightLogsRepository } from './abstract/flight-logs.repository';
 import { FLIGHT_LOG_IMPORT_JOB } from './flight-log-import.job';
 import { toLogImportDto } from './flight-logs.mapper';
+import { type Fix, haversineM } from './formats/gps-track';
 import { LogReaders } from './formats/log-readers';
+
+/** More than a map can draw apart: beyond this a track is dots on dots. */
+const MAX_TRACK_POINTS = 600;
+
+/**
+ * More than a chart this size can show. A blackbox log holds a frame every
+ * millisecond or two — a four-minute flight is a quarter of a million of
+ * them — and every one past this would be a pixel already drawn.
+ */
+const MAX_TIMELINE_POINTS = 400;
+
+/**
+ * A fix this far outside the flight still belongs to it: a radio's clock and
+ * a phone's GPS rarely agree to the second, and a track that stops short of
+ * the landing looks like a lost signal.
+ */
+const WINDOW_SLACK_MS = 5_000;
+
+/** Speed is measured over at least this long: fix to fix is mostly noise. */
+const SPEED_WINDOW_MS = 1_000;
 
 /**
  * Getting logs in. Knows nothing about HTTP, Prisma or S3.
@@ -134,4 +159,146 @@ export class FlightLogsService {
 
     return toLogImportDto(batch);
   }
+
+  /**
+   * What happened during one flight: its pack, its throttle and its link, from
+   * the log it arrived in.
+   *
+   * Read back rather than stored, like the track. A GPX flight has nothing to
+   * show — a track records where the quad was, never what it was doing — and
+   * nor has a blackbox flight whose day was never recorded, since its frames
+   * could not be placed against the flight's clock.
+   */
+  async timeline(ownerId: string, flightId: string): Promise<FlightTimelineDto> {
+    const source = await this.logs.findLogSource(ownerId, flightId);
+
+    if (!source) {
+      throw new NotFoundException('Flight not found');
+    }
+
+    const stored = await this.storage.get(source.storageKey);
+
+    if (!stored) {
+      throw new NotFoundException('The log this flight came in is no longer stored');
+    }
+
+    const samples = await this.readers.for(source.format).samples(stored.body, {
+      fileName: source.fileName,
+      // The day the flight sits on is the day the import placed it on, which
+      // is what a blackbox file's own clock is rebuilt from.
+      flownOn: source.startedAt.toISOString().slice(0, 10),
+    });
+
+    const from = source.startedAt.getTime() - WINDOW_SLACK_MS;
+    const to = source.endedAt.getTime() + WINDOW_SLACK_MS;
+    const own = samples.filter((sample) => sample.t >= from && sample.t <= to);
+    const started = source.startedAt.getTime();
+
+    return {
+      flightId,
+      points: thinTo(own, MAX_TIMELINE_POINTS).map((sample): FlightTimelinePointDto => ({
+        t: sample.t - started,
+        voltage: sample.voltage,
+        currentA: sample.currentA,
+        throttlePct: sample.throttlePct,
+        linkQuality: sample.linkQuality,
+      })),
+    };
+  }
+
+  /**
+   * A flight's path, read back from the log it arrived in.
+   *
+   * Nothing is stored twice: the file is still in the bucket, so the fixes are
+   * parsed on demand and thinned to what a map can draw. A flight from a
+   * blackbox log has a track only where a GPX joined it — its own log records
+   * no time of day to place fixes against.
+   */
+  async track(ownerId: string, flightId: string): Promise<FlightTrackDto> {
+    const source = await this.logs.findTrackSource(ownerId, flightId);
+
+    if (!source) {
+      throw new NotFoundException('Flight not found');
+    }
+
+    const stored = await this.storage.get(source.storageKey);
+
+    if (!stored) {
+      throw new NotFoundException('The log this flight came in is no longer stored');
+    }
+
+    const fixes = await this.readers.for(source.format).fixes(stored.body);
+    const from = source.startedAt.getTime() - WINDOW_SLACK_MS;
+    const to = source.endedAt.getTime() + WINDOW_SLACK_MS;
+    const own = fixes.filter((fix) => fix.t >= from && fix.t <= to);
+
+    return {
+      flightId,
+      points: toPoints(thin(own), source.startedAt.getTime()),
+      takeoffAltitudeM: own.at(0)?.altitude ?? null,
+    };
+  }
+}
+
+/** Every nth fix, so a long track still draws as the same shape. */
+function thin(fixes: readonly Fix[]): readonly Fix[] {
+  return thinTo(fixes, MAX_TRACK_POINTS);
+}
+
+/** Every nth one, and always the last: the end of a flight is never dropped. */
+function thinTo<T>(items: readonly T[], most: number): readonly T[] {
+  if (items.length <= most) {
+    return items;
+  }
+
+  const step = Math.ceil(items.length / most);
+  const kept = items.filter((_, index) => index % step === 0);
+  const last = items.at(-1);
+
+  return last !== undefined && kept.at(-1) !== last ? [...kept, last] : kept;
+}
+
+/**
+ * Fixes as the wire shape: timed from the flight's own start, and with the
+ * speed each was travelling at, measured over a second or so of track either
+ * side rather than from the fix before it, which is mostly noise.
+ */
+function toPoints(fixes: readonly Fix[], startedAt: number): FlightTrackPointDto[] {
+  return fixes.map((fix, index) => ({
+    t: fix.t - startedAt,
+    lat: fix.lat,
+    lng: fix.lon,
+    altM: fix.altitude,
+    speedKmh: speedAt(fixes, index),
+  }));
+}
+
+function speedAt(fixes: readonly Fix[], index: number): number | null {
+  let back = index;
+  let forward = index;
+
+  while (back > 0 && fixes[index].t - fixes[back].t < SPEED_WINDOW_MS / 2) {
+    back -= 1;
+  }
+
+  while (
+    forward < fixes.length - 1 &&
+    fixes[forward].t - fixes[index].t < SPEED_WINDOW_MS / 2
+  ) {
+    forward += 1;
+  }
+
+  const seconds = (fixes[forward].t - fixes[back].t) / 1000;
+
+  if (seconds <= 0) {
+    return null;
+  }
+
+  let metres = 0;
+
+  for (let step = back; step < forward; step += 1) {
+    metres += haversineM(fixes[step], fixes[step + 1]);
+  }
+
+  return Math.round((metres / seconds) * 3.6 * 10) / 10;
 }

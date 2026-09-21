@@ -171,57 +171,6 @@
         }
       </p>
     </figure>
-
-    <!-- Throttle vs peak current -->
-    <figure class="m-0">
-      <figcaption class="mb-3 text-base font-semibold">Average throttle vs. peak current</figcaption>
-      @if (throttleCurrentPoints().length === 0) {
-        <p class="m-0 text-sm text-muted">No current readings yet — these flights have no telemetry.</p>
-      } @else {
-        <svg
-          [attr.viewBox]="'0 0 ' + width + ' ' + height"
-          role="img"
-          aria-label="Average throttle against peak current per flight"
-        >
-          <g [attr.transform]="'translate(' + plotLeft + ',' + plotTop + ')'">
-            @for (tick of currentYTicks(); track tick.label) {
-              <line class="gridline" x1="0" [attr.x2]="plotRight - plotLeft" [attr.y1]="tick.y" [attr.y2]="tick.y" />
-              <text class="axis-label" x="-6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">
-                {{ tick.label }}
-              </text>
-            }
-            @for (tick of throttleXTicks; track tick.label) {
-              <text class="axis-label" [attr.x]="tick.x" [attr.y]="plotBottom - plotTop + 16" text-anchor="middle">
-                {{ tick.label }}
-              </text>
-            }
-            @for (point of throttleCurrentPoints(); track point.hover.title) {
-              <circle class="scatter-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="4" />
-              <circle
-                class="hit"
-                [attr.cx]="point.x"
-                [attr.cy]="point.y"
-                r="12"
-                tabindex="0"
-                role="button"
-                [attr.aria-label]="point.hover.title + ': ' + point.hover.lines.join(', ')"
-                (pointerenter)="hoveredThrottle.set(point.hover)"
-                (pointerleave)="hoveredThrottle.set(null)"
-                (focus)="hoveredThrottle.set(point.hover)"
-                (blur)="hoveredThrottle.set(null)"
-              />
-            }
-          </g>
-        </svg>
-        <p class="readout" [class.readout--empty]="!hoveredThrottle()">
-          @if (hoveredThrottle(); as point) {
-            <strong>{{ point.title }}</strong> — {{ point.lines.join(' · ') }}
-          } @else {
-            Hover or focus a flight to compare its throttle and current.
-          }
-        </p>
-      }
-    </figure>
   </div>
 
   <button type="button" class="mt-4 text-sm text-primary underline" (click)="showTable.set(!showTable())">

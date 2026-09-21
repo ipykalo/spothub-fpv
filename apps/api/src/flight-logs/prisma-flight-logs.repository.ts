@@ -8,7 +8,11 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../prisma';
-import { FlightLogsRepository } from './abstract/flight-logs.repository';
+import {
+  FlightLogsRepository,
+  type LogSource,
+  type TrackSource,
+} from './abstract/flight-logs.repository';
 import type {
   LogFileEntity,
   LogFileResult,
@@ -46,6 +50,58 @@ const STILL_IMPORTED = {
 export class PrismaFlightLogsRepository extends FlightLogsRepository {
   constructor(private readonly prisma: PrismaService) {
     super();
+  }
+
+  async findTrackSource(ownerId: string, flightId: string): Promise<TrackSource | null> {
+    const flight = await this.prisma.flight.findFirst({
+      where: { id: flightId, ownerId },
+      select: {
+        startedAt: true,
+        endedAt: true,
+        // The GPX that joined this flight, when one did; otherwise the radio
+        // log it was read from, which is where its own GPS fixes are.
+        trackLogFile: { select: { storageKey: true, format: true } },
+        logFile: { select: { storageKey: true, format: true } },
+      },
+    });
+
+    const file = flight?.trackLogFile ?? flight?.logFile;
+
+    if (!flight || !file) {
+      return null;
+    }
+
+    return {
+      storageKey: file.storageKey,
+      format: file.format,
+      startedAt: flight.startedAt,
+      endedAt: flight.endedAt,
+    };
+  }
+
+  async findLogSource(ownerId: string, flightId: string): Promise<LogSource | null> {
+    const flight = await this.prisma.flight.findFirst({
+      where: { id: flightId, ownerId },
+      select: {
+        startedAt: true,
+        endedAt: true,
+        // The log this flight was read from, never a GPX that joined it: a
+        // track says where the quad was, not what it was doing.
+        logFile: { select: { storageKey: true, format: true, fileName: true } },
+      },
+    });
+
+    if (!flight) {
+      return null;
+    }
+
+    return {
+      storageKey: flight.logFile.storageKey,
+      format: flight.logFile.format,
+      fileName: flight.logFile.fileName,
+      startedAt: flight.startedAt,
+      endedAt: flight.endedAt,
+    };
   }
 
   async findImportedChecksums(
