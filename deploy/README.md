@@ -192,17 +192,14 @@ In order, because each one proves something the next depends on:
 
 ## Releasing a change
 
-Work lands on `dev` and is released by merging it into `master`. From your
-laptop, once CI is green on `dev`:
+Work lands on `dev` and is released by merging it into `master`, through a
+pull request as every release so far has been. A fast-forward is not an
+option and never was: `master` carries a merge commit per past release, so
+it is not an ancestor of `dev`.
 
-```bash
-git checkout master && git pull
-git merge --ff-only dev
-git push origin master
-```
-
-Wait for CI to go green on `master` — that is what publishes the `master`
-image — then on the server:
+Open the pull request from `dev` into `master` and merge it once CI is
+green. Then wait for CI to go green on `master` too — that run is what
+publishes the `master` image — and on the server:
 
 ```bash
 cd /opt/spothub
