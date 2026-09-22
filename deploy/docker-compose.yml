@@ -1,8 +1,8 @@
 # SpotHub FPV in production: one VPS, four containers, Caddy in front.
 #
 # Nothing here builds. The images come from GHCR, where CI publishes them on
-# every push to `dev` — so a deploy is `docker compose pull && docker compose
-# up -d`, and a rollback is pinning SPOTHUB_TAG to the previous sha.
+# every push to `master` — so a deploy is `docker compose pull && docker
+# compose up -d`, and a rollback is pinning SPOTHUB_TAG to the previous sha.
 #
 # Run from /opt/spothub with the .env beside it:
 #   docker compose --env-file .env up -d
@@ -39,7 +39,7 @@ services:
       - client
 
   api:
-    image: ghcr.io/ipykalo/spothub-fpv/api:${SPOTHUB_TAG:-dev}
+    image: ghcr.io/ipykalo/spothub-fpv/api:${SPOTHUB_TAG:-master}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -73,7 +73,7 @@ services:
         condition: service_healthy
 
   client:
-    image: ghcr.io/ipykalo/spothub-fpv/client:${SPOTHUB_TAG:-dev}
+    image: ghcr.io/ipykalo/spothub-fpv/client:${SPOTHUB_TAG:-master}
     restart: unless-stopped
     environment:
       NODE_ENV: production

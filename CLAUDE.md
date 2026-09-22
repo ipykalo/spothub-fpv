@@ -589,7 +589,12 @@ secret unless they are made public.
 an `.env.example`, with the runbook in `deploy/README.md`. Nothing builds on
 the server — the compose file runs the GHCR images by tag, so a deploy is a
 pull and a restart and a rollback is pinning `SPOTHUB_TAG` to a `sha-` tag,
-which is immutable where `dev` is not. Caddy terminates TLS for the site and
+which is immutable where a branch tag is not.
+
+**`dev` is where work lands; `master` is what production runs**, and a release
+is a merge from `dev` into `master`. CI builds both, so each has a moving
+image tag of its own; the server pulls `master` and never `dev`, which moves
+with every ticket. Caddy terminates TLS for the site and
 for storage, and is the only container that publishes a port. Three things
 about it are not obvious:
 

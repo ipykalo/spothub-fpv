@@ -1,8 +1,12 @@
 # Deploying SpotHub FPV
 
 One VPS, four containers, Caddy in front doing TLS. Nothing is built on the
-server: CI publishes both images to GHCR on every push to `dev`, so a deploy
-is a pull and a restart, and a rollback is pinning the previous tag.
+server: CI publishes both images to GHCR on every push, so a deploy is a pull
+and a restart, and a rollback is pinning the previous tag.
+
+**`dev` is where work lands; `master` is what production runs.** A release is
+a merge from `dev` into `master`, which builds a `master` image the server
+then pulls. The server never runs `dev`: that tag moves with every ticket.
 
 ```
                 :443  Caddy  ──┬── /api/*  →  api:3000     NestJS
@@ -186,9 +190,19 @@ In order, because each one proves something the next depends on:
    A 404 here means Caddy is not falling through to the client server.
 8. Import a `.bbl` log. That proves `blackbox_decode` is in the API image.
 
-## Deploying a change
+## Releasing a change
 
-CI publishes on every push to `dev`. Once it is green:
+Work lands on `dev` and is released by merging it into `master`. From your
+laptop, once CI is green on `dev`:
+
+```bash
+git checkout master && git pull
+git merge --ff-only dev
+git push origin master
+```
+
+Wait for CI to go green on `master` — that is what publishes the `master`
+image — then on the server:
 
 ```bash
 cd /opt/spothub
@@ -201,8 +215,8 @@ actually changed.
 
 ## Rolling back
 
-`dev` is a moving tag; `sha-<commit>` is not. Set `SPOTHUB_TAG` in `.env` to
-the long sha tag of a commit that worked and bring it up again:
+`master` is a moving tag; `sha-<commit>` is not. Set `SPOTHUB_TAG` in `.env`
+to the long sha tag of a commit that worked and bring it up again:
 
 ```bash
 sed -i 's/^SPOTHUB_TAG=.*/SPOTHUB_TAG=sha-<the full commit sha>/' .env
