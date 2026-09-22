@@ -105,6 +105,12 @@ dig +short example.com storage.example.com
 
 ## 3. The images
 
+**There has to be a `master` image before the first deploy.** The compose
+file pulls `master`, and CI only publishes that tag once something has been
+pushed to that branch — so open the pull request from `dev` into `master`,
+merge it, and wait for CI to go green on `master`. Until then
+`docker compose pull` answers `manifest unknown`.
+
 The GHCR packages are private by default. Either make
 `ipykalo/spothub-fpv/api` and `.../client` public under the repository's
 **Packages** settings — they contain no secrets — or log in on the server with
