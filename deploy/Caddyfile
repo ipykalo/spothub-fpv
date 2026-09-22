@@ -1,0 +1,53 @@
+# Caddy in front of SpotHub FPV.
+#
+# TLS is automatic: Caddy asks Let's Encrypt for a certificate for each site
+# name below the first time it is asked for, and renews it without being told.
+# That is the whole reason it is here rather than nginx.
+#
+# Two names, because the browser uploads straight to object storage on a
+# presigned URL and cannot resolve a container: the site itself, and storage.
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	# The API keeps its own `/api` prefix, so the path is passed through
+	# unchanged — the routes really are `/api/...` on the other side.
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	# Everything else is the Angular server: the public pages rendered per
+	# request, the browser bundle beside them, and robots.txt and sitemap.xml.
+	handle {
+		reverse_proxy client:4000
+	}
+
+	# Sent on every response. HSTS is deliberately absent until the site has
+	# run on HTTPS for a while: it is hard to undo, and a mistake locks
+	# browsers out of the domain for as long as the max-age says.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+	}
+}
+
+# Redirects the bare `www` to the canonical name, so the blog is indexed once.
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+{$STORAGE_DOMAIN} {
+	# A presigned PUT signs the headers it will send, so nothing may be added
+	# or rewritten on the way through. `reverse_proxy` passes the body and the
+	# Authorization query string untouched.
+	reverse_proxy minio:9000
+
+	# Photos and logs are large; the default limit would refuse them.
+	request_body {
+		max_size 100MB
+	}
+}

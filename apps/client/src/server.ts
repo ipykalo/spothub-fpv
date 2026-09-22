@@ -26,12 +26,23 @@ const browserDistFolder = join(import.meta.dirname, '../browser');
 
 /**
  * Angular refuses a request whose Host header is not an allowed hostname, so a
- * forged one cannot steer what the server fetches while rendering. `localhost`
- * covers running the built server on a laptop; the site's own domain is added
- * on deploy through Angular's `NG_ALLOWED_HOSTS` (comma-separated).
+ * forged one cannot steer what the server fetches while rendering. The site's
+ * own domain comes from `NG_ALLOWED_HOSTS` (comma-separated) on deploy, and
+ * `localhost` is the fallback for running the built server on a laptop.
+ *
+ * Read here rather than left to the engine: `AngularNodeAppEngine` resolves it
+ * as `options?.allowedHosts ?? getAllowedHostsFromEnv()`, so passing a list —
+ * as this did — makes the environment variable dead, and the real domain gets
+ * a 400 on every request.
  */
+const configuredHosts = (process.env['NG_ALLOWED_HOSTS'] ?? '')
+  .split(',')
+  .map((host) => host.trim())
+  .filter((host) => host.length > 0);
+const allowedHosts = configuredHosts.length > 0 ? configuredHosts : ['localhost'];
+
 const app = express();
-const angularApp = new AngularNodeAppEngine({ allowedHosts: ['localhost'] });
+const angularApp = new AngularNodeAppEngine({ allowedHosts });
 
 /**
  * Where this server reaches the API, as the rendering does: the API's own

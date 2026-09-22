@@ -1,0 +1,152 @@
+# SpotHub FPV in production: one VPS, four containers, Caddy in front.
+#
+# Nothing here builds. The images come from GHCR, where CI publishes them on
+# every push to `dev` — so a deploy is `docker compose pull && docker compose
+# up -d`, and a rollback is pinning SPOTHUB_TAG to the previous sha.
+#
+# Run from /opt/spothub with the .env beside it:
+#   docker compose --env-file .env up -d
+#
+# Only Caddy publishes ports. Postgres and MinIO are reachable on the internal
+# network and nowhere else, which is why neither needs a firewall rule of its
+# own.
+
+name: spothub
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      # HTTP/3. Harmless if the provider's firewall drops it.
+      - "443:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      STORAGE_DOMAIN: ${STORAGE_DOMAIN}
+      # Let's Encrypt writes here about expiring certificates.
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The issued certificates. Losing this volume means re-issuing, and
+      # Let's Encrypt rate-limits that — so it is a named volume, not a
+      # bind mount into a directory someone might tidy up.
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - api
+      - client
+
+  api:
+    image: ghcr.io/ipykalo/spothub-fpv/api:${SPOTHUB_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      # The site's public address: where the OAuth callback sends the browser
+      # back to, and the only origin CORS allows.
+      CLIENT_URL: https://${SITE_DOMAIN}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: https://${SITE_DOMAIN}/api/auth/google/callback
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      # Storage is addressed by its public name, not by `minio:9000`: the same
+      # endpoint signs the URLs the browser uploads to, and a browser cannot
+      # resolve a container. The API's own reads loop back out through Caddy,
+      # which at this size costs nothing worth splitting the setting for.
+      S3_ENDPOINT: https://${STORAGE_DOMAIN}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-spothub-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_FORCE_PATH_STYLE: "true"
+      # Built into the API image; no Docker fallback needed here.
+      BLACKBOX_DECODE_PATH: blackbox_decode
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  client:
+    image: ghcr.io/ipykalo/spothub-fpv/client:${SPOTHUB_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # How this server reaches the API while rendering: inside the network,
+      # never back out through the public address.
+      API_INTERNAL_ORIGIN: http://api:3000
+      # Angular answers any other Host header with 400. Without this the real
+      # domain is refused on every request.
+      NG_ALLOWED_HOSTS: ${SITE_DOMAIN}
+      # Behind Caddy the scheme and host arrive in these headers. Untrusted,
+      # every canonical link, og:url and sitemap entry would be built from the
+      # container's own address instead of the site's.
+      NG_TRUST_PROXY_HEADERS: x-forwarded-proto,x-forwarded-host
+    depends_on:
+      - api
+
+  postgres:
+    # The same image as development, pinned: a major version is a migration.
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      # A cold start on a small box takes longer than the interval allows for.
+      start_period: 30s
+
+  minio:
+    # quay, not Docker Hub: MinIO no longer publishes there, and a fresh
+    # machine cannot pull `minio/minio` at all. Pinned to the release CI runs
+    # its end-to-end suite against.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+      # What the browser is redirected to; without it MinIO answers with its
+      # own container address in some flows.
+      MINIO_SERVER_URL: https://${STORAGE_DOMAIN}
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # Creates the bucket once and exits. `mb -p` is idempotent, so this is safe
+  # on every `up`.
+  createbuckets:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY} &&
+      mc mb -p local/${S3_BUCKET:-spothub-media} &&
+      exit 0"
+    restart: "no"
+
+volumes:
+  pgdata:
+  miniodata:
+  caddydata:
+  caddyconfig:

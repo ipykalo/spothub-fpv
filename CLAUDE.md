@@ -585,6 +585,32 @@ worth remembering:
 The GHCR packages are **private** by default, so the first deploy needs a pull
 secret unless they are made public.
 
+**`deploy/` is the production stack**: `docker-compose.yml`, a `Caddyfile` and
+an `.env.example`, with the runbook in `deploy/README.md`. Nothing builds on
+the server — the compose file runs the GHCR images by tag, so a deploy is a
+pull and a restart and a rollback is pinning `SPOTHUB_TAG` to a `sha-` tag,
+which is immutable where `dev` is not. Caddy terminates TLS for the site and
+for storage, and is the only container that publishes a port. Three things
+about it are not obvious:
+
+- **The client is refused on its own domain unless `NG_ALLOWED_HOSTS` reaches
+  it.** `AngularNodeAppEngine` resolves the setting as `options?.allowedHosts
+?? getAllowedHostsFromEnv()`, so passing a list in `server.ts` — as it did —
+  makes the environment variable dead and every request answers 400.
+  `server.ts` reads the variable itself now and falls back to `localhost`.
+- **`NG_TRUST_PROXY_HEADERS=x-forwarded-proto,x-forwarded-host` is not
+  optional.** Untrusted, `SITE_ORIGIN` is built from the address Caddy
+  forwards to, so every canonical link, `og:url` and sitemap entry would name
+  `http://client:4000`.
+- **`S3_ENDPOINT` is the public storage domain, not `minio:9000`.** The same
+  endpoint signs the URLs the browser uploads to, and a browser cannot resolve
+  a container. The API's own reads loop back out through Caddy, which is
+  cheaper than splitting the setting into an internal and a public one.
+
+**MinIO comes from quay, not Docker Hub.** `docker pull minio/minio` now fails
+outright on a machine that has not cached it — MinIO stopped publishing there.
+Both compose files and CI use `quay.io/minio/minio` at a pinned release.
+
 **Spots** are places to fly, kept apart from flights on purpose: a spot is
 something you plan around and describe, not something a log proves. A spot has
 its own page and a Leaflet map (`/spots`), where clicking an empty place offers
@@ -858,9 +884,11 @@ and what it cost to undo it are worth remembering before opening anything else.
   as that user: the owner gets their controls, and their own private build
   or draft opens.
 
-**Next, in order:** VPS + Caddy first deploy, then database backups with a
-tested restore. V1 is feature-complete; what is left is getting it off the
-laptop.
+**Next, in order:** VPS + Caddy first deploy — the stack and runbook are in
+`deploy/` and were proven by running them on a laptop; what is left is the
+box, the domain and the DNS — then database backups with a tested restore,
+which should land before any real logbook data does. V1 is feature-complete;
+what is left is getting it off the laptop.
 
 **The media pipeline never lets file bytes reach the API.** The client asks for
 a presigned PUT, uploads straight to object storage, then calls commit — which
