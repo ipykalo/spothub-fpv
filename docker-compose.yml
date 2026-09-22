@@ -20,7 +20,10 @@ services:
   # S3-compatible storage. Unused until the media pipeline ticket, but the
   # bucket exists from day one so nothing has to change when it lands.
   minio:
-    image: minio/minio
+    # quay, not Docker Hub: MinIO stopped publishing there, and `docker pull
+    # minio/minio` now fails outright on a machine that has not cached it.
+    # CI already pulls this same release for its end-to-end suite.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772
     container_name: spothub-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -39,7 +42,7 @@ services:
       retries: 10
 
   createbuckets:
-    image: minio/mc
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
     depends_on:
       minio:
         condition: service_healthy

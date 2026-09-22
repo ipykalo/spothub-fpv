@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    # `dev` is where work actually lands; without it here CI only ever ran on
-    # the occasional merge to main and on pull requests.
-    branches: [main, dev]
+    # `dev` is where work lands and `master` is what production runs, so both
+    # have to build: without `dev` here CI only ever ran on the occasional
+    # release and on pull requests, and without `master` no image would be
+    # published for the branch the server actually deploys.
+    branches: [master, main, dev]
   pull_request:
 
 concurrency:
@@ -70,7 +72,7 @@ jobs:
           POSTGRES_USER: fpv
           POSTGRES_PASSWORD: fpv
           POSTGRES_DB: fpv
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U fpv -d fpv"
           --health-interval 5s --health-timeout 5s --health-retries 10
@@ -169,8 +171,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
-          # `dev` and `main` are moving tags to deploy from; the sha tag is the
-          # immutable one to roll back to.
+          # A branch tag moves with its branch — `master` is what the server
+          # runs, `dev` is what the next release is being built from. The sha
+          # tag is the immutable one to roll back to.
           tags: |
             type=ref,event=branch
             type=sha,format=long
