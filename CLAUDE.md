@@ -607,14 +607,28 @@ about it are not obvious:
   optional.** Untrusted, `SITE_ORIGIN` is built from the address Caddy
   forwards to, so every canonical link, `og:url` and sitemap entry would name
   `http://client:4000`.
-- **`S3_ENDPOINT` is the public storage domain, not `minio:9000`.** The same
-  endpoint signs the URLs the browser uploads to, and a browser cannot resolve
-  a container. The API's own reads loop back out through Caddy, which is
-  cheaper than splitting the setting into an internal and a public one.
+- **Storage has two addresses, and they are not interchangeable.**
+  `S3_ENDPOINT` is where the API itself reads and writes (`http://minio:9000`,
+  inside the network); `S3_PUBLIC_ENDPOINT` is what presigned URLs are signed
+  against, because those are handed to a browser, which cannot resolve a
+  container. SigV4 signs the host, so one client cannot serve both and
+  rewriting the host afterwards would invalidate the signature —
+  `S3StorageGateway` keeps a second `S3Client` purely for signing. Unset, they
+  are the same, which is the development case. The first dry run found this
+  the hard way: the API signed for the public name and then could not resolve
+  it itself, and every photo commit died on `getaddrinfo ENOTFOUND`.
 
 **MinIO comes from quay, not Docker Hub.** `docker pull minio/minio` now fails
 outright on a machine that has not cached it — MinIO stopped publishing there.
 Both compose files and CI use `quay.io/minio/minio` at a pinned release.
+
+**The stack is testable without a server.** `deploy/TESTING.md` brings the
+published images up on a laptop behind Caddy's own certificate and walks every
+check, and `scripts/dry-run-media.mjs` proves the one path no `curl` of a
+public page reaches: a presigned upload straight to storage, and the commit
+that reads it back and makes a thumbnail. Run it before trusting a change to
+the deployment — both faults found so far surfaced on the first real run and
+neither was visible in the files.
 
 **Spots** are places to fly, kept apart from flights on purpose: a spot is
 something you plan around and describe, not something a log proves. A spot has

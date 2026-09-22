@@ -54,11 +54,12 @@ services:
       ALLOWED_EMAILS: ${ALLOWED_EMAILS}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      # Storage is addressed by its public name, not by `minio:9000`: the same
-      # endpoint signs the URLs the browser uploads to, and a browser cannot
-      # resolve a container. The API's own reads loop back out through Caddy,
-      # which at this size costs nothing worth splitting the setting for.
-      S3_ENDPOINT: https://${STORAGE_DOMAIN}
+      # The API's own reads and writes go straight at the service, inside the
+      # network. Only the URLs the browser uploads to are signed against the
+      # public name — a container cannot resolve one, and the API tried to:
+      # `getaddrinfo ENOTFOUND storage.<domain>` on the first commit.
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: https://${STORAGE_DOMAIN}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_BUCKET: ${S3_BUCKET:-spothub-media}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}

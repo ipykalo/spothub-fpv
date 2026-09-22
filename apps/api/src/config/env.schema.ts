@@ -51,6 +51,17 @@ export const envSchema = z.object({
    * difference is these five values and nothing in the code.
    */
   S3_ENDPOINT: z.url(),
+  /**
+   * Where the *browser* reaches storage, when that is not where the API does.
+   *
+   * A presigned URL signs the host it names, so it has to be built against an
+   * address the browser can resolve — and on a single VPS that is a public
+   * name in DNS, which a container inside the network cannot look up. The API
+   * keeps using `S3_ENDPOINT` for its own reads and writes, straight to the
+   * service; only the signing uses this. Left unset they are the same, which
+   * is the local and single-host case.
+   */
+  S3_PUBLIC_ENDPOINT: z.url().optional(),
   S3_REGION: z.string().min(1).default('us-east-1'),
   S3_BUCKET: z.string().min(1),
   S3_ACCESS_KEY: z.string().min(1),

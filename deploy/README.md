@@ -196,6 +196,9 @@ In order, because each one proves something the next depends on:
    A 404 here means Caddy is not falling through to the client server.
 8. Import a `.bbl` log. That proves `blackbox_decode` is in the API image.
 
+`TESTING.md` has all of this as commands, and a dry run that does most of it
+on a laptop before there is a server at all.
+
 ## Releasing a change
 
 Work lands on `dev` and is released by merging it into `master`, through a
@@ -240,14 +243,15 @@ docker stats --no-stream           # what is eating the 4 GB
 
 Failures that are worth recognising on sight:
 
-| What you see                            | What it is                                                            |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| Every page answers `400`                | `NG_ALLOWED_HOSTS` does not match the Host header Caddy sends         |
-| Canonical links say `client:4000`       | `NG_TRUST_PROXY_HEADERS` is missing, so the forwarded host is ignored |
-| Sign-in returns `redirect_uri_mismatch` | The Google console URI is not character-for-character the same        |
-| Signed in, but signed out on refresh    | The refresh cookie is `secure`; the site must be HTTPS end to end     |
-| Photo upload fails at the PUT           | `storage.<domain>` has no certificate, or `S3_ENDPOINT` is internal   |
-| API restarts in a loop                  | Usually the database URL, visible in the first lines of its log       |
+| What you see                            | What it is                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| Every page answers `400`                | `NG_ALLOWED_HOSTS` does not match the Host header Caddy sends           |
+| Canonical links say `client:4000`       | `NG_TRUST_PROXY_HEADERS` is missing, so the forwarded host is ignored   |
+| Sign-in returns `redirect_uri_mismatch` | The Google console URI is not character-for-character the same          |
+| Signed in, but signed out on refresh    | The refresh cookie is `secure`; the site must be HTTPS end to end       |
+| Photo upload fails at the PUT           | `storage.<domain>` has no certificate, or `S3_PUBLIC_ENDPOINT` is unset |
+| Photo commit answers 500                | `S3_ENDPOINT` names the public host; it should be `http://minio:9000`   |
+| API restarts in a loop                  | Usually the database URL, visible in the first lines of its log         |
 
 ## What this deliberately does not do yet
 
