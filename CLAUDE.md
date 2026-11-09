@@ -866,7 +866,15 @@ and what it cost to undo it are worth remembering before opening anything else.
 - **Markdown is rendered by `sh-markdown`** (`marked`): raw HTML in the
   source is escaped, an image at any outside address becomes a link (loading
   it would tell its host who read the page), and the result still goes
-  through Angular's `[innerHTML]` sanitizer.
+  through Angular's `[innerHTML]` sanitizer. **A paragraph that is only a
+  YouTube link plays in place**: `markdownBlocks` (`markdown-render.ts`, pure
+  and specced, apart from the component so a spec never loads Material)
+  splits the lexed body into runs of HTML and video blocks, and the template
+  drops `sh-youtube-player` between them — the same click-to-play player a
+  spot uses, moved to `core/components/` for it, so nothing is fetched from
+  Google until play. A video link in a sentence, a list or code stays a link,
+  and a link's own words become the caption. Video files are never uploaded:
+  they would fill the server and need transcoding.
 - **A post's images are uploads, not addresses.** They go through the same
   presigned pipeline as build photos — `media` has a `post` subject beside
   `build`, with routes under `posts/:postId/images` — and the body refers to

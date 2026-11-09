@@ -26,7 +26,7 @@ import {
   googleDirectionsUrl,
   openStreetMapUrl,
 } from '../../spot-style';
-import { SpotVideo } from '../spot-video/spot-video';
+import { YouTubePlayer } from '../../../../core/components/youtube-player/youtube-player';
 
 /** Presenter: the whole spot, read-only. */
 @Component({
@@ -38,7 +38,7 @@ import { SpotVideo } from '../spot-video/spot-video';
     MatCardModule,
     MatIconModule,
     Section,
-    SpotVideo,
+    YouTubePlayer,
   ],
   templateUrl: './spot-details.html',
   styleUrl: './spot-details.scss',
