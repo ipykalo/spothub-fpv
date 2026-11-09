@@ -304,6 +304,15 @@ The rules that keep Tailwind and Angular Material from fighting:
   every suite dies with "Cannot read properties of undefined (reading
   'config')" before a single test runs. Nothing is wrong with the tests; CI on
   Linux is unaffected.
+- **Git Bash rewrites container paths passed to `docker`.** Anything that
+  looks like a Unix path is turned into a Windows one on its way to a
+  Windows program: `docker run … server /data` reaches MinIO as
+  `server C:/Program Files/Git/data`, an empty folder inside the container.
+  It produced a whole afternoon of false results — a MinIO that "formatted"
+  the drive and saw no buckets, and a non-root user that "could not start" —
+  none of it true. Prefix such commands with `MSYS_NO_PATHCONV=1`, or run
+  them from PowerShell. Compose files are unaffected: Docker reads the YAML
+  itself.
 - **Lint must go through Nx.** ESLint flat config does not cascade, so
   `eslint apps libs` applies only the root config and silently skips every
   Angular and template rule. Use `nx run-many -t lint`, which is what
@@ -618,9 +627,24 @@ about it are not obvious:
   the hard way: the API signed for the public name and then could not resolve
   it itself, and every photo commit died on `getaddrinfo ENOTFOUND`.
 
-**MinIO comes from quay, not Docker Hub.** `docker pull minio/minio` now fails
-outright on a machine that has not cached it — MinIO stopped publishing there.
-Both compose files and CI use `quay.io/minio/minio` at a pinned release.
+**MinIO comes from Chainguard, pinned by digest.** Its own images are gone:
+withdrawn from Docker Hub in 2025, then from quay in November 2026, with the
+`minio/minio` repository archived — every pull failed, CI's e2e job died at
+"Start MinIO", and the release to `master` was blocked. Bitnami's image went
+the same way earlier. `cgr.dev/chainguard/minio` is still built from source
+and current; CI and both compose files pin the **same digest**, because a tag
+can be withdrawn or moved, which is how both earlier images broke. To move to
+a newer build, pull `:latest`, read its digest, and change all three places
+together.
+
+- **CI and production run it as Chainguard's default non-root user**; their
+  drives start empty. **Development runs it as root**, because a volume made
+  before the switch was written by MinIO's own image, which ran as root, and
+  the non-root user refuses to start on it. This build reads that old data in
+  place — no migration.
+- **`createbuckets` uses the MinIO image itself**, which carries a shell and
+  `mc`. Chainguard's own `minio-client` image has no shell to run the two
+  commands in.
 
 **The stack is testable without a server.** `deploy/TESTING.md` brings the
 published images up on a laptop behind Caddy's own certificate and walks every

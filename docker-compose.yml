@@ -20,10 +20,17 @@ services:
   # S3-compatible storage. Unused until the media pipeline ticket, but the
   # bucket exists from day one so nothing has to change when it lands.
   minio:
-    # quay, not Docker Hub: MinIO stopped publishing there, and `docker pull
-    # minio/minio` now fails outright on a machine that has not cached it.
-    # CI already pulls this same release for its end-to-end suite.
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772
+    # MinIO's own images are gone — withdrawn from Docker Hub in 2025 and from
+    # quay in November 2026, with its repository archived. Chainguard still
+    # builds it from source. Pinned by digest, not tag: a tag can be withdrawn
+    # or moved, which is how both earlier images broke. CI and the production
+    # stack use the same digest.
+    image: cgr.dev/chainguard/minio@sha256:a1ac4589a5f8136b616e667b48a0bea9719bb10bd45799ea946f24bbedfafde4
+    # Root, because a volume made before November 2026 was written by MinIO's
+    # own image, which ran as root: Chainguard's default non-root user cannot
+    # write to it and refuses to start. CI and production start from empty
+    # drives and run as that non-root user.
+    user: "0:0"
     container_name: spothub-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -34,6 +41,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
+      # The same volume as before the switch: this build reads what the old
+      # image wrote, in place.
       - miniodata:/data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
@@ -42,7 +51,9 @@ services:
       retries: 10
 
   createbuckets:
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    # The same image: it carries both a shell and mc. Chainguard's own mc
+    # image has no shell to run these commands in.
+    image: cgr.dev/chainguard/minio@sha256:a1ac4589a5f8136b616e667b48a0bea9719bb10bd45799ea946f24bbedfafde4
     depends_on:
       minio:
         condition: service_healthy

@@ -111,10 +111,15 @@ services:
       start_period: 30s
 
   minio:
-    # quay, not Docker Hub: MinIO no longer publishes there, and a fresh
-    # machine cannot pull `minio/minio` at all. Pinned to the release CI runs
-    # its end-to-end suite against.
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772
+    # MinIO's own images are gone — withdrawn from Docker Hub in 2025 and from
+    # quay in November 2026, with its repository archived. Chainguard still
+    # builds it from source. Pinned by digest, the same one CI runs its
+    # end-to-end suite against: a tag can be withdrawn or moved, which is how
+    # both earlier images broke.
+    image: cgr.dev/chainguard/minio@sha256:a1ac4589a5f8136b616e667b48a0bea9719bb10bd45799ea946f24bbedfafde4
+    # As Chainguard's default non-root user. The volume is created fresh on the
+    # server, so it belongs to that user from the start; development runs as
+    # root only because its older volumes were written by a root image.
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -135,7 +140,9 @@ services:
   # Creates the bucket once and exits. `mb -p` is idempotent, so this is safe
   # on every `up`.
   createbuckets:
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    # The same image: it carries both a shell and mc. Chainguard's own mc
+    # image has no shell to run these commands in.
+    image: cgr.dev/chainguard/minio@sha256:a1ac4589a5f8136b616e667b48a0bea9719bb10bd45799ea946f24bbedfafde4
     depends_on:
       minio:
         condition: service_healthy
