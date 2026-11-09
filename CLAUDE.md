@@ -927,11 +927,14 @@ and what it cost to undo it are worth remembering before opening anything else.
   as that user: the owner gets their controls, and their own private build
   or draft opens.
 
-**Next, in order:** VPS + Caddy first deploy — the stack and runbook are in
-`deploy/` and were proven by running them on a laptop; what is left is the
-box, the domain and the DNS — then database backups with a tested restore,
-which should land before any real logbook data does. V1 is feature-complete;
-what is left is getting it off the laptop.
+**Live at https://spothubfpv.com since 9 November 2026** — a Hetzner CX23
+(46.224.2.250, `ssh spothub@…`, root refused) running `deploy/` from
+`/opt/spothub`, whose `.env` is the only copy of the production secrets.
+Generate those as hex: the database password is spliced into
+`DATABASE_URL`, where base64's `/` and `+` break it.
+
+**Next:** database backups with a tested restore, before any real logbook
+data lands on the server.
 
 **The media pipeline never lets file bytes reach the API.** The client asks for
 a presigned PUT, uploads straight to object storage, then calls commit — which
