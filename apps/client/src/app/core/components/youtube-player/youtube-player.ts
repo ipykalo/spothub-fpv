@@ -12,22 +12,24 @@ import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
 import { type YouTubeVideo, youTubeEmbedUrl, youTubeWatchUrl } from '@spothub/shared';
 
 /**
- * Presenter: a spot's flight video on YouTube, loaded only when asked for.
+ * Presenter: a video on YouTube, loaded only when asked for — a spot's flight
+ * video, or one a post shows.
  *
  * Until play is pressed nothing is fetched from Google — no iframe and no
- * thumbnail — so opening a spot does not tell YouTube who looked at which
- * place. Then the privacy-enhanced player loads in place and starts.
+ * thumbnail — so opening a page does not tell YouTube who read it. Then the
+ * privacy-enhanced player loads in place and starts. It moved here from
+ * `spots` when posts needed it: a shared presenter, not a spot's.
  */
 @Component({
-  selector: 'sh-spot-video',
+  selector: 'sh-youtube-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatButtonModule, MatIconModule],
-  templateUrl: './spot-video.html',
-  styleUrl: './spot-video.scss',
+  templateUrl: './youtube-player.html',
+  styleUrl: './youtube-player.scss',
 })
-export class SpotVideo {
+export class YouTubePlayer {
   readonly video = input.required<YouTubeVideo>();
-  /** The spot's stored cover, shown behind the play button. From our storage, never YouTube. */
+  /** A stored cover shown behind the play button. From our storage, never YouTube. */
   readonly cover = input<string | null>(null);
 
   protected readonly posterImage = computed(() => {

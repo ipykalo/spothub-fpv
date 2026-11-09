@@ -1,1 +1,12 @@
-<div [innerHTML]="html()"></div>
+@for (block of blocks(); track $index) {
+  @if (block.kind === 'html') {
+    <div [innerHTML]="block.html"></div>
+  } @else {
+    <figure class="sh-markdown-video">
+      <sh-youtube-player [video]="block.video" />
+      @if (block.caption) {
+        <figcaption>{{ block.caption }}</figcaption>
+      }
+    </figure>
+  }
+}

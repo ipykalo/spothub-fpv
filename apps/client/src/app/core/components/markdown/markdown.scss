@@ -3,12 +3,32 @@
   line-height: 1.65;
   overflow-wrap: anywhere;
 
-  > div > :first-child {
+  // A body is several runs when a video splits it; only its outer edges lose their margin.
+  > div:first-child > :first-child {
     margin-top: 0;
   }
 
-  > div > :last-child {
+  > div:last-child > :last-child {
     margin-bottom: 0;
+  }
+
+  .sh-markdown-video {
+    margin: 1.75em 0;
+  }
+
+  .sh-markdown-video:first-child {
+    margin-top: 0;
+  }
+
+  .sh-markdown-video:last-child {
+    margin-bottom: 0;
+  }
+
+  .sh-markdown-video figcaption {
+    margin-top: 0.5em;
+    text-align: center;
+    font-size: 0.875em;
+    color: var(--mat-sys-on-surface-variant);
   }
 
   h1,
