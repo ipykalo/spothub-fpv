@@ -238,7 +238,12 @@ through `@tailwindcss/postcss` (`apps/client/.postcssrc.json`), set up in
 `apps/client/src/styles/tailwind.css`. The look follows Betaflight: amber
 (`#ffbb00`) headings and actions on neutral grey, Open Sans self-hosted from
 `@fontsource-variable/open-sans`, light and dark themes toggled in the toolbar
-by `ThemeStore` (`core/theme/`).
+by `ThemeStore` (`core/theme/`). **No font comes from Google**: Material
+Icons, which `<mat-icon>` needs, is bundled from the `material-icons` package
+(filled set only) through `project.json`'s styles. It was a Google Fonts link
+until the site went public, which handed every visitor's address to Google
+on every page and contradicted what `/about` promises. The site icon is
+`public/favicon.svg`, with `.ico` and `apple-touch-icon.png` rendered from it.
 
 The rules that keep Tailwind and Angular Material from fighting:
 
@@ -896,7 +901,9 @@ and what it cost to undo it are worth remembering before opening anything else.
   description, canonical address and Open Graph and Twitter tags
   (`core/seo/page-meta.ts`), and a schema.org block beside them
   (`core/seo/structured-data.ts`): `Blog` on the feed, `BlogPosting` on a
-  post with its author, dates and word count. `SITE_ORIGIN` is the request's
+  post with its author, dates and word count. A page with no picture of its
+  own shares `public/share.jpg` (`DEFAULT_SHARE_IMAGE`, 1200×630), so no link
+  to the site goes out as bare text. `SITE_ORIGIN` is the request's
   own origin on the server and `location.origin` in the browser, so no domain
   is configured anywhere. The Node server itself serves `/robots.txt` — every
   signed-in path disallowed, since a crawler would only meet the login page —

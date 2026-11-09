@@ -178,8 +178,9 @@ describe('post images', () => {
 
     const blog = (await request(testApp.server).get('/api/posts/published').expect(200))
       .body as PostSummaryDto[];
+    // The full image: a card is the width of the feed, wider than any thumbnail.
     expect(blog.find((entry) => entry.id === post.id)?.coverUrl).toBe(
-      `/api/posts/${post.id}/images/${frame.id}/thumb`,
+      `/api/posts/${post.id}/images/${frame.id}/file`,
     );
   });
 

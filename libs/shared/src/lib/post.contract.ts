@@ -148,7 +148,10 @@ export const postSummarySchema = z.object({
   authorName: z.string().nullable(),
   /** Whether the person asking wrote it. Only its author can change it. */
   ownedByViewer: z.boolean(),
-  /** The cover's thumbnail, for a list. A lasting address, so a card may be shared. */
+  /**
+   * The cover image for a list. The full image rather than its thumbnail, since a
+   * feed card is the width of the page. A lasting address, so a card may be shared.
+   */
   coverUrl: z.string().nullable(),
   /** Minutes to read the body. */
   readingMinutes: z.number().int(),

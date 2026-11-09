@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- SpotHub FPV: a quad seen from above, amber on Betaflight's dark grey. -->
+  <rect width="64" height="64" rx="14" fill="#1b1b1b"/>
+  <g fill="none" stroke="#ffbb00" stroke-linecap="round">
+    <path d="M20 20 44 44M44 20 20 44" stroke-width="5"/>
+    <circle cx="17" cy="17" r="9" stroke-width="3.5"/>
+    <circle cx="47" cy="17" r="9" stroke-width="3.5"/>
+    <circle cx="17" cy="47" r="9" stroke-width="3.5"/>
+    <circle cx="47" cy="47" r="9" stroke-width="3.5"/>
+  </g>
+  <rect x="26" y="26" width="12" height="12" rx="3" fill="#ffbb00"/>
+</svg>

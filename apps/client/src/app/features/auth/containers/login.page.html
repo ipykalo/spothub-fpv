@@ -1,13 +1,37 @@
-<mat-card appearance="outlined" class="w-full max-w-104">
-  <mat-card-header>
-    <mat-card-title>SpotHub FPV</mat-card-title>
-  </mat-card-header>
-  <mat-card-content>
-    <p class="mt-0 mb-6 text-muted">Your hangar: what you built, what's in it, what it cost.</p>
-    <button matButton="filled" type="button" (click)="signIn()">
-      <mat-icon>login</mat-icon>
-      Continue with Google
-    </button>
-    <p class="mt-6 mb-0 text-sm text-muted">Or read <a routerLink="/">the blog</a> first.</p>
-  </mat-card-content>
-</mat-card>
+<div class="grid w-full max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,26rem)_1fr]">
+  <mat-card appearance="outlined" class="w-full">
+    <mat-card-header>
+      <mat-card-title>SpotHub FPV</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <p class="mt-0 mb-6 text-muted">
+        Your builds, parts, flight logs, battery packs and flying spots, in one place. Signing in is by invitation for
+        now.
+      </p>
+      <button matButton="filled" type="button" (click)="signIn()">
+        <mat-icon>login</mat-icon>
+        Continue with Google
+      </button>
+      <p class="mt-6 mb-0 text-sm text-muted">
+        New here? Read <a routerLink="/about">what SpotHub FPV is</a>, or <a routerLink="/">the blog</a>.
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  <!--
+    A real quad beside the form, on screens wide enough for two columns. Lazy, so a phone —
+    where the panel is hidden — never downloads it.
+  -->
+  <figure class="relative m-0 hidden h-[min(78dvh,44rem)] overflow-hidden rounded-2xl md:block">
+    <img
+      class="block size-full object-cover object-[50%_60%]"
+      src="login.webp"
+      alt="A cinewhoop with an action camera on top, on a wooden floor"
+      loading="lazy"
+    />
+    <div class="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-black/70 to-transparent"></div>
+    <figcaption class="absolute bottom-5 left-6 text-sm font-semibold text-white">
+      The hangar, the logbook and the field.
+    </figcaption>
+  </figure>
+</div>
