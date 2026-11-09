@@ -21,15 +21,26 @@ import { StorageGateway, type StoredObject } from './abstract/storage.gateway';
 @Injectable()
 export class S3StorageGateway extends StorageGateway {
   private readonly logger = new Logger(S3StorageGateway.name);
+  /** The API's own reads and writes: straight at the service. */
   private readonly client: S3Client;
+  /**
+   * The client presigned URLs are built with.
+   *
+   * The same client where the API and the browser reach storage the same way,
+   * which is the local case. On a single VPS they do not: the browser needs a
+   * public name, and a container cannot resolve one. Since SigV4 signs the
+   * host, the URL has to be signed against the address it will be used at —
+   * rewriting the host afterwards would invalidate the signature.
+   */
+  private readonly signer: S3Client;
   private readonly bucket: string;
 
   constructor(config: ConfigService<Env, true>) {
     super();
 
     this.bucket = config.get('S3_BUCKET', { infer: true });
-    this.client = new S3Client({
-      endpoint: config.get('S3_ENDPOINT', { infer: true }),
+
+    const shared = {
       region: config.get('S3_REGION', { infer: true }),
       // MinIO addresses buckets by path; AWS uses a virtual host. Get this
       // wrong and every presigned URL names a host that does not resolve.
@@ -38,7 +49,16 @@ export class S3StorageGateway extends StorageGateway {
         accessKeyId: config.get('S3_ACCESS_KEY', { infer: true }),
         secretAccessKey: config.get('S3_SECRET_KEY', { infer: true }),
       },
-    });
+    };
+
+    const endpoint = config.get('S3_ENDPOINT', { infer: true });
+    const publicEndpoint = config.get('S3_PUBLIC_ENDPOINT', { infer: true });
+
+    this.client = new S3Client({ ...shared, endpoint });
+    this.signer =
+      publicEndpoint === undefined || publicEndpoint === endpoint
+        ? this.client
+        : new S3Client({ ...shared, endpoint: publicEndpoint });
   }
 
   presignPut(
@@ -47,7 +67,7 @@ export class S3StorageGateway extends StorageGateway {
     expiresInSeconds: number,
   ): Promise<string> {
     return getSignedUrl(
-      this.client,
+      this.signer,
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
@@ -60,7 +80,7 @@ export class S3StorageGateway extends StorageGateway {
 
   presignGet(key: string, expiresInSeconds: number): Promise<string> {
     return getSignedUrl(
-      this.client,
+      this.signer,
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       { expiresIn: expiresInSeconds },
     );

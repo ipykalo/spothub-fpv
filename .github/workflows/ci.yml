@@ -94,16 +94,21 @@ jobs:
 
       # MinIO is started here rather than as a service container, because it
       # needs its `server /data` argument and a service container cannot give
-      # an image a command. That is why this used to be bitnami's image, whose
-      # entrypoint needed no arguments — but bitnami stopped publishing those
-      # tags in 2025, the pull began failing, and the whole job died before its
-      # first step. Straight from MinIO's own registry now, pinned.
+      # an image a command.
+      #
+      # Its image has vanished twice from under this job: bitnami stopped
+      # publishing in 2025, then MinIO withdrew its own images from quay in
+      # November 2026 and archived its repository — each time the pull failed
+      # and the job died before its first step. Chainguard still builds MinIO
+      # from source; it is pinned by digest, not tag, because a digest names
+      # these exact bytes. The same digest is in both compose files. It runs
+      # as Chainguard's default non-root user, which is fine on a fresh drive.
       - name: Start MinIO
         run: |
           docker run -d --name minio -p 9000:9000 \
             -e MINIO_ROOT_USER=minioadmin \
             -e MINIO_ROOT_PASSWORD=minioadmin \
-            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772 server /data
+            cgr.dev/chainguard/minio@sha256:a1ac4589a5f8136b616e667b48a0bea9719bb10bd45799ea946f24bbedfafde4 server /data
           for attempt in $(seq 1 30); do
             if curl -fs http://localhost:9000/minio/health/live > /dev/null; then
               echo "MinIO is up"

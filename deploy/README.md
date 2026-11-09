@@ -25,9 +25,12 @@ Three files live here and nowhere else on the server: `docker-compose.yml`,
 ## What you need before starting
 
 - A domain, and access to its DNS.
-- A Hetzner CX22 (2 vCPU, 4 GB, 40 GB, x86) with Ubuntu 24.04. **x86, not
-  ARM** — CI builds `linux/amd64` images only, and an ARM box would refuse to
-  run them.
+- A Hetzner **CX23** (2 vCPU, 4 GB, 40 GB, x86 — formerly CX22) with Ubuntu
+  24.04. It is in the **Cost-Optimized** column, which is often out of stock:
+  try another location, or wait a few days. **x86, not ARM** — CI builds
+  `linux/amd64` images only, and an ARM box would refuse to run them. The
+  "Regular Performance" CPX line costs about three times as much for nothing
+  this app needs.
 - The Google OAuth client from development. It gets a second redirect URI.
 
 ---
@@ -39,15 +42,31 @@ Create the box with your SSH key attached, then, as root:
 ```bash
 adduser --disabled-password --gecos "" spothub
 usermod -aG sudo spothub
-rsync --archive --chown=spothub:spothub ~/.ssh /home/spothub/
+# It has no password, so sudo must not ask for one: without this line,
+# `sudo` prompts for a password that does not exist.
+echo "spothub ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/spothub
+chmod 440 /etc/sudoers.d/spothub
+install -d -m 700 -o spothub -g spothub /home/spothub/.ssh
+install -m 600 -o spothub -g spothub /root/.ssh/authorized_keys /home/spothub/.ssh/authorized_keys
 ```
+
+**Before going on, log in as `spothub` from a second terminal and check
+`sudo -n true` succeeds.** The next block closes the root door, so the other
+one has to open first.
 
 Lock down SSH — password login off, root login off:
 
 ```bash
-sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-systemctl restart ssh
+# A file of our own, read first. On Ubuntu, anything in sshd_config.d
+# overrides the main sshd_config, so editing that file alone can be
+# silently undone by a drop-in a cloud image ships with.
+cat > /etc/ssh/sshd_config.d/00-spothub.conf <<'CONF'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+CONF
+sshd -t && systemctl reload ssh
+sshd -T | grep -E '^(passwordauthentication|permitrootlogin) '   # both should say "no"
 ```
 
 Firewall — only SSH and the web:
@@ -196,6 +215,9 @@ In order, because each one proves something the next depends on:
    A 404 here means Caddy is not falling through to the client server.
 8. Import a `.bbl` log. That proves `blackbox_decode` is in the API image.
 
+`TESTING.md` has all of this as commands, and a dry run that does most of it
+on a laptop before there is a server at all.
+
 ## Releasing a change
 
 Work lands on `dev` and is released by merging it into `master`, through a
@@ -240,14 +262,15 @@ docker stats --no-stream           # what is eating the 4 GB
 
 Failures that are worth recognising on sight:
 
-| What you see                            | What it is                                                            |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| Every page answers `400`                | `NG_ALLOWED_HOSTS` does not match the Host header Caddy sends         |
-| Canonical links say `client:4000`       | `NG_TRUST_PROXY_HEADERS` is missing, so the forwarded host is ignored |
-| Sign-in returns `redirect_uri_mismatch` | The Google console URI is not character-for-character the same        |
-| Signed in, but signed out on refresh    | The refresh cookie is `secure`; the site must be HTTPS end to end     |
-| Photo upload fails at the PUT           | `storage.<domain>` has no certificate, or `S3_ENDPOINT` is internal   |
-| API restarts in a loop                  | Usually the database URL, visible in the first lines of its log       |
+| What you see                            | What it is                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| Every page answers `400`                | `NG_ALLOWED_HOSTS` does not match the Host header Caddy sends           |
+| Canonical links say `client:4000`       | `NG_TRUST_PROXY_HEADERS` is missing, so the forwarded host is ignored   |
+| Sign-in returns `redirect_uri_mismatch` | The Google console URI is not character-for-character the same          |
+| Signed in, but signed out on refresh    | The refresh cookie is `secure`; the site must be HTTPS end to end       |
+| Photo upload fails at the PUT           | `storage.<domain>` has no certificate, or `S3_PUBLIC_ENDPOINT` is unset |
+| Photo commit answers 500                | `S3_ENDPOINT` names the public host; it should be `http://minio:9000`   |
+| API restarts in a loop                  | Usually the database URL, visible in the first lines of its log         |
 
 ## What this deliberately does not do yet
 
