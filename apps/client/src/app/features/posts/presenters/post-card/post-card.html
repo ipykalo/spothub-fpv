@@ -1,8 +1,13 @@
-<article class="overflow-hidden rounded-lg border border-outline-variant bg-surface">
+<!--
+  The whole card opens the post. The title stays the one real link, for readers and crawlers
+  alike, and its ::after stretches over the card; the tags and the author's buttons sit above
+  that layer (relative z-10) so each still goes where it says.
+-->
+<article
+  class="group relative overflow-hidden rounded-lg border border-outline-variant bg-surface transition-colors hover:border-primary hover:bg-surface-low has-[.post-link:focus-visible]:outline-2 has-[.post-link:focus-visible]:outline-primary"
+>
   @if (post().coverUrl; as cover) {
-    <a [routerLink]="link()" tabindex="-1" aria-hidden="true">
-      <img class="block aspect-[5/2] w-full object-cover" [src]="cover" alt="" loading="lazy" />
-    </a>
+    <img class="block aspect-[5/2] w-full object-cover" [src]="cover" alt="" loading="lazy" />
   }
 
   <div class="p-4 sm:px-6 sm:py-5">
@@ -30,11 +35,18 @@
 
     <div class="sm:pl-11.5">
       <h2 class="mt-3 mb-1.5 text-2xl leading-tight font-bold wrap-anywhere text-(--mat-sys-on-surface) sm:text-3xl">
-        <a class="text-inherit no-underline hover:text-primary" [routerLink]="link()">{{ post().title }}</a>
+        <a
+          class="post-link text-inherit no-underline outline-none group-hover:text-primary after:absolute after:inset-0 after:content-['']"
+          [routerLink]="link()"
+          >{{ post().title }}</a
+        >
       </h2>
 
       @if (post().tags.length) {
-        <ul class="m-0 mb-2 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-sm" aria-label="Builds in this post">
+        <ul
+          class="relative z-10 m-0 mb-2 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-sm"
+          aria-label="Builds in this post"
+        >
           @for (tag of post().tags; track tag.id) {
             <li>
               <a class="text-muted no-underline hover:text-primary" [routerLink]="['/hangar', tag.id]"
@@ -51,7 +63,7 @@
 
       <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
         @if (manage()) {
-          <div class="-ml-3 flex gap-0.5">
+          <div class="relative z-10 -ml-3 flex gap-0.5">
             <a matButton [routerLink]="['/posts', post().id, 'edit']">Edit</a>
             <button matButton type="button" [disabled]="deleting()" (click)="delete.emit(post())">
               {{ deleting() ? 'Deleting…' : 'Delete' }}
