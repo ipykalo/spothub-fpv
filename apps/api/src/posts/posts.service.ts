@@ -173,9 +173,10 @@ export class PostsService {
       toPostSummaryDto(
         post,
         viewerId,
-        post.coverAssetId === null
-          ? null
-          : postImageUrl(post.id, post.coverAssetId, 'thumb'),
+        // The full image, not the thumbnail: a feed card is the width of the
+        // page, and a thumbnail is 640px on its long edge — a portrait photo
+        // came out 360px wide, stretched four times over and blurred.
+        post.coverAssetId === null ? null : postImageUrl(post.id, post.coverAssetId),
         post.buildIds.flatMap((buildId) => {
           const tag = tags.get(buildId);
           return tag ? [tag] : [];
