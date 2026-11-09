@@ -6,9 +6,8 @@
 #
 # Two names, because the browser uploads straight to object storage on a
 # presigned URL and cannot resolve a container: the site itself, and storage.
-{
-	email {$ACME_EMAIL}
-}
+# No `email` option: Let's Encrypt stopped sending expiry notices in 2025, so
+# an address given to it would buy nothing, and Caddy renews on its own.
 
 {$SITE_DOMAIN} {
 	encode zstd gzip

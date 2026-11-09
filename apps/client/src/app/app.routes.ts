@@ -27,6 +27,11 @@ export const appRoutes: Route[] = [
       import('./features/posts/containers/blog.page').then((m) => m.BlogPage),
   },
   {
+    // Public: what the site is, what each part does and how to start.
+    path: 'about',
+    loadComponent: () => import('./features/about/about.page').then((m) => m.AboutPage),
+  },
+  {
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () =>

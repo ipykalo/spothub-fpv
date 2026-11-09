@@ -153,6 +153,23 @@ describe('StructuredData', () => {
     });
   });
 
+  describe('the about page', () => {
+    it('is an AboutPage at its own address, describing the site', () => {
+      data.setAbout('What the site is for.');
+
+      const page = written();
+
+      expect(page['@type']).toBe('AboutPage');
+      expect(page.url).toBe(`${ORIGIN}/about`);
+      expect(page.description).toBe('What the site is for.');
+      expect(page.about).toEqual({
+        '@type': 'WebSite',
+        name: 'SpotHub FPV',
+        url: ORIGIN,
+      });
+    });
+  });
+
   describe('moving between pages', () => {
     it('replaces the block rather than adding another', () => {
       data.setBlog([summary('1')]);

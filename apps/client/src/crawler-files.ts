@@ -66,9 +66,16 @@ export function robotsTxt(origin: string): string {
 }
 
 /**
- * Every address a search engine should know: the blog, and each published
- * post at its own canonical address, with the day it last changed. The feed
- * itself is dated by the newest post on it, since that is when it changed.
+ * The public pages that are not posts. Undated: they change with a release,
+ * not with anything the sitemap could read a date from.
+ */
+const STATIC_PAGES = ['/about'];
+
+/**
+ * Every address a search engine should know: the blog, the about page, and
+ * each published post at its own canonical address, with the day it last
+ * changed. The feed itself is dated by the newest post on it, since that is
+ * when it changed.
  */
 export function sitemapXml(origin: string, posts: readonly SitemapPost[]): string {
   const newest =
@@ -81,6 +88,7 @@ export function sitemapXml(origin: string, posts: readonly SitemapPost[]): strin
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     entry(origin, newest),
+    ...STATIC_PAGES.map((path) => entry(`${origin}${path}`, null)),
     ...posts.map((post) =>
       entry(`${origin}/blog/${post.id}/${post.slug}`, post.updatedAt),
     ),

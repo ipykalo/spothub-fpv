@@ -44,7 +44,6 @@ Then edit `.env.dryrun` and set:
 ```
 SITE_DOMAIN=localhost
 STORAGE_DOMAIN=storage.localhost
-ACME_EMAIL=test@example.com
 POSTGRES_PASSWORD=test-only-password
 JWT_ACCESS_SECRET=test-only-access-secret-at-least-32-chars
 JWT_REFRESH_SECRET=test-only-refresh-secret-at-least-32-chars

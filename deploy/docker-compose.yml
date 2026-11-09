@@ -25,8 +25,6 @@ services:
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN}
       STORAGE_DOMAIN: ${STORAGE_DOMAIN}
-      # Let's Encrypt writes here about expiring certificates.
-      ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       # The issued certificates. Losing this volume means re-issuing, and

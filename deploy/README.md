@@ -155,12 +155,16 @@ Then on the server:
 cd /opt/spothub
 mv .env.example .env
 chmod 600 .env
-openssl rand -base64 32   # POSTGRES_PASSWORD
-openssl rand -base64 48   # JWT_ACCESS_SECRET
-openssl rand -base64 48   # JWT_REFRESH_SECRET
-openssl rand -base64 24   # S3_SECRET_KEY
+openssl rand -hex 24   # POSTGRES_PASSWORD
+openssl rand -hex 48   # JWT_ACCESS_SECRET
+openssl rand -hex 48   # JWT_REFRESH_SECRET
+openssl rand -hex 24   # S3_SECRET_KEY
 nano .env
 ```
+
+**Hex, not base64.** The database password is spliced into `DATABASE_URL`,
+where a base64 `/` or `+` ends the password early and the API cannot
+connect. Hex has no character a URL treats specially.
 
 Fill in every blank. `ALLOWED_EMAILS` is the one that decides whether anyone
 can sign in at all; empty means nobody, which is the intended default.
