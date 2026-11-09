@@ -5,7 +5,11 @@
     <title>SpotHub FPV</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <!-- The SVG for every current browser; the .ico for whatever asks for /favicon.ico by name. -->
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="theme-color" content="#1b1b1b" />
 
     <!--
       Applies the saved theme before Angular loads. ThemeStore takes over once
@@ -29,13 +33,12 @@
     </script>
 
     <!--
-      Open Sans is self-hosted (bundled from @fontsource). Material Icons still
-      comes from Google: it backs <mat-icon>, whose default font set class is
-      `material-icons`, and without it ligatures render as their literal text.
+      Both fonts are self-hosted, bundled through project.json's styles: Open
+      Sans from @fontsource, and Material Icons — which backs <mat-icon>, whose
+      default font set class is `material-icons` — from the `material-icons`
+      package, filled set only. It came from Google Fonts until the site went
+      public, which sent every visitor's address to Google on every page.
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   </head>
   <body>
     <sh-root></sh-root>

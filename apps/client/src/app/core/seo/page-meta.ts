@@ -6,6 +6,14 @@ import { SITE_ORIGIN } from './site-origin';
 const SITE_NAME = 'SpotHub FPV';
 const DESCRIPTION_LENGTH = 200;
 
+/**
+ * The picture a shared link shows when its page has none of its own — the
+ * home page, the about page, a post without a cover. Without one, a link to
+ * the site itself went out as a bare line of text. 1200×630, the size every
+ * link preview is drawn at; served from `public/`.
+ */
+export const DEFAULT_SHARE_IMAGE = '/share.png';
+
 /** Everything `set` adds beyond the title, so `reset` can take exactly those away again. */
 const OWNED_TAGS = [
   'name="description"',
@@ -29,7 +37,10 @@ export interface PageDescription {
   readonly type?: 'website' | 'article';
   /** The page's own address from the site root, for the canonical link and `og:url`. */
   readonly path?: string;
-  /** A picture of what the page is about; a path from the site root is made absolute. */
+  /**
+   * A picture of what the page is about; a path from the site root is made
+   * absolute. Without one the site's own share image stands in.
+   */
   readonly imageUrl?: string | null;
   readonly publishedAt?: string | null;
   readonly updatedAt?: string | null;
@@ -55,7 +66,7 @@ export class PageMeta {
     const type = page.type ?? 'website';
     const url = page.path === undefined ? null : `${this.origin}${page.path}`;
     const description = page.description ? clip(plainText(page.description)) : '';
-    const image = this.absolute(page.imageUrl ?? null);
+    const image = this.absolute(page.imageUrl ?? DEFAULT_SHARE_IMAGE);
 
     this.title.setTitle(`${page.title} · ${SITE_NAME}`);
     this.meta.updateTag({ property: 'og:site_name', content: SITE_NAME });

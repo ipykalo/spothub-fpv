@@ -3,7 +3,7 @@ import { Meta, Title } from '@angular/platform-browser';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { type FakeDocument, fakeDocument } from './__fixtures__/fake-document';
-import { PageMeta } from './page-meta';
+import { DEFAULT_SHARE_IMAGE, PageMeta } from './page-meta';
 import { SITE_ORIGIN } from './site-origin';
 
 /**
@@ -158,12 +158,12 @@ describe('PageMeta', () => {
       expect(meta.tags.get('og:image')).toBe('https://cdn.example/a.jpg');
     });
 
-    it('decides the card’s size: a picture earns the large one', () => {
-      pageMeta.set({ title: 'A post', imageUrl: '/a.jpg' });
-      expect(meta.tags.get('twitter:card')).toBe('summary_large_image');
+    it('shows the site’s own picture for a page without one, so no shared link is bare text', () => {
+      pageMeta.set({ title: 'About', imageUrl: null });
 
-      pageMeta.set({ title: 'A post' });
-      expect(meta.tags.get('twitter:card')).toBe('summary');
+      expect(meta.tags.get('og:image')).toBe(`${ORIGIN}${DEFAULT_SHARE_IMAGE}`);
+      expect(meta.tags.get('twitter:image')).toBe(`${ORIGIN}${DEFAULT_SHARE_IMAGE}`);
+      expect(meta.tags.get('twitter:card')).toBe('summary_large_image');
     });
   });
 
