@@ -1,6 +1,7 @@
 :host {
   display: grid;
   place-items: center;
-  min-height: 100dvh;
-  padding: 1.5rem;
+  // Inside the shell's padded <main>, with the footer below it: the page fills
+  // the screen less the footer rather than pushing it out of view.
+  min-height: calc(100dvh - 7rem);
 }

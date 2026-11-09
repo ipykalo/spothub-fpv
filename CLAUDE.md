@@ -902,7 +902,7 @@ and what it cost to undo it are worth remembering before opening anything else.
   (`core/seo/page-meta.ts`), and a schema.org block beside them
   (`core/seo/structured-data.ts`): `Blog` on the feed, `BlogPosting` on a
   post with its author, dates and word count. A page with no picture of its
-  own shares `public/share.png` (`DEFAULT_SHARE_IMAGE`, 1200×630), so no link
+  own shares `public/share.jpg` (`DEFAULT_SHARE_IMAGE`, 1200×630), so no link
   to the site goes out as bare text. `SITE_ORIGIN` is the request's
   own origin on the server and `location.origin` in the browser, so no domain
   is configured anywhere. The Node server itself serves `/robots.txt` — every

@@ -10,9 +10,10 @@ const DESCRIPTION_LENGTH = 200;
  * The picture a shared link shows when its page has none of its own — the
  * home page, the about page, a post without a cover. Without one, a link to
  * the site itself went out as a bare line of text. 1200×630, the size every
- * link preview is drawn at; served from `public/`.
+ * link preview is drawn at; served from `public/`. A photo of a real quad,
+ * which earns more clicks than a logo.
  */
-export const DEFAULT_SHARE_IMAGE = '/share.png';
+export const DEFAULT_SHARE_IMAGE = '/share.jpg';
 
 /** Everything `set` adds beyond the title, so `reset` can take exactly those away again. */
 const OWNED_TAGS = [
