@@ -943,8 +943,22 @@ and what it cost to undo it are worth remembering before opening anything else.
 Generate those as hex: the database password is spliced into
 `DATABASE_URL`, where base64's `/` and `+` break it.
 
-**Next:** database backups with a tested restore, before any real logbook
-data lands on the server.
+**Backed up nightly, off the box.** Cron runs `deploy/backup.sh` at 03:17 UTC:
+a `pg_dump` that must read back, shipped to Cloudflare R2 (`spothub-backups`,
+EU jurisdiction, a token for that bucket only) under `db/daily/` and on
+Sundays `db/weekly/`, and object storage mirrored to `media/` **additively** —
+no `--remove`, so a deletion on the server never reaches the copy. Daily dumps
+go after 14 days, weekly after 8 weeks. The off-site half runs in a `backup`
+service (the MinIO image for its `mc`, behind the `tools` profile so `up`
+never starts it) on the stack's network. `deploy/restore-test.sh` restores the
+newest dump **from R2** into a throwaway database and compares every table's
+row count with the live one; it passed on the first night's dump. The pinned
+MinIO image has a shell and `mc` but **no awk** — write its scripts with `mc
+find` and shell expansion. The runbook's "Backups" section has the real
+restore, on this box and on a new one.
+
+**Next:** a dead-man's switch on the nightly backup (it fails silently into
+`backups/backup.log` today), then invite a few pilots.
 
 **The media pipeline never lets file bytes reach the API.** The client asks for
 a presigned PUT, uploads straight to object storage, then calls commit — which

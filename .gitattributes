@@ -1,0 +1,2 @@
+# Shell scripts run on the Linux server, where a carriage return breaks them.
+*.sh text eol=lf

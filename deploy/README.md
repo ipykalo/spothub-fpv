@@ -146,6 +146,7 @@ From your laptop, in the repository:
 ```bash
 ssh spothub@<the VPS IP> 'mkdir -p /opt/spothub'
 scp deploy/docker-compose.yml deploy/Caddyfile deploy/.env.example \
+    deploy/backup.sh deploy/backup-offsite.sh deploy/restore-test.sh \
     spothub@<the VPS IP>:/opt/spothub/
 ```
 
@@ -254,7 +255,83 @@ docker compose up -d
 
 **A rollback does not undo a migration.** Prisma has no down-migrations here
 by design, so rolling the code back across a schema change needs a restore
-from a dump, which is the next ticket.
+from a dump — see **Backups** below.
+
+## Backups
+
+Every night at 03:17 UTC, cron runs `backup.sh` as `spothub`:
+
+1. `pg_dump` of the database, refused unless `pg_restore` can read it back;
+2. the dump to the R2 bucket, under `db/daily/` — and on Sundays `db/weekly/`
+   too;
+3. object storage (photos, logs, covers) mirrored to `media/`, **additively**:
+   nothing is ever removed from the mirror, so a file deleted by mistake or by
+   a bug is still there;
+4. pruning: daily dumps after 14 days, weekly after 8 weeks, and all but the
+   newest three dumps kept on the server in `backups/`.
+
+The bucket is Cloudflare R2, `spothub-backups`, in the **EU jurisdiction** —
+the copies hold users' data, so they stay in the EU like the server. The
+token in `.env` (`BACKUP_S3_*`) can read and write that bucket and nothing
+else. At this size it is inside R2's free tier.
+
+```bash
+tail -20 /opt/spothub/backups/backup.log   # how last night went
+crontab -l                                 # the schedule
+```
+
+`last-success.txt` at the bucket's root holds the time the last run finished;
+the Cloudflare dashboard shows it under R2 → spothub-backups.
+
+### Prove it restores
+
+```bash
+/opt/spothub/restore-test.sh
+```
+
+Downloads the newest dump **from R2**, restores it into a throwaway database
+beside the real one, compares every table's row count with the live database,
+and checks the storage mirror holds at least as many files as MinIO. It drops
+the throwaway database afterwards and only ever reads the live one. Run it
+after changing anything about backups, and now and then regardless — a backup
+that has never been restored is a hope.
+
+### Restoring for real
+
+**The database, on this server** — after a bad migration or a mistake:
+
+```bash
+cd /opt/spothub
+set -a; . ./.env; set +a
+ls -1t backups/*.dump | head -3     # the newest local dumps; older ones are in R2
+docker compose stop api client      # nothing writes while it is replaced
+docker compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres \
+  -c "DROP DATABASE \"$POSTGRES_DB\" WITH (FORCE)" -c "CREATE DATABASE \"$POSTGRES_DB\""
+docker compose exec -T postgres pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  --no-owner --exit-on-error < backups/<the dump>
+docker compose up -d
+```
+
+For an older dump, fetch it from R2 into `backups/` first — the first step of
+`restore-test.sh` shows how.
+
+**A new server**, when the old one is gone: set it up as in steps 1–4, put
+back the `.env` (see below), run `docker compose up -d` once so the database
+and bucket exist, restore the database as above from a dump fetched from R2,
+and storage with the mirror reversed:
+
+```bash
+docker compose run --rm --no-deps -T backup -c '
+  mc alias set local http://minio:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY" > /dev/null
+  mc alias set r2 "$BACKUP_S3_ENDPOINT" "$BACKUP_S3_ACCESS_KEY" "$BACKUP_S3_SECRET_KEY" --api S3v4 > /dev/null
+  mc mirror --overwrite "r2/$BACKUP_S3_BUCKET/media" "local/$S3_BUCKET"'
+```
+
+**Keep a copy of `.env` somewhere that is not the server** — a password
+manager is the right place. It is the one thing the backups do not hold.
+Without it a new server needs every secret made again: new JWT secrets only
+sign everyone out, but the R2 token and the Google secret have to be
+re-issued from their dashboards before anything can be restored.
 
 ## When something is wrong
 
@@ -278,10 +355,11 @@ Failures that are worth recognising on sight:
 
 ## What this deliberately does not do yet
 
-- **No backups.** That is the next ticket, and it should land before any real
-  logbook data does.
 - **No deploy automation.** A pull and a restart by hand is honest at one
   deploy a week; a GitHub Actions job over SSH can come later.
 - **No HSTS.** Added once the site has run on HTTPS long enough to trust it —
   it is hard to undo.
-- **No monitoring.** `docker compose ps` and the site itself, for now.
+- **No monitoring.** `docker compose ps` and the site itself, for now — and
+  that includes backups: a night that fails says so only in
+  `backups/backup.log`. A dead-man's switch, a free healthchecks.io check
+  pinged at the end of `backup.sh`, is the obvious next step.
