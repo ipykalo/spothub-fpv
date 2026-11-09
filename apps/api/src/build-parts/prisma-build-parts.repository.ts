@@ -112,6 +112,31 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
     return toEntity(install);
   }
 
+  async installMany(
+    ownerId: string,
+    buildId: string,
+    data: readonly CreateBuildPartData[],
+  ): Promise<BuildPartEntity[] | null> {
+    // The owner check and the writes share a transaction, so a build deleted
+    // in between cannot be half-filled.
+    return this.prisma.$transaction(async (tx) => {
+      const build = await tx.build.findFirst({
+        where: { id: buildId, ownerId },
+        select: { id: true },
+      });
+
+      if (!build) {
+        return null;
+      }
+
+      const installs = await Promise.all(
+        data.map((row) => tx.buildPart.create({ data: { ...row, buildId } })),
+      );
+
+      return installs.map(toEntity);
+    });
+  }
+
   async remove(
     ownerId: string,
     buildId: string,

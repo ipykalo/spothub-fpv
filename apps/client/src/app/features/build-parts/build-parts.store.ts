@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import type {
+  AddStockPartsDto,
   BuildCostDto,
   BuildPartDto,
   InstallPartDto,
@@ -90,6 +91,12 @@ export class BuildPartsStore {
   async install(buildId: string, input: InstallPartDto): Promise<void> {
     const created = await firstValueFrom(this.api.install(buildId, input));
     this.items.update((installs) => [created, ...installs]);
+    await this.loadCost(buildId);
+  }
+
+  async addStock(buildId: string, input: AddStockPartsDto): Promise<void> {
+    const created = await firstValueFrom(this.api.addStock(buildId, input));
+    this.items.update((installs) => [...created, ...installs]);
     await this.loadCost(buildId);
   }
 

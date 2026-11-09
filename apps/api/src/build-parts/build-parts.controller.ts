@@ -12,12 +12,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  type AddStockPartsDto,
   type BuildCostDto,
   type BuildPartDto,
   type InstallPartDto,
   type LinkInstallDto,
   type ListBuildPartsQuery,
   type RemoveInstallDto,
+  addStockPartsSchema,
   installPartSchema,
   linkInstallSchema,
   listBuildPartsQuerySchema,
@@ -64,6 +66,16 @@ export class BuildPartsController {
     @Body(new ZodValidationPipe(installPartSchema)) body: InstallPartDto,
   ): Promise<BuildPartDto> {
     return this.installs.install(user.id, buildId, body);
+  }
+
+  /** The parts a ready-made quad came with, created and fitted in one go. */
+  @Post('stock')
+  addStock(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('buildId', ParseUUIDPipe) buildId: string,
+    @Body(new ZodValidationPipe(addStockPartsSchema)) body: AddStockPartsDto,
+  ): Promise<BuildPartDto[]> {
+    return this.installs.addStock(user.id, buildId, body);
   }
 
   /**

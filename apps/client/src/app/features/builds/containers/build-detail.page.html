@@ -160,6 +160,30 @@
     />
   </sh-section>
 
+  <!-- A ready-made quad's spec sheet, entered in one go rather than one part at a time. -->
+  @if (owned() && build()?.boughtComplete) {
+    <sh-section
+      heading="What it came with"
+      storageKey="build.stock"
+      addLabel="Add stock parts"
+      [(adding)]="addingStock"
+    >
+      @if (addingStock()) {
+        <sh-stock-parts-form
+          [receivedOn]="build()?.builtOn ?? null"
+          [saving]="saving()"
+          (saved)="addStock($event)"
+          (cancelled)="addingStock.set(false)"
+        />
+      } @else {
+        <p class="m-0 text-sm text-muted">
+          {{ installs.cost().stockCount }} part{{ installs.cost().stockCount === 1 ? '' : 's' }} fitted as stock,
+          covered by the quad's price.
+        </p>
+      }
+    </sh-section>
+  }
+
   @if (owned()) {
     <sh-section heading="Fit a part" storageKey="build.fit" addLabel="Add part" [(adding)]="addingFit">
       @if (addingFit()) {

@@ -4,13 +4,15 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import type {
-  BuildCostDto,
-  BuildPartDto,
-  InstallPartDto,
-  LinkInstallDto,
-  ListBuildPartsQuery,
-  RemoveInstallDto,
+import {
+  type AddStockPartsDto,
+  type BuildCostDto,
+  type BuildPartDto,
+  type InstallPartDto,
+  InstallReason,
+  type LinkInstallDto,
+  type ListBuildPartsQuery,
+  type RemoveInstallDto,
 } from '@spothub/shared';
 
 import { fromDateOnly } from '../common';
@@ -134,6 +136,71 @@ export class BuildPartsService {
     }
 
     return this.toDto(ownerId, install);
+  }
+
+  /**
+   * The parts a quad came with, in one go: each line becomes a part on the
+   * owner's shelf with its units, and every unit is fitted as INITIAL.
+   *
+   * The parts belong to the parts module, so they are made through its facade
+   * and cannot share this module's transaction. The build is checked first, so
+   * a stranger's id creates nothing; and if fitting fails after the parts were
+   * made, they are taken back, so a failed batch leaves nothing on the shelf.
+   */
+  async addStock(
+    ownerId: string,
+    buildId: string,
+    input: AddStockPartsDto,
+  ): Promise<BuildPartDto[]> {
+    const access = await this.installs.findBuildAccessForViewer(ownerId, buildId);
+
+    if (access?.ownerId !== ownerId) {
+      throw new NotFoundException('Build not found');
+    }
+
+    const parts = await this.parts.createWithUnits(
+      ownerId,
+      input.parts.map((line) => ({
+        category: line.category,
+        manufacturer: line.manufacturer,
+        model: line.model,
+        quantity: line.count,
+      })),
+    );
+
+    const installedOn = fromDateOnly(input.installedOn);
+    const rows = parts.flatMap((part) =>
+      part.units.map((unit) => ({
+        buildId,
+        unitId: unit.id,
+        position: null,
+        installedOn,
+        reason: InstallReason.Initial,
+        repairId: null,
+      })),
+    );
+
+    let installs: BuildPartEntity[] | null = null;
+
+    try {
+      installs = await this.installs.installMany(ownerId, buildId, rows);
+    } finally {
+      if (installs === null) {
+        await this.parts.deleteParts(
+          ownerId,
+          parts.map((part) => part.id),
+        );
+      }
+    }
+
+    if (installs === null) {
+      throw new NotFoundException('Build not found');
+    }
+
+    const fitted = await this.hydrate(ownerId, installs);
+    return installs.map((install) =>
+      toBuildPartDto(install, lookUp(fitted, install.unitId)),
+    );
   }
 
   async remove(

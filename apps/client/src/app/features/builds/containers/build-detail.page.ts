@@ -27,6 +27,7 @@ import {
   type CreateConfigDto,
   type CreateRepairDto,
   configFileName,
+  type AddStockPartsDto,
   type InstallPartDto,
   type RepairDto,
 } from '@spothub/shared';
@@ -36,6 +37,7 @@ import { Section } from '../../../core/components/section/section';
 import { CollapseAll } from '../../../core/components/section/collapse-all';
 import { SectionGroup } from '../../../core/components/section/section-group';
 import { InstallPartForm } from '../../build-parts/presenters/install-part-form/install-part-form';
+import { StockPartsForm } from '../../build-parts/presenters/stock-parts-form/stock-parts-form';
 import { CommentsSection } from '../../comments/containers/comments-section';
 import { InstalledPartsList } from '../../build-parts/presenters/installed-parts-list/installed-parts-list';
 import { BuildPartsStore } from '../../build-parts/build-parts.store';
@@ -77,6 +79,7 @@ import { BuildsStore } from '../builds.store';
     Section,
     BuildCostSummary,
     InstallPartForm,
+    StockPartsForm,
     PhotoGallery,
     InstalledPartsList,
     RepairForm,
@@ -120,6 +123,7 @@ export class BuildDetailPage {
   /** Which "add" form is open, one flag per section. */
   protected readonly addingPhotos = signal(false);
   protected readonly addingFit = signal(false);
+  protected readonly addingStock = signal(false);
   protected readonly addingRepair = signal(false);
   protected readonly addingConfig = signal(false);
 
@@ -258,6 +262,22 @@ export class BuildDetailPage {
    * The fit form stays open after a success, unlike the others: fitting
    * several parts in one sitting is the normal case.
    */
+  protected async addStock(input: AddStockPartsDto): Promise<void> {
+    this.saving.set(true);
+
+    try {
+      await this.installs.addStock(this.id(), input);
+      // The new parts are on the shelf now, already fitted.
+      await this.parts.load();
+      this.addingStock.set(false);
+      this.snackBar.open('Stock parts added', undefined, { duration: 2500 });
+    } catch {
+      this.snackBar.open('Could not add those parts', undefined, { duration: 4000 });
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
   protected async install(input: InstallPartDto): Promise<void> {
     this.saving.set(true);
 

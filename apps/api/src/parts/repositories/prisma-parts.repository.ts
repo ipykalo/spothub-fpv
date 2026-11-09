@@ -58,6 +58,23 @@ export class PrismaPartsRepository extends PartsRepository {
     return toPartEntity(part);
   }
 
+  async createMany(data: readonly CreatePartData[]): Promise<PartEntity[]> {
+    const parts = await this.prisma.$transaction(
+      data.map(({ quantity, ...fields }) =>
+        this.prisma.part.create({
+          data: {
+            ...fields,
+            spec: fields.spec,
+            units: { create: Array.from({ length: quantity }, () => ({})) },
+          },
+          include: WITH_RELATIONS,
+        }),
+      ),
+    );
+
+    return parts.map(toPartEntity);
+  }
+
   /**
    * `updateMany` scoped by owner, then re-read. This makes it impossible to
    * update a row belonging to someone else, and returns null rather than
@@ -84,6 +101,10 @@ export class PrismaPartsRepository extends PartsRepository {
   async deleteForOwner(ownerId: string, id: string): Promise<boolean> {
     const { count } = await this.prisma.part.deleteMany({ where: { id, ownerId } });
     return count > 0;
+  }
+
+  async deleteManyForOwner(ownerId: string, ids: readonly string[]): Promise<void> {
+    await this.prisma.part.deleteMany({ where: { id: { in: [...ids] }, ownerId } });
   }
 }
 

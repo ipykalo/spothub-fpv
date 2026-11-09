@@ -1,4 +1,4 @@
-import type { BuildCostDto, BuildDto, PartDto } from '@spothub/shared';
+import type { BuildCostDto, BuildDto, BuildPartDto, PartDto } from '@spothub/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -186,5 +186,67 @@ describe('bought builds', () => {
 
     expect(shown).toMatchObject({ purchasePrice: 219.99, purchaseVendor: 'GEPRC' });
     expect((await cost(pilot)).boughtFor).toEqual({ currency: 'USD', amount: 219.99 });
+  });
+
+  describe('the parts it came with, in one go', () => {
+    const stock = {
+      installedOn: '2026-04-01',
+      parts: [
+        { category: 'MOTOR', manufacturer: 'GEPRC', model: 'SpeedX2 1303.5', count: 4 },
+        { category: 'VTX', manufacturer: 'RushFPV', model: 'RAD Mini 1W' },
+      ],
+    };
+
+    const partCount = (user: TestUser): Promise<number> =>
+      request(testApp.server)
+        .get('/api/parts')
+        .set('Authorization', as(user))
+        .expect(200)
+        .then((response) => (response.body as PartDto[]).length);
+
+    it('creates each part with its units and fits every unit as what it came with', async () => {
+      const before = await cost();
+
+      const fitted = (
+        await request(testApp.server)
+          .post(`/api/builds/${build.id}/parts/stock`)
+          .set('Authorization', as(owner))
+          .send(stock)
+          .expect(201)
+      ).body as BuildPartDto[];
+
+      expect(fitted).toHaveLength(5);
+      expect(fitted.every((install) => install.reason === 'INITIAL')).toBe(true);
+      expect(fitted.filter((install) => install.part.category === 'MOTOR')).toHaveLength(
+        4,
+      );
+      // Four units of one part, not four parts.
+      expect(new Set(fitted.map((install) => install.part.id)).size).toBe(2);
+
+      const after = await cost();
+      expect(after.stockCount).toBe(before.stockCount + 5);
+      expect(after.unpricedCount).toBe(before.unpricedCount);
+      expect(after.totals).toEqual(before.totals);
+    });
+
+    it('creates nothing on a build that is not the asker’s', async () => {
+      const before = await partCount(pilot);
+
+      await request(testApp.server)
+        .post(`/api/builds/${build.id}/parts/stock`)
+        .set('Authorization', as(pilot))
+        .send(stock)
+        .expect(404);
+
+      expect(await partCount(pilot)).toBe(before);
+    });
+
+    it('refuses an empty list', async () => {
+      await request(testApp.server)
+        .post(`/api/builds/${build.id}/parts/stock`)
+        .set('Authorization', as(owner))
+        .send({ installedOn: '2026-04-01', parts: [] })
+        .expect(400);
+    });
   });
 });

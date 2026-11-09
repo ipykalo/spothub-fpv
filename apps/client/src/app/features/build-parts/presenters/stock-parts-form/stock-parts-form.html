@@ -1,0 +1,61 @@
+<form class="grid gap-3" [formGroup]="form" (ngSubmit)="submit()">
+  <p class="m-0 text-sm text-muted">
+    What the quad came with, as its spec sheet lists it. Each line goes on your shelf and is fitted as stock — no
+    prices, since the quad's own price covers them. Leave out a line by removing it.
+  </p>
+
+  <mat-form-field class="max-w-56">
+    <mat-label>Received on</mat-label>
+    <input matInput type="date" formControlName="installedOn" />
+  </mat-form-field>
+
+  <ul class="m-0 grid list-none gap-2 p-0" formArrayName="parts">
+    @for (line of lines.controls; track line; let i = $index) {
+      <li
+        class="grid grid-cols-[1fr_auto] items-start gap-x-2 rounded border border-outline-variant p-2 min-[48rem]:grid-cols-[minmax(10rem,1fr)_minmax(8rem,1fr)_minmax(10rem,1.4fr)_5rem_auto] min-[48rem]:border-0 min-[48rem]:p-0"
+        [formGroupName]="i"
+      >
+        <sh-autocomplete
+          class="col-span-full min-[48rem]:col-auto"
+          formControlName="category"
+          label="Kind"
+          subscriptSizing="dynamic"
+          [options]="categoryOptions"
+        />
+        <mat-form-field class="col-span-full min-[48rem]:col-auto" subscriptSizing="dynamic">
+          <mat-label>Maker</mat-label>
+          <input matInput formControlName="manufacturer" placeholder="GEPRC" />
+        </mat-form-field>
+        <mat-form-field class="col-span-full min-[48rem]:col-auto" subscriptSizing="dynamic">
+          <mat-label>Model</mat-label>
+          <input matInput formControlName="model" />
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>How many</mat-label>
+          <input matInput type="number" formControlName="count" min="1" max="8" />
+        </mat-form-field>
+        <button matIconButton type="button" class="mt-2" [attr.aria-label]="'Remove row ' + (i + 1)" (click)="drop(i)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </li>
+    }
+  </ul>
+
+  <div>
+    <button matButton type="button" (click)="add()">
+      <mat-icon>add</mat-icon>
+      Another line
+    </button>
+  </div>
+
+  @if (error(); as message) {
+    <p class="m-0 text-sm text-danger" role="alert">{{ message }}</p>
+  }
+
+  <div class="flex gap-3">
+    <button matButton="filled" type="submit" [disabled]="saving() || !lines.length">
+      {{ saving() ? 'Adding…' : 'Add ' + lines.length + ' line' + (lines.length === 1 ? '' : 's') }}
+    </button>
+    <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</form>

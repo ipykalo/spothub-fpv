@@ -395,7 +395,12 @@ verifies and publishes images to GHCR. **Every V1 feature:**
   upgrades fitted since add their own purchase. The rollup reads the price
   from `findBuildAccessForViewer`'s join on `builds`; the build DTO nulls the
   price, vendor and link for a reader without `shareCosts`
-  (`apps/api/e2e/bought-builds.e2e.spec.ts`).
+  (`apps/api/e2e/bought-builds.e2e.spec.ts`). Its spec sheet goes in at once
+  through `POST /builds/:id/parts/stock` (the build page's "What it came
+  with"): each line becomes a part with `count` units via
+  `PartsFacade.createWithUnits`, every unit fitted INITIAL. The parts cannot
+  share build-parts' transaction, so the build's owner is checked first and
+  the parts are taken back through `PartsFacade.deleteParts` if fitting fails.
 - Repairs, with installs linkable to the repair that caused them
 - Firmware config snapshots — Betaflight CLI captures parsed by a function
   shared with the client, downloadable under Configurator's own filename
