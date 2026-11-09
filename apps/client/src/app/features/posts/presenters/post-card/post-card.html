@@ -3,14 +3,20 @@
   alike, and its ::after stretches over the card; the tags and the author's buttons sit above
   that layer (relative z-10) so each still goes where it says.
 -->
+<!--
+  The cover is a panel beside the text from 40rem up, on top below that. A full-width strip
+  made a feed of tall cards and, from a portrait phone photo, a crop zoomed into the middle.
+-->
 <article
-  class="group relative overflow-hidden rounded-lg border border-outline-variant bg-surface transition-colors hover:border-primary hover:bg-surface-low has-[.post-link:focus-visible]:outline-2 has-[.post-link:focus-visible]:outline-primary"
+  class="group relative flex flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface transition-colors hover:border-primary hover:bg-surface-low has-[.post-link:focus-visible]:outline-2 has-[.post-link:focus-visible]:outline-primary min-[40rem]:flex-row"
 >
   @if (post().coverUrl; as cover) {
-    <img class="block aspect-[5/2] w-full object-cover" [src]="cover" alt="" loading="lazy" />
+    <div class="relative aspect-video shrink-0 min-[40rem]:aspect-auto min-[40rem]:min-h-44 min-[40rem]:w-64 lg:w-72">
+      <img class="absolute inset-0 size-full object-cover" [src]="cover" alt="" loading="lazy" />
+    </div>
   }
 
-  <div class="p-4 sm:px-6 sm:py-5">
+  <div class="min-w-0 flex-1 p-4 sm:px-6 sm:py-5">
     <div class="flex items-center gap-2.5">
       <span
         class="grid size-9 shrink-0 place-items-center rounded-full bg-(--mat-sys-primary) text-sm font-bold text-(--mat-sys-on-primary)"
