@@ -925,7 +925,13 @@ and what it cost to undo it are worth remembering before opening anything else.
   are still nobody else's. That address is what a post's DTO carries, which
   is what makes `og:image` and a picture card possible at all, and it also
   fixes a page left open losing its images when the signature expired. Build
-  photos stay presigned: they are not public reading.
+  photos stay presigned: they are not public reading. **A draft's images are
+  presigned too**, for its author: an `<img>` request carries no bearer token
+  (the access token lives in memory, not a cookie), so the lasting address
+  answered a Private post's own author with a 404 and every draft's pictures
+  broke after a reload. `MediaFacade.postImages(…, signed)` and the summaries'
+  `signedDraftCovers` sign exactly when the post is Private; published, it is
+  back to lasting addresses (`post-images.e2e.spec.ts`).
 - **A server-rendered page renders from data resolved before it exists.** The
   browser's first render must match the server's HTML, and anything fetched
   after a component is created lands too late for that. So the public pages

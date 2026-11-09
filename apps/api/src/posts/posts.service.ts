@@ -63,7 +63,9 @@ export class PostsService {
 
     const [builds, images, likes] = await Promise.all([
       this.builds.visibleToViewer(viewerId, post.buildIds),
-      this.media.postImages(post.authorId, post.id),
+      // Signed while it is a draft: only its author reads it, and an <img>
+      // cannot prove to the lasting address who is asking.
+      this.media.postImages(post.authorId, post.id, isDraft(post)),
       this.likes.forPosts(viewerId, [post.id]),
     ]);
 
@@ -161,6 +163,8 @@ export class PostsService {
       posts.map((post) => post.id),
     );
 
+    const draftCovers = await this.signedDraftCovers(posts);
+
     const buildIds = [...new Set(posts.flatMap((post) => post.buildIds))];
     const tags = new Map(
       (await this.builds.visibleToViewer(viewerId, buildIds)).map((build) => [
@@ -176,7 +180,11 @@ export class PostsService {
         // The full image, not the thumbnail: a feed card is the width of the
         // page, and a thumbnail is 640px on its long edge — a portrait photo
         // came out 360px wide, stretched four times over and blurred.
-        post.coverAssetId === null ? null : postImageUrl(post.id, post.coverAssetId),
+        post.coverAssetId === null
+          ? null
+          : isDraft(post)
+            ? (draftCovers.get(post.coverAssetId) ?? null)
+            : postImageUrl(post.id, post.coverAssetId),
         post.buildIds.flatMap((buildId) => {
           const tag = tags.get(buildId);
           return tag ? [tag] : [];
@@ -184,6 +192,31 @@ export class PostsService {
         likes.get(post.id) ?? NO_LIKES,
       ),
     );
+  }
+
+  /**
+   * Presigned covers for the drafts in a list, by asset id. Only an author's
+   * own list holds drafts, so this is one batch per author — in practice one.
+   */
+  private async signedDraftCovers(
+    posts: readonly PostEntity[],
+  ): Promise<ReadonlyMap<string, string>> {
+    const byAuthor = new Map<string, string[]>();
+
+    for (const post of posts) {
+      if (isDraft(post) && post.coverAssetId !== null) {
+        byAuthor.set(post.authorId, [
+          ...(byAuthor.get(post.authorId) ?? []),
+          post.coverAssetId,
+        ]);
+      }
+    }
+
+    const signed = await Promise.all(
+      [...byAuthor].map(([authorId, ids]) => this.media.urlsFor(authorId, ids)),
+    );
+
+    return new Map(signed.flatMap((urls) => [...urls]));
   }
 
   /** A post may only point at its author's own builds — never at someone else's, shared or not. */
@@ -218,4 +251,9 @@ function toUpdateData(input: UpdatePostDto): UpdatePostData {
   if (input.buildIds !== undefined) patch['buildIds'] = input.buildIds;
 
   return data;
+}
+
+/** A draft is a Private post: read by its author alone, so its images are signed. */
+function isDraft(post: PostEntity): boolean {
+  return post.visibility === Visibility.Private;
 }

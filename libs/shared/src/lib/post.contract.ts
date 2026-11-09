@@ -150,7 +150,9 @@ export const postSummarySchema = z.object({
   ownedByViewer: z.boolean(),
   /**
    * The cover image for a list. The full image rather than its thumbnail, since a
-   * feed card is the width of the page. A lasting address, so a card may be shared.
+   * feed card is the width of the page. A lasting address, so a card may be
+   * shared — except on a draft, which only its author lists: that one is a
+   * presigned URL, because an `<img>` carries no token to prove who is asking.
    */
   coverUrl: z.string().nullable(),
   /** Minutes to read the body. */

@@ -228,6 +228,45 @@ describe('post images', () => {
     expect(await prisma().asset.count({ where: { id: arm.id } })).toBe(0);
   });
 
+  it('signs a draft’s images for its author, since an <img> cannot prove who asks', async () => {
+    const own = await postAs<PostDto>(author, '/api/posts', {
+      title: 'Draft with a cover',
+    });
+    const shot = await upload(own.id, 'shot.jpg');
+    await setCover(author, own.id, shot.id).expect(204);
+
+    // The lasting address answers a request without a token — which every
+    // <img> is — with a 404 while the post is a draft.
+    await request(testApp.server)
+      .get(`/api/posts/${own.id}/images/${shot.id}/file`)
+      .expect(404);
+
+    const read = await readPost(author, own.id);
+    const image = read.images.find((entry) => entry.id === shot.id);
+    const mine = (
+      await request(testApp.server)
+        .get('/api/posts')
+        .set('Authorization', as(author))
+        .expect(200)
+    ).body as PostSummaryDto[];
+    const card = mine.find((entry) => entry.id === own.id);
+
+    // Signed storage URLs, which load without a token.
+    for (const url of [image?.url, image?.thumbUrl, read.coverImageUrl, card?.coverUrl]) {
+      expect(url).toMatch(/^https?:\/\/.*X-Amz-Signature=/);
+      const fetched = await fetch(url ?? '');
+      expect(fetched.ok).toBe(true);
+    }
+
+    // Published, it goes back to the lasting addresses that link previews need.
+    await patchPost(own.id, { visibility: 'PUBLIC' }).expect(200);
+    const published = await readPost(author, own.id);
+
+    expect(published.images.find((entry) => entry.id === shot.id)?.url).toBe(
+      `/api/posts/${own.id}/images/${shot.id}/file`,
+    );
+  });
+
   it('deleting the post deletes its images', async () => {
     await request(testApp.server)
       .delete(`/api/posts/${post.id}`)

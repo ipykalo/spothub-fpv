@@ -34,8 +34,17 @@ export abstract class MediaFacade {
   /**
    * The images uploaded to a post, in upload order. Whether the reader may see
    * the post is the caller's check; this answers for the author's own images.
+   *
+   * `signed` hands out presigned storage URLs instead of the lasting
+   * addresses. A private draft needs them: an `<img>` request carries no
+   * bearer token, so the lasting address, which asks per request whether the
+   * reader may see the post, answers a draft's own author with a 404.
    */
-  abstract postImages(authorId: string, postId: string): Promise<PostImageDto[]>;
+  abstract postImages(
+    authorId: string,
+    postId: string,
+    signed: boolean,
+  ): Promise<PostImageDto[]>;
 
   /**
    * Deletes a post's images, rows and stored objects, except those in `keep`.
