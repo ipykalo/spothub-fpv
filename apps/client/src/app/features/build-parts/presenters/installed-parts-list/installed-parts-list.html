@@ -47,7 +47,7 @@
           @if (install.removedOn; as off) {
             → {{ off }}
           }
-          <span class="text-xs">{{ reasonLabels[install.reason] }}</span>
+          <span class="text-xs">{{ reasonLabel(install) }}</span>
         </span>
 
         @if (!history() && !readOnly()) {

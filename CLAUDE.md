@@ -387,6 +387,15 @@ verifies and publishes images to GHCR. **Every V1 feature:**
   sources (`part_sources`), paste-a-URL OpenGraph enrichment
 - Install/remove on a build (`build_parts`) with a cost rollup that sums only
   rows marked as actual purchases
+- **A quad bought ready-made** (BNF/PNP/RTF) is a build with `bought_complete`
+  and its own `purchase_price` / currency / vendor / url — paid for once, as a
+  whole. On such a build an INITIAL install is a part it came with: covered by
+  the quad's price, counted as `stockCount`, never as unpriced, and never
+  added again even if that part carries a price of its own. Replacements and
+  upgrades fitted since add their own purchase. The rollup reads the price
+  from `findBuildAccessForViewer`'s join on `builds`; the build DTO nulls the
+  price, vendor and link for a reader without `shareCosts`
+  (`apps/api/e2e/bought-builds.e2e.spec.ts`).
 - Repairs, with installs linkable to the repair that caused them
 - Firmware config snapshots — Betaflight CLI captures parsed by a function
   shared with the client, downloadable under Configurator's own filename

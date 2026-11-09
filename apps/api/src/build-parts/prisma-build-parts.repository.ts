@@ -34,10 +34,31 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
         id: buildId,
         ...(viewerId === null ? shared : { OR: [{ ownerId: viewerId }, shared] }),
       },
-      select: { ownerId: true, shareCosts: true, shareNotes: true },
+      select: {
+        ownerId: true,
+        shareCosts: true,
+        shareNotes: true,
+        boughtComplete: true,
+        purchasePrice: true,
+        purchaseCurrency: true,
+      },
     });
 
-    return build;
+    if (build === null) {
+      return null;
+    }
+
+    const { purchasePrice, purchaseCurrency, ...access } = build;
+
+    return {
+      ...access,
+      // `Decimal` is a Prisma type and must not escape this file. A price
+      // without a currency cannot be added to anything, so it is no price.
+      boughtFor:
+        build.boughtComplete && purchasePrice !== null && purchaseCurrency !== null
+          ? { amount: purchasePrice.toNumber(), currency: purchaseCurrency }
+          : null,
+    };
   }
 
   async findManyForOwner(

@@ -94,9 +94,29 @@
           <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Visibility</dt>
           <dd class="m-0">{{ visibilityLabels[quad.visibility] }}</dd>
         </div>
+        @if (quad.boughtComplete) {
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Origin</dt>
+            <dd class="m-0">
+              Bought complete
+              @if (quad.purchaseVendor; as vendor) {
+                from
+                @if (quad.purchaseUrl; as link) {
+                  <a [href]="link" target="_blank" rel="noopener noreferrer">{{ vendor }}</a>
+                } @else {
+                  {{ vendor }}
+                }
+              } @else if (quad.purchaseUrl; as link) {
+                (<a [href]="link" target="_blank" rel="noopener noreferrer">listing</a>)
+              }
+            </dd>
+          </div>
+        }
         @if (quad.builtOn; as built) {
           <div>
-            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Built</dt>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">
+              {{ quad.boughtComplete ? 'Bought' : 'Built' }}
+            </dt>
             <dd class="m-0 tabular-nums">{{ built }}</dd>
           </div>
         }
@@ -162,6 +182,7 @@
       [installs]="installs.fitted()"
       [pendingRemoval]="pendingRemoval()"
       [readOnly]="!owned()"
+      [boughtComplete]="build()?.boughtComplete ?? false"
       (removeRequested)="remove($event)"
     />
   </sh-section>
@@ -174,7 +195,12 @@
       [count]="installs.removed().length"
       [open]="false"
     >
-      <sh-installed-parts-list [installs]="installs.removed()" [history]="true" [readOnly]="!owned()" />
+      <sh-installed-parts-list
+        [installs]="installs.removed()"
+        [history]="true"
+        [readOnly]="!owned()"
+        [boughtComplete]="build()?.boughtComplete ?? false"
+      />
     </sh-section>
   }
 

@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import {
   INSTALL_REASON_LABELS,
+  InstallReason,
   PART_CATEGORY_LABELS,
   PartCategory,
   type BuildPartDto,
@@ -87,12 +88,22 @@ export class InstalledPartsList {
    * plain text — the link would lead into an inventory that is not theirs.
    */
   readonly readOnly = input(false);
+  /**
+   * On a quad bought ready-made, what was fitted first is what it came with —
+   * covered by the quad's own price rather than bought on its own.
+   */
+  readonly boughtComplete = input(false);
 
   readonly removeRequested = output<BuildPartDto>();
 
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
   protected readonly categoryIcons = PART_CATEGORY_ICONS;
-  protected readonly reasonLabels = INSTALL_REASON_LABELS;
+
+  protected reasonLabel(install: BuildPartDto): string {
+    return this.boughtComplete() && install.reason === InstallReason.Initial
+      ? 'Came with the quad'
+      : INSTALL_REASON_LABELS[install.reason];
+  }
 
   protected readonly grid = new GridState<InstallSortKey, PartCategory>({
     key: 'fitted',

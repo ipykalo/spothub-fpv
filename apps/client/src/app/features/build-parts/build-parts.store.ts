@@ -11,6 +11,8 @@ import { BuildPartsApi } from './build-parts.api';
 
 const EMPTY_COST: BuildCostDto = {
   totals: [],
+  boughtFor: null,
+  stockCount: 0,
   unpricedCount: 0,
   installedCount: 0,
   repairTotals: [],

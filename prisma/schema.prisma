@@ -139,6 +139,15 @@ model Build {
   shareCosts    Boolean     @default(false) @map("share_costs")
   shareNotes    Boolean     @default(false) @map("share_notes")
   descriptionMd String?     @map("description_md")
+  /// A quad bought ready-made (BNF, PNP, RTF) rather than built from parts.
+  /// It was paid for once, as a whole: the price lives here, and the parts it
+  /// came with -- its INITIAL installs -- are covered by it, never priced on
+  /// their own. What is fitted later still counts its own purchase.
+  boughtComplete   Boolean  @default(false) @map("bought_complete")
+  purchasePrice    Decimal? @map("purchase_price") @db.Decimal(10, 2)
+  purchaseCurrency String?  @map("purchase_currency")
+  purchaseVendor   String?  @map("purchase_vendor")
+  purchaseUrl      String?  @map("purchase_url")
   /// The photo shown on the build card. One of this build's linked assets;
   /// SetNull so deleting the photo does not delete the quad.
   coverAssetId  String?     @map("cover_asset_id") @db.Uuid

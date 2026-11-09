@@ -97,6 +97,11 @@ export class BuildsService {
       descriptionMd: input.descriptionMd,
       builtOn: toNullableDate(input.builtOn),
       retiredOn: toNullableDate(input.retiredOn),
+      boughtComplete: input.boughtComplete,
+      purchasePrice: input.purchasePrice,
+      purchaseCurrency: input.purchaseCurrency,
+      purchaseVendor: input.purchaseVendor,
+      purchaseUrl: input.purchaseUrl,
     });
 
     return this.withCover(ownerId, build);
@@ -193,6 +198,12 @@ function toUpdateData(input: UpdateBuildDto): UpdateBuildData {
   if (input.descriptionMd !== undefined) patch['descriptionMd'] = input.descriptionMd;
   if (input.builtOn !== undefined) patch['builtOn'] = toNullableDate(input.builtOn);
   if (input.retiredOn !== undefined) patch['retiredOn'] = toNullableDate(input.retiredOn);
+  if (input.boughtComplete !== undefined) patch['boughtComplete'] = input.boughtComplete;
+  if (input.purchasePrice !== undefined) patch['purchasePrice'] = input.purchasePrice;
+  if (input.purchaseCurrency !== undefined)
+    patch['purchaseCurrency'] = input.purchaseCurrency;
+  if (input.purchaseVendor !== undefined) patch['purchaseVendor'] = input.purchaseVendor;
+  if (input.purchaseUrl !== undefined) patch['purchaseUrl'] = input.purchaseUrl;
 
   return data;
 }

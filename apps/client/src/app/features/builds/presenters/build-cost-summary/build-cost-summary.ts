@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import type { BuildCostDto } from '@spothub/shared';
@@ -18,4 +18,21 @@ import type { BuildCostDto } from '@spothub/shared';
 })
 export class BuildCostSummary {
   readonly cost = input.required<BuildCostDto>();
+
+  /** On a bought quad, how much of the total is the quad itself. */
+  protected readonly boughtNote = computed(() => {
+    const { boughtFor, totals } = this.cost();
+
+    if (boughtFor === null) {
+      return null;
+    }
+
+    const price = `Bought complete for ${String(boughtFor.amount)} ${boughtFor.currency}`;
+    const onlyThePrice =
+      totals.length === 1 &&
+      totals[0].currency === boughtFor.currency &&
+      totals[0].amount === boughtFor.amount;
+
+    return onlyThePrice ? `${price}.` : `${price}, plus what was fitted since.`;
+  });
 }

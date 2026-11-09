@@ -90,9 +90,12 @@ export class BuildPartsService {
     ]);
 
     const fitted = await this.hydrate(ownerId, installs);
-    const parts = installs.map((install) => lookUp(fitted, install.unitId));
+    const parts = installs.map((install) => ({
+      reason: install.reason,
+      fitted: lookUp(fitted, install.unitId),
+    }));
 
-    return toBuildCostDto(rollUpCost(parts, repairs.totals, repairs.count));
+    return toBuildCostDto(rollUpCost(parts, access, repairs.totals, repairs.count));
   }
 
   async install(

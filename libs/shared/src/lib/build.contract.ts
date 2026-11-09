@@ -15,6 +15,29 @@ const optionalDate = z
   .union([z.iso.date(), z.literal(''), z.null()])
   .transform((value) => (value === '' || value === null ? null : value));
 
+/** Ordered so `z.coerce` cannot turn an unfilled field into a real zero. */
+const price = z.union([
+  z.null(),
+  z.literal('').transform(() => null),
+  z.coerce.number().nonnegative('Price cannot be negative').max(1_000_000),
+]);
+
+const currency = z
+  .union([
+    z.literal(''),
+    z.string().trim().length(3, 'Use a three-letter code, e.g. EUR'),
+    z.null(),
+  ])
+  .transform((value) => (value === null || value === '' ? null : value.toUpperCase()));
+
+const vendor = z
+  .union([z.string().trim().max(80), z.null()])
+  .transform((value) => (value === null || value === '' ? null : value));
+
+const optionalUrl = z
+  .union([z.url('That does not look like a link'), z.literal(''), z.null()])
+  .transform((value) => (value === null || value === '' ? null : value));
+
 export const buildNameSchema = z
   .string()
   .trim()
@@ -52,6 +75,16 @@ const buildFields = z.object({
   descriptionMd: z.string().max(20_000).nullable(),
   builtOn: optionalDate,
   retiredOn: optionalDate,
+  /**
+   * Bought ready-made rather than built: paid for once, as a whole. The parts
+   * it came with are covered by this price and never priced on their own.
+   * Shown to readers only with `shareCosts`, like every other price.
+   */
+  boughtComplete: z.boolean(),
+  purchasePrice: price,
+  purchaseCurrency: currency,
+  purchaseVendor: vendor,
+  purchaseUrl: optionalUrl,
 });
 
 const newBuildFields = buildFields.extend({
@@ -65,6 +98,11 @@ const newBuildFields = buildFields.extend({
   descriptionMd: buildFields.shape.descriptionMd.default(null),
   builtOn: buildFields.shape.builtOn.default(null),
   retiredOn: buildFields.shape.retiredOn.default(null),
+  boughtComplete: buildFields.shape.boughtComplete.default(false),
+  purchasePrice: buildFields.shape.purchasePrice.default(null),
+  purchaseCurrency: buildFields.shape.purchaseCurrency.default(null),
+  purchaseVendor: buildFields.shape.purchaseVendor.default(null),
+  purchaseUrl: buildFields.shape.purchaseUrl.default(null),
 });
 
 const retiredAfterBuilt = (value: {
@@ -77,10 +115,23 @@ const RETIRED_DATE_ISSUE = {
   path: ['retiredOn'],
 };
 
-export const createBuildSchema = newBuildFields.refine(
-  retiredAfterBuilt,
-  RETIRED_DATE_ISSUE,
-);
+const PRICE_CURRENCY_ISSUE = {
+  message: 'A price needs a currency',
+  path: ['purchaseCurrency'],
+};
+
+/** Checked where both fields are in the body; a PATCH naming one alone is let through. */
+const pricedInACurrency = (value: {
+  purchasePrice?: number | null;
+  purchaseCurrency?: string | null;
+}): boolean =>
+  value.purchasePrice === undefined ||
+  value.purchasePrice === null ||
+  value.purchaseCurrency !== null;
+
+export const createBuildSchema = newBuildFields
+  .refine(retiredAfterBuilt, RETIRED_DATE_ISSUE)
+  .refine(pricedInACurrency, PRICE_CURRENCY_ISSUE);
 
 /**
  * Every field optional, but a body with no fields at all is rejected — an empty
@@ -91,7 +142,8 @@ export const updateBuildSchema = buildFields
   .refine((value) => Object.keys(value).length > 0, {
     message: 'Provide at least one field to update',
   })
-  .refine(retiredAfterBuilt, RETIRED_DATE_ISSUE);
+  .refine(retiredAfterBuilt, RETIRED_DATE_ISSUE)
+  .refine(pricedInACurrency, PRICE_CURRENCY_ISSUE);
 
 export const buildSchema = z.object({
   id: z.uuid(),
@@ -118,6 +170,12 @@ export const buildSchema = z.object({
   coverUrl: z.string().nullable(),
   builtOn: z.string().nullable(),
   retiredOn: z.string().nullable(),
+  boughtComplete: z.boolean(),
+  /** What the quad cost as a whole. Null to a reader the owner did not share costs with. */
+  purchasePrice: z.number().nullable(),
+  purchaseCurrency: z.string().nullable(),
+  purchaseVendor: z.string().nullable(),
+  purchaseUrl: z.string().nullable(),
   /** Whether the person asking owns this build. Only its owner can change it or see its costs. */
   ownedByViewer: z.boolean(),
   /** The owner's display name, for people opening a shared build. Never their email. */

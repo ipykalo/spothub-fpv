@@ -55,12 +55,28 @@ export const buildPartSchema = z.object({
  * bigger feature than this ticket.
  */
 export const buildCostSchema = z.object({
+  /**
+   * What the quad cost: on a bought one, its price plus every part fitted
+   * since; on a built one, the fitted parts.
+   */
   totals: z.array(
     z.object({
       currency: z.string(),
       amount: z.number(),
     }),
   ),
+  /** A bought quad's own price, already inside `totals`. Null on a built one. */
+  boughtFor: z
+    .object({
+      currency: z.string(),
+      amount: z.number(),
+    })
+    .nullable(),
+  /**
+   * Fitted parts the quad came with, covered by `boughtFor` and never counted
+   * on their own — even when they carry a price, which would count it twice.
+   */
+  stockCount: z.number().int(),
   /** Fitted parts with no purchase price recorded, so the total is a floor. */
   unpricedCount: z.number().int(),
   installedCount: z.number().int(),
