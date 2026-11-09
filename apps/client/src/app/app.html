@@ -53,8 +53,12 @@
   <!-- What a visitor sees on the blog: the way back to it, and a way in. -->
   <mat-toolbar>
     <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/">SpotHub FPV</a>
-    <nav class="ml-2 flex min-w-0 gap-1 min-[40rem]:ml-6">
+    <!-- Two links and Sign in overflow a 390px phone; scroll sideways as the app's own nav does. -->
+    <nav
+      class="ml-2 flex min-w-0 gap-1 min-[40rem]:ml-6 max-[40rem]:overflow-x-auto max-[40rem]:overflow-y-hidden max-[40rem]:[scrollbar-width:none]"
+    >
       <a matButton routerLink="/">Blog</a>
+      <a matButton routerLink="/about">About</a>
     </nav>
     <span class="flex-1"></span>
     <button
@@ -72,3 +76,13 @@
 <main class="mx-auto max-w-6xl p-6">
   <router-outlet />
 </main>
+
+<!-- On every page, signed in or not: the about page is otherwise only in the visitor's header. -->
+<footer
+  class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 border-t border-outline-variant px-6 py-4 text-sm text-muted"
+>
+  <span>SpotHub FPV — a hangar and logbook for FPV pilots</span>
+  <span class="flex-1"></span>
+  <a routerLink="/about">About</a>
+  <a routerLink="/">Blog</a>
+</footer>

@@ -1,0 +1,126 @@
+<article class="mx-auto max-w-4xl">
+  <header class="mb-10">
+    <h1 class="m-0 text-3xl">One place for the hangar, the logbook and the field</h1>
+    <p class="mt-3 mb-0 text-lg">
+      SpotHub FPV keeps an FPV pilot’s quads, parts, Betaflight configs, flight logs, battery packs and flying spots
+      together — instead of in a spreadsheet, an order history, a laptop folder, a chat and a full SD card.
+    </p>
+
+    <div class="mt-5 flex flex-wrap gap-3">
+      <!-- The server renders a visitor; the browser swaps this once it knows who is reading. -->
+      @if (auth.isAuthenticated()) {
+        <a matButton="filled" routerLink="/hangar">
+          <mat-icon>flight_takeoff</mat-icon>
+          Open your hangar
+        </a>
+      } @else {
+        <a matButton="filled" routerLink="/login" [queryParams]="{ returnUrl: '/hangar' }">
+          <mat-icon>login</mat-icon>
+          Sign in
+        </a>
+      }
+      <a matButton="outlined" routerLink="/">Read the blog</a>
+    </div>
+  </header>
+
+  <section class="mb-10" aria-labelledby="about-what">
+    <h2 id="about-what" class="text-xl">What is in it</h2>
+
+    <div class="grid gap-4 min-[40rem]:grid-cols-2">
+      @for (feature of features; track feature.title) {
+        <div class="rounded-xl border border-outline-variant bg-surface-low p-4">
+          <h3 class="m-0 flex items-center gap-2 text-base">
+            <mat-icon class="icon-sm text-primary" aria-hidden="true">{{ feature.icon }}</mat-icon>
+            {{ feature.title }}
+          </h3>
+          <p class="mt-2 mb-0 text-sm">{{ feature.text }}</p>
+          @if (auth.isAuthenticated()) {
+            <a class="mt-2 inline-block text-sm" [routerLink]="feature.path">Open {{ feature.title.toLowerCase() }}</a>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="mb-10" aria-labelledby="about-start">
+    <h2 id="about-start" class="text-xl">Getting started</h2>
+
+    <ol class="m-0 grid gap-3 pl-5">
+      <li>
+        <strong>Sign in with Google.</strong> Your account is keyed to your Google identity; nothing else is asked for.
+      </li>
+      <li><strong>Add a build</strong> in the Hangar — a name is enough to begin. Add photos from its page.</li>
+      <li>
+        <strong>Add your parts</strong> under Parts, with how many you own, then fit them to the build with “Add part”
+        on its page. Record what you paid and the build’s cost adds itself up.
+      </li>
+      <li>
+        <strong>Save the firmware.</strong> In Betaflight Configurator’s CLI, run <code>diff all</code>, and paste the
+        output into the build’s Firmware section with “Add capture”.
+      </li>
+      <li>
+        <strong>Import your flights.</strong> On the Flights page, drop the radio’s whole <code>LOGS</code> folder —
+        only files not seen before are uploaded. Add blackbox <code>.bbl</code> files and GPX tracks the same way.
+      </li>
+      <li>
+        <strong>Mark your packs.</strong> Add batteries as a Battery part with one unit per pack, labelled as written on
+        it, then pick the pack on each flight.
+      </li>
+      <li><strong>Save your spots.</strong> Click the Spots map to add one, or tap “Add location” at the field.</li>
+    </ol>
+  </section>
+
+  <section class="mb-10" aria-labelledby="about-formats">
+    <h2 id="about-formats" class="text-xl">The logs it reads</h2>
+
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse text-left text-sm">
+        <thead>
+          <tr class="border-b border-outline-variant">
+            <th class="py-2 pr-4">Format</th>
+            <th class="py-2 pr-4">Where it comes from</th>
+            <th class="py-2">What it adds</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (format of formats; track format.name) {
+            <tr class="border-b border-outline-variant align-top">
+              <td class="py-2 pr-4 font-semibold whitespace-nowrap">{{ format.name }}</td>
+              <td class="py-2 pr-4">{{ format.from }}</td>
+              <td class="py-2">{{ format.gives }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mb-10" aria-labelledby="about-privacy">
+    <h2 id="about-privacy" class="text-xl">What it never does</h2>
+
+    <ul class="m-0 grid gap-2 pl-5">
+      <li><strong>No tracking.</strong> There are no analytics, ad scripts or third-party trackers on any page.</li>
+      <li>
+        <strong>Photos lose their location.</strong> Every photo is re-encoded on the server and its metadata dropped
+        before it is stored — a photo taken at a home field is a home address.
+      </li>
+      <li>
+        <strong>Videos load nothing until played.</strong> A spot’s video is a YouTube link, and the player is only
+        fetched when you press play.
+      </li>
+      <li><strong>Maps come from OpenStreetMap</strong>, and nothing else is ever sent a spot’s coordinates.</li>
+      <li>
+        <strong>Your hangar is yours.</strong> Builds, parts, flights and spots are private to their owner unless
+        shared. Only the blog is public.
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="about-who">
+    <h2 id="about-who" class="text-xl">Who can join</h2>
+    <p class="m-0">
+      Anyone can read the blog. Signing in is by invitation for now, while the site is young and the groundwork —
+      backups first — is put in place. It is built so that opening it wider changes a setting, not the code.
+    </p>
+  </section>
+</article>

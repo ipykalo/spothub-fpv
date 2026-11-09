@@ -58,6 +58,22 @@ export class StructuredData {
     });
   }
 
+  /**
+   * The page that says what the site is. `AboutPage` over a plain `WebPage`,
+   * because it tells a search engine this is the answer to "what is
+   * SpotHub FPV", and `about` names the site it describes.
+   */
+  setAbout(description: string): void {
+    this.write({
+      '@context': 'https://schema.org',
+      '@type': 'AboutPage',
+      name: `About ${SITE_NAME}`,
+      description,
+      url: `${this.origin}/about`,
+      about: { '@type': 'WebSite', name: SITE_NAME, url: this.origin },
+    });
+  }
+
   /** Nothing to say about this page; the block goes rather than going stale. */
   clear(): void {
     this.document.getElementById(SCRIPT_ID)?.remove();

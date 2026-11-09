@@ -798,9 +798,12 @@ false, and does not even request configs, the inventory or the logbook;
 signed-in pilots may open a build, never whether a signed-out visitor may** —
 every build read is guarded, whatever its visibility says.
 
-**The blog is the public face of the site, and nothing else is.** It is the
-home page (`/`, with `/blog` redirecting there so the feed has one address)
-and it renders on the server. The hangar, parts, flights and spots are behind
+**The blog is the public face of the site, and nothing else is** — apart
+from `/about`, a static page saying what the site is, what each part does,
+how to start and what it never does with anyone's data, linked from the
+visitor's header and a footer on every page and listed in the sitemap. The
+blog is the home page (`/`, with `/blog` redirecting there so the feed has one
+address) and it renders on the server. The hangar, parts, flights and spots are behind
 sign-in, and so are builds: a hangar is personal kit, and a gear list is not
 what anybody searches for. Builds were public for one release; the reasoning
 and what it cost to undo it are worth remembering before opening anything else.
@@ -881,7 +884,7 @@ and what it cost to undo it are worth remembering before opening anything else.
   `resizeToFitContent` itself — the autosize only measures on input. Tables
   are GFM; `sh-markdown` wraps each in a sideways-scrolling
   `.sh-markdown-table`.
-- **Only the home page and `blog/:id` render on the server**
+- **Only the home page, `blog/:id` and `about` render on the server**
   (`app.routes.server.ts`); everything behind sign-in stays browser-rendered,
   since the server holds no session and the map touches browser APIs as it
   loads. `apps/client` builds
