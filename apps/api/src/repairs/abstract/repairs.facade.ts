@@ -4,6 +4,13 @@ import type { CurrencyTotal } from '../../common';
 export interface RepairCostSummary {
   readonly totals: readonly CurrencyTotal[];
   readonly count: number;
+  /** Each costed repair, dated, for adding up across currencies. */
+  readonly amounts: readonly {
+    readonly amount: number;
+    readonly currency: string;
+    /** `YYYY-MM-DD`: the day of the repair. */
+    readonly day: string;
+  }[];
 }
 
 /**

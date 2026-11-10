@@ -56,7 +56,7 @@ export class BuildPartsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<BuildCostDto> {
-    return this.installs.cost(user.id, buildId);
+    return this.installs.cost(user, buildId);
   }
 
   @Post()

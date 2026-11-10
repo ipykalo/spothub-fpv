@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { convertedTotalSchema } from './currency';
 import { InstallReason } from './enums';
 import { partFields, partSchema, partUnitSchema } from './part.contract';
 
@@ -77,8 +78,8 @@ export const buildPartSchema = z.object({
  *
  * Parts get bought in whatever the shop charges in — UAH here, EUR there — and
  * silently adding those together would produce a figure that looks precise and
- * means nothing. Converting would need a rate at purchase date, which is a
- * bigger feature than this ticket.
+ * means nothing. `converted` is the one-number answer, made honestly: each
+ * price at the official rate of the day it was paid.
  */
 export const buildCostSchema = z.object({
   /**
@@ -119,6 +120,15 @@ export const buildCostSchema = z.object({
     }),
   ),
   repairCount: z.number().int(),
+  /**
+   * The same two sums each added up in one currency — the viewer's own, then
+   * USD — every price at the official rate of the day it was paid. The
+   * per-currency figures above stay what was paid; these are approximate.
+   */
+  converted: z.object({
+    totals: z.array(convertedTotalSchema),
+    repairTotals: z.array(convertedTotalSchema),
+  }),
 });
 
 export const listBuildPartsQuerySchema = z.object({

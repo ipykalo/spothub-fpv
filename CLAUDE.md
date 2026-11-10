@@ -372,6 +372,13 @@ The rules that keep Tailwind and Angular Material from fighting:
   past rate never changes, so each day is fetched once, and no request ever
   waits on the bank. `RateSource` is the seam: `NbuRateSource` in
   production, `StubRateSource` in the e2e suite (`exchange-rates.e2e.spec.ts`).
+  **The cost rollup leads with converted totals**: `BuildCostDto.converted`
+  holds the parts and the repairs each added up in the viewer's home currency
+  and USD (`totalCurrencies`) — a fitted part at its purchase source's date,
+  a bought quad at its "built on" day, a repair at its own — and the build
+  page shows them as "≈ ₴… · ≈ $…" over what was actually paid, per currency
+  (`cost-lines.ts`). The viewer's currency rides on `AuthenticatedUser`, read
+  afresh on every request (`converted-cost.e2e.spec.ts`).
 - **A link a pilot pastes is a web address and nothing else.** Shop links
   (a part source's `url`, a bought build's `purchaseUrl`) and the preview's
   input go through `webLinkSchema` (`libs/shared/src/lib/web-link.ts`):

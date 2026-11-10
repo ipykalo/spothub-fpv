@@ -13,4 +13,6 @@ export interface AuthenticatedUser {
   readonly role: Role;
   /** A read-only account is refused every write by the global guard. */
   readonly status: UserStatus;
+  /** What their cost totals are shown in, besides USD. */
+  readonly homeCurrency: string;
 }

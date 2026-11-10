@@ -77,6 +77,27 @@ export const optionalCurrencySchema = z
   .union([z.literal(''), z.null(), currencySchema])
   .transform((value) => (value === null || value === '' ? null : value));
 
+/**
+ * Prices paid in several currencies, added up in one, each at the official
+ * rate of the day it was paid.
+ */
+export const convertedTotalSchema = z.object({
+  currency: z.string(),
+  /** Null when some price could not be converted. */
+  amount: z.number().nullable(),
+  /** False while some price uses a nearby day's rate until its own is fetched. */
+  exact: z.boolean(),
+  /** The latest day whose rates went in; null when no rate was needed. */
+  ratesOn: z.string().nullable(),
+});
+
+export type ConvertedTotalDto = z.output<typeof convertedTotalSchema>;
+
+/** The currencies a viewer's totals are given in: their own, then USD. */
+export function totalCurrencies(homeCurrency: string): string[] {
+  return homeCurrency === 'USD' ? ['USD'] : [homeCurrency, 'USD'];
+}
+
 /** Setting the currency a pilot's totals are shown in. */
 export const updateHomeCurrencySchema = z.object({ homeCurrency: currencySchema });
 

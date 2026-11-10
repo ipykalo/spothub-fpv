@@ -41,6 +41,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('This account has been blocked');
     }
 
-    return { id: user.id, email: user.email, role: user.role, status: user.status };
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      homeCurrency: user.homeCurrency,
+    };
   }
 }

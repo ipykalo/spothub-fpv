@@ -13,9 +13,11 @@ import {
   type LinkInstallDto,
   type ListBuildPartsQuery,
   type RemoveInstallDto,
+  totalCurrencies,
 } from '@spothub/shared';
 
-import { fromDateOnly } from '../common';
+import { type AuthenticatedUser, fromDateOnly } from '../common';
+import { ExchangeRatesFacade } from '../exchange-rates';
 import { type FittedUnitDto, PartsFacade } from '../parts';
 import { RepairsFacade } from '../repairs';
 import { BuildPartsRepository } from './abstract/build-parts.repository';
@@ -40,6 +42,7 @@ export class BuildPartsService {
     private readonly installs: BuildPartsRepository,
     private readonly parts: PartsFacade,
     private readonly repairs: RepairsFacade,
+    private readonly rates: ExchangeRatesFacade,
   ) {}
 
   /**
@@ -76,7 +79,8 @@ export class BuildPartsService {
    * The owner's, unless they switched costs on for readers — and either way it
    * is the owner's own prices being totalled.
    */
-  async cost(viewerId: string, buildId: string): Promise<BuildCostDto> {
+  async cost(viewer: AuthenticatedUser, buildId: string): Promise<BuildCostDto> {
+    const viewerId = viewer.id;
     const access = await this.installs.findBuildAccessForViewer(viewerId, buildId);
 
     // Someone who may not have it is told the build has no rollup, not that it
@@ -97,7 +101,16 @@ export class BuildPartsService {
       fitted: lookUp(fitted, install.unitId),
     }));
 
-    return toBuildCostDto(rollUpCost(parts, access, repairs.totals, repairs.count));
+    const cost = rollUpCost(parts, access, repairs.totals, repairs.count);
+
+    // In the viewer's own currency, then USD — whoever's build it is.
+    const currencies = totalCurrencies(viewer.homeCurrency);
+    const [totals, repairTotals] = await Promise.all([
+      this.rates.totals(cost.spent, currencies),
+      this.rates.totals(repairs.amounts, currencies),
+    ]);
+
+    return toBuildCostDto(cost, { totals, repairTotals });
   }
 
   async install(

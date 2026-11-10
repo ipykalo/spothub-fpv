@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { ExchangeRatesModule } from '../exchange-rates';
 import { PartsModule } from '../parts';
 import { RepairsModule } from '../repairs';
 import { BuildPartsRepository } from './abstract/build-parts.repository';
@@ -16,7 +17,7 @@ import { BuildPartsService } from './build-parts.service';
  * there is no `forwardRef()` here.
  */
 @Module({
-  imports: [PartsModule, RepairsModule],
+  imports: [PartsModule, RepairsModule, ExchangeRatesModule],
   controllers: [BuildPartsController],
   providers: [
     BuildPartsService,

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { BuildPart } from '@prisma/client';
 
+import { toDateOnly } from '../common';
 import { PrismaService } from '../prisma';
 import { BuildPartFilter, BuildPartsRepository } from './abstract/build-parts.repository';
 import type {
@@ -41,6 +42,8 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
         boughtComplete: true,
         purchasePrice: true,
         purchaseCurrency: true,
+        builtOn: true,
+        createdAt: true,
       },
     });
 
@@ -48,10 +51,12 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
       return null;
     }
 
-    const { purchasePrice, purchaseCurrency, ...access } = build;
+    const { purchasePrice, purchaseCurrency, builtOn, createdAt, ...access } = build;
 
     return {
       ...access,
+      // A bought quad's "built on" is the day it was bought.
+      boughtOn: toDateOnly(builtOn ?? createdAt),
       // `Decimal` is a Prisma type and must not escape this file. A price
       // without a currency cannot be added to anything, so it is no price.
       boughtFor:

@@ -67,8 +67,12 @@ export function withoutOwnersDetails(
   };
 }
 
-export function toBuildCostDto(cost: BuildCost): BuildCostDto {
+export function toBuildCostDto(
+  cost: BuildCost,
+  converted: BuildCostDto['converted'],
+): BuildCostDto {
   return {
+    converted,
     totals: cost.totals.map(toMoneyDto),
     boughtFor: cost.boughtFor === null ? null : toMoneyDto(cost.boughtFor),
     stockCount: cost.stockCount,
@@ -99,7 +103,7 @@ const toMoneyDto = (total: CurrencyTotal): CurrencyTotal => ({
  */
 export function rollUpCost(
   fitted: readonly { readonly reason: InstallReason; readonly fitted: FittedUnitDto }[],
-  access: Pick<BuildAccess, 'boughtComplete' | 'boughtFor'>,
+  access: Pick<BuildAccess, 'boughtComplete' | 'boughtFor' | 'boughtOn'>,
   repairTotals: readonly CurrencyTotal[] = [],
   repairCount = 0,
 ): BuildCost {
@@ -111,12 +115,25 @@ export function rollUpCost(
     .map((row) => ({
       price: row.fitted.part.purchasePrice,
       currency: row.fitted.part.purchaseCurrency,
+      day: paidOn(row.fitted),
     }));
 
   const quad =
     access.boughtFor === null
       ? []
-      : [{ price: access.boughtFor.amount, currency: access.boughtFor.currency }];
+      : [
+          {
+            price: access.boughtFor.amount,
+            currency: access.boughtFor.currency,
+            day: access.boughtOn,
+          },
+        ];
+
+  const spent = [...quad, ...priced].flatMap((row) =>
+    row.price === null || row.currency === null
+      ? []
+      : [{ amount: row.price, currency: row.currency, day: row.day }],
+  );
 
   return {
     totals: sumByCurrency([...quad, ...priced]),
@@ -126,5 +143,16 @@ export function rollUpCost(
     installedCount: fitted.length,
     repairTotals,
     repairCount,
+    spent,
   };
+}
+
+/**
+ * The day a fitted part was paid for, for converting its price: the purchase
+ * date on the row it was bought from, else the day that row was recorded,
+ * else the day the part was entered.
+ */
+function paidOn(fitted: FittedUnitDto): string {
+  const purchase = fitted.part.sources.find((source) => source.isPurchase);
+  return (purchase?.purchasedOn ?? purchase?.capturedAt ?? fitted.part.createdAt).slice(0, 10);
 }

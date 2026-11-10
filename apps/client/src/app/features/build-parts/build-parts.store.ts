@@ -18,6 +18,7 @@ const EMPTY_COST: BuildCostDto = {
   installedCount: 0,
   repairTotals: [],
   repairCount: 0,
+  converted: { totals: [], repairTotals: [] },
 };
 
 /**
