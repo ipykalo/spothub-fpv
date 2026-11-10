@@ -1,6 +1,6 @@
 import type { StorageUsageDto } from '@spothub/shared';
 
-import type { LinkIdentityInput, UserEntity } from '../user.entity';
+import type { AuthProviderKind, LinkIdentityInput, UserEntity } from '../user.entity';
 
 /**
  * The users module's public API — the only thing another module may inject.
@@ -19,6 +19,19 @@ export abstract class UsersFacade {
    * linking the identity as needed. Idempotent: signing in twice is one user.
    */
   abstract upsertFromIdentity(input: LinkIdentityInput): Promise<UserEntity>;
+
+  /**
+   * The account a sign-in would land on, before signing it in: the one this
+   * identity is linked to, else the one with this address. Null for someone new.
+   */
+  abstract findForSignIn(
+    provider: AuthProviderKind,
+    subject: string,
+    email: string,
+  ): Promise<UserEntity | null>;
+
+  /** Notes where a refused sign-in came from, for the Admin page. */
+  abstract recordSignInCountry(userId: string, country: string | null): Promise<void>;
 
   /** How much of their storage this pilot has used, and how much they may. */
   abstract storageUsage(userId: string): Promise<StorageUsageDto>;

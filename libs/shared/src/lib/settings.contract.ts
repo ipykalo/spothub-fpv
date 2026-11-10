@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { countryCodeSchema } from './country';
+
 /**
  * The settings an admin changes from the Admin page. Secrets are not among
  * them and never will be: those stay in the environment.
@@ -28,6 +30,8 @@ export const appSettingsSchema = z.object({
   allowedEmails: z.array(z.string()),
   /** What each pilot may keep in storage unless given their own limit. */
   defaultStorageQuotaBytes: z.number(),
+  /** ISO codes of the countries nobody but an admin may sign in from. */
+  blockedCountries: z.array(z.string()),
   updatedAt: z.string(),
 });
 
@@ -44,6 +48,9 @@ export const updateAppSettingsSchema = z
       .max(500, 'Keep the list under 500 addresses')
       .transform((emails) => [...new Set(emails)]),
     defaultStorageQuotaBytes: storageQuotaSchema,
+    blockedCountries: z
+      .array(countryCodeSchema)
+      .transform((codes) => [...new Set(codes)].sort()),
   })
   .partial()
   .refine((value) => Object.keys(value).length > 0, {

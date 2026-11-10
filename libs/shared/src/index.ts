@@ -18,3 +18,4 @@ export * from './lib/pilot-name';
 export * from './lib/build-video.contract';
 export * from './lib/web-link';
 export * from './lib/currency';
+export * from './lib/country';

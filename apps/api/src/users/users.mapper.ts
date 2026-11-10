@@ -26,5 +26,6 @@ export function toAdminUserDto(
     storageUsedBytes: storage.usedBytes,
     storageLimitBytes: storage.limitBytes,
     storageQuotaBytes: user.storageQuotaBytes,
+    lastSignInCountry: user.lastSignInCountry,
   };
 }

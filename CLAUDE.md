@@ -319,6 +319,20 @@ The rules that keep Tailwind and Angular Material from fighting:
   closes sign-up and takes their own address off the list can no longer sign
   in again — existing sessions keep working, and the row can be fixed in SQL
   (`apps/api/e2e/settings.e2e.spec.ts`).
+- **Nobody signs in from a restricted country** — Russia, Belarus, Iran,
+  North Korea, Syria and Cuba to start (`BLOCKED_COUNTRIES`, the starting
+  value of `app_settings.blocked_countries`, edited on the Admin page). Google
+  gives no country, so it is the country of the sign-in's IP, looked up in
+  DB-IP's "IP to Country Lite" file (`geo/`, `CountryLookup`) — local, nothing
+  sent anywhere; CC BY 4.0, credited on `/about`. The API image downloads it
+  at build time (`scripts/download-geoip.mjs`); in development run
+  `npm run geo:download`. Without the file nobody is refused, and the log says
+  so. Refused at every Google sign-in, new pilot or registered, before any
+  account is made; admins never. `users.last_sign_in_country` is kept even
+  for a refused attempt, and the Pilots table flags a restricted one. The
+  visitor's address is `request.ip` with `TRUST_PROXY_HOPS=1` (Caddy, which
+  replaces any X-Forwarded-For a visitor sends). A VPN gets around all of it
+  (`restricted-countries.e2e.spec.ts`).
 - **A pilot is ACTIVE, RESTRICTED (read-only) or BLOCKED** (`users.status`),
   set from the Admin page's Pilots table (`PATCH /admin/users/:id`; an
   admin's own status never changes there). Blocked is refused at sign-in, at

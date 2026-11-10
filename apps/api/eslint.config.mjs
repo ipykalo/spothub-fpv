@@ -14,7 +14,7 @@ import baseConfig from '../../eslint.config.mjs';
  * because both are "up then deeper".
  */
 const MODULES =
-  'app|auth|build-parts|build-videos|builds|comments|common|config|configs|exchange-rates|flight-logs|flights|health|jobs|likes|media|parts|posts|prisma|repairs|settings|spots|storage|users';
+  'app|auth|build-parts|build-videos|builds|comments|common|config|configs|exchange-rates|flight-logs|flights|geo|health|jobs|likes|media|parts|posts|prisma|repairs|settings|spots|storage|users';
 
 const BARREL_ONLY = [
   {

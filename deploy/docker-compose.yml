@@ -70,6 +70,11 @@ services:
       # ten seconds; .env changes either without a new image.
       NBU_RATES_URL: ${NBU_RATES_URL:-https://bank.gov.ua/NBUStatService/v1/statdirectory/exchangenew}
       NBU_RATES_TIMEOUT_MS: ${NBU_RATES_TIMEOUT_MS:-10000}
+      # Caddy is the one proxy in front: the visitor's address is the one it
+      # adds to X-Forwarded-For. Read for refusing restricted countries.
+      TRUST_PROXY_HOPS: 1
+      # The starting list of restricted countries; the Admin page changes it.
+      BLOCKED_COUNTRIES: ${BLOCKED_COUNTRIES:-RU,BY,IR,KP,SY,CU}
     depends_on:
       postgres:
         condition: service_healthy

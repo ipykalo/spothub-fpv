@@ -4,6 +4,8 @@ export interface AppSettingsEntity {
   /** Lower-cased. */
   readonly allowedEmails: readonly string[];
   readonly defaultStorageQuotaBytes: number;
+  /** ISO codes, upper-cased: nobody but an admin signs in from these. */
+  readonly blockedCountries: readonly string[];
   readonly updatedAt: Date;
 }
 
@@ -11,6 +13,6 @@ export interface AppSettingsEntity {
 export type UpdateAppSettingsData = Partial<
   Pick<
     AppSettingsEntity,
-    'openRegistration' | 'allowedEmails' | 'defaultStorageQuotaBytes'
+    'openRegistration' | 'allowedEmails' | 'defaultStorageQuotaBytes' | 'blockedCountries'
   >
 >;

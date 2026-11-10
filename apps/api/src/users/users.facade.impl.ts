@@ -11,7 +11,7 @@ import { StorageGateway } from '../storage';
 import { UsersFacade } from './abstract/users.facade';
 import { UsersRepository } from './abstract/users.repository';
 import { describeBytes, fits, storageLimit } from './storage-allowance';
-import type { LinkIdentityInput, UserEntity } from './user.entity';
+import type { AuthProviderKind, LinkIdentityInput, UserEntity } from './user.entity';
 
 /** Serves the users facade out of the module's own repository. */
 @Injectable()
@@ -32,6 +32,21 @@ export class UsersFacadeImpl extends UsersFacade {
 
   upsertFromIdentity(input: LinkIdentityInput): Promise<UserEntity> {
     return this.users.upsertFromIdentity(input);
+  }
+
+  async findForSignIn(
+    provider: AuthProviderKind,
+    subject: string,
+    email: string,
+  ): Promise<UserEntity | null> {
+    return (
+      (await this.users.findByProviderSubject(provider, subject)) ??
+      (await this.users.findByEmail(email))
+    );
+  }
+
+  recordSignInCountry(userId: string, country: string | null): Promise<void> {
+    return this.users.recordSignInCountry(userId, country);
   }
 
   async storageUsage(userId: string): Promise<StorageUsageDto> {

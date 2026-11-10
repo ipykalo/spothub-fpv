@@ -11,6 +11,8 @@ import { StubBlackboxDecoder } from './stub-blackbox-decoder';
 import { StubYouTubeThumbnails } from './stub-youtube-thumbnails';
 import { RateSource } from '../../src/exchange-rates';
 import { StubRateSource } from './stub-rate-source';
+import { CountryLookup } from '../../src/geo';
+import { StubCountryLookup } from './stub-country-lookup';
 
 const GLOBAL_PREFIX = 'api';
 
@@ -33,7 +35,8 @@ export interface TestApp {
  * guaranteed on a test runner, so `BlackboxDecoder` reads already-decoded
  * fixtures instead. And a spot cover would otherwise be fetched from YouTube,
  * so `YouTubeThumbnails` generates its image locally. Exchange rates come
- * from `StubRateSource` rather than the National Bank of Ukraine.
+ * from `StubRateSource` rather than the National Bank of Ukraine, and the
+ * country of a sign-in from `StubCountryLookup` rather than the database file.
  */
 export async function createTestApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -43,6 +46,8 @@ export async function createTestApp(): Promise<TestApp> {
     .useClass(StubYouTubeThumbnails)
     .overrideProvider(RateSource)
     .useClass(StubRateSource)
+    .overrideProvider(CountryLookup)
+    .useClass(StubCountryLookup)
     .compile();
 
   const app = moduleRef.createNestApplication();

@@ -1,0 +1,39 @@
+<div class="mb-6 grid max-w-176 gap-3">
+  <p class="m-0 text-sm text-muted">
+    Nobody can sign up or sign in from these countries — new pilots and registered ones alike — going by the country of
+    the address they sign in from. Admins are never refused. A VPN gets around this: it stops casual sign-ups, not a
+    determined person.
+  </p>
+
+  <sh-autocomplete
+    class="block w-72"
+    label="Add a country"
+    subscriptSizing="dynamic"
+    [options]="options()"
+    [value]="null"
+    (valueChange)="pick($event)"
+  />
+
+  @if (listed().length) {
+    <ul class="m-0 flex list-none flex-wrap gap-2 p-0">
+      @for (country of listed(); track country.code) {
+        <li class="tone-stop flex items-center gap-1 rounded-full bg-(--tone-surface) py-0.5 pr-1 pl-3 text-sm">
+          <span>{{ country.name }}</span>
+          <span class="text-xs text-muted">{{ country.code }}</span>
+          <button
+            matIconButton
+            type="button"
+            class="compact-remove"
+            [disabled]="saving()"
+            [attr.aria-label]="'Allow ' + country.name + ' again'"
+            (click)="countryRemoved.emit(country.code)"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="m-0 text-sm text-muted">No country is restricted: anyone may sign in from anywhere.</p>
+  }
+</div>

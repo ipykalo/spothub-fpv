@@ -47,6 +47,12 @@ export abstract class UsersRepository {
    */
   abstract storageUsedBy(ids: readonly string[]): Promise<ReadonlyMap<string, number>>;
 
+  /** The account an address belongs to, ignoring case. */
+  abstract findByEmail(email: string): Promise<UserEntity | null>;
+
+  /** Notes where a sign-in came from, even one that was refused. */
+  abstract recordSignInCountry(id: string, country: string | null): Promise<void>;
+
   /** The pilot's own name for the site; null clears it. Null when there is no such user. */
   abstract setPilotName(id: string, pilotName: string | null): Promise<UserEntity | null>;
 

@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { USER_STATUS_LABELS, type UserStatus } from '@spothub/shared';
+import { USER_STATUS_LABELS, type UserStatus, countryName } from '@spothub/shared';
 
 import { Section } from '../../../core/components/section/section';
 import { formatBytes } from '../../../core/format/bytes';
 import { AdminStore } from '../admin.store';
 import { PilotsTable } from '../presenters/pilots-table/pilots-table';
+import { RestrictedCountries } from '../presenters/restricted-countries/restricted-countries';
 import { SignUpSettings } from '../presenters/sign-up-settings/sign-up-settings';
 
 /**
@@ -16,7 +17,13 @@ import { SignUpSettings } from '../presenters/sign-up-settings/sign-up-settings'
 @Component({
   selector: 'sh-admin-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatProgressBarModule, PilotsTable, Section, SignUpSettings],
+  imports: [
+    MatProgressBarModule,
+    PilotsTable,
+    RestrictedCountries,
+    Section,
+    SignUpSettings,
+  ],
   templateUrl: './admin.page.html',
   styleUrl: './admin.page.scss',
 })
@@ -42,6 +49,20 @@ export class AdminPage {
 
   protected async remove(email: string): Promise<void> {
     this.tell(await this.store.removeEmail(email), `${email} removed`);
+  }
+
+  protected async restrictCountry(code: string): Promise<void> {
+    this.tell(
+      await this.store.addBlockedCountry(code),
+      `Nobody can sign in from ${countryName(code)} now`,
+    );
+  }
+
+  protected async allowCountry(code: string): Promise<void> {
+    this.tell(
+      await this.store.removeBlockedCountry(code),
+      `Sign-in from ${countryName(code)} is allowed again`,
+    );
   }
 
   protected async setStatus(change: { id: string; status: UserStatus }): Promise<void> {

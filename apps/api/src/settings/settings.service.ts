@@ -31,6 +31,7 @@ export class SettingsService {
       allowedEmails: config
         .get('ALLOWED_EMAILS', { infer: true })
         .filter((email) => email !== '*'),
+      blockedCountries: config.get('BLOCKED_COUNTRIES', { infer: true }),
     };
   }
 
@@ -59,6 +60,9 @@ export class SettingsService {
       ...(input.defaultStorageQuotaBytes === undefined
         ? {}
         : { defaultStorageQuotaBytes: input.defaultStorageQuotaBytes }),
+      ...(input.blockedCountries === undefined
+        ? {}
+        : { blockedCountries: input.blockedCountries }),
     };
 
     return toAppSettingsDto(await this.settings.update(this.initial, data));

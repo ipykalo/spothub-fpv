@@ -1,7 +1,9 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { type CurrentUserDto, publicName, UserStatus } from '@spothub/shared';
+import { type CurrentUserDto, publicName, Role, UserStatus } from '@spothub/shared';
 
+import { CountryLookup } from '../../geo';
 import { SettingsFacade } from '../../settings';
+import { RestrictedCountryError } from '../restricted-country.error';
 import { AuthProviderKind, type UserEntity, UsersFacade } from '../../users';
 import type { GoogleProfile } from '../auth.types';
 import { IssuedTokens, TokenService } from './token.service';
@@ -20,14 +22,22 @@ export class AuthService {
     private readonly users: UsersFacade,
     private readonly settings: SettingsFacade,
     private readonly tokens: TokenService,
+    private readonly countries: CountryLookup,
   ) {}
 
-  async signInWithGoogle(profile: GoogleProfile): Promise<IssuedTokens> {
+  /**
+   * `ip` is the visitor's own address (behind Caddy, from X-Forwarded-For);
+   * the country it is in decides whether a restricted country refuses them.
+   */
+  async signInWithGoogle(profile: GoogleProfile, ip?: string): Promise<IssuedTokens> {
     // Asked at every sign-in, so a change on the Admin page needs no restart.
     if (!(await this.settings.permitsSignIn(profile.email))) {
       this.logger.warn(`Rejected sign-in for non-allowlisted address`);
       throw new ForbiddenException('This account is not allowed to sign in');
     }
+
+    const country = this.countries.countryOf(ip);
+    await this.refuseRestrictedCountry(profile, country);
 
     const user = await this.users.upsertFromIdentity({
       provider: AuthProviderKind.Google,
@@ -35,6 +45,7 @@ export class AuthService {
       email: profile.email,
       displayName: profile.displayName,
       avatarUrl: profile.avatarUrl,
+      country,
     });
 
     if (user.status === UserStatus.Blocked) {
@@ -43,6 +54,40 @@ export class AuthService {
     }
 
     return this.tokens.issueForLogin(user);
+  }
+
+  /**
+   * Nobody signs in from a restricted country — not a new pilot, and not one
+   * already registered — except an admin, who must never be locked out of
+   * their own site by travelling. A refused pilot's country is still noted,
+   * so the Admin page shows where the attempt came from. An address that
+   * cannot be placed is not refused: a missing database must not lock
+   * everyone out.
+   */
+  private async refuseRestrictedCountry(
+    profile: GoogleProfile,
+    country: string | null,
+  ): Promise<void> {
+    if (country === null || !(await this.settings.blockedCountries()).includes(country)) {
+      return;
+    }
+
+    const existing = await this.users.findForSignIn(
+      AuthProviderKind.Google,
+      profile.subject,
+      profile.email,
+    );
+
+    if (existing?.role === Role.Admin) {
+      return;
+    }
+
+    if (existing) {
+      await this.users.recordSignInCountry(existing.id, country);
+    }
+
+    this.logger.warn(`Rejected sign-in from a restricted country (${country})`);
+    throw new RestrictedCountryError();
   }
 
   /** A blocked account's refresh fails like a deleted one's: its family is revoked. */

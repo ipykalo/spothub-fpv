@@ -109,6 +109,36 @@ export const envSchema = z.object({
     .url()
     .default('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchangenew'),
   NBU_RATES_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+
+  /**
+   * DB-IP's "IP to Country Lite" database (CC BY 4.0), which says which
+   * country a sign-in comes from. The API image downloads it when it is
+   * built; in development, `npm run geo:download`. Missing: nobody is
+   * refused for their country, and the log says so.
+   */
+  GEOIP_COUNTRY_DB: z.string().min(1).default('data/geoip/dbip-country-lite.mmdb'),
+
+  /**
+   * Countries nobody may sign in from (ISO codes, comma-separated): the
+   * starting list of the Admin page's setting, read once when the settings
+   * row is first created. Admins are never refused.
+   */
+  BLOCKED_COUNTRIES: z
+    .string()
+    .default('RU,BY,IR,KP,SY,CU')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((code) => code.trim().toUpperCase())
+        .filter((code) => /^[A-Z]{2}$/.test(code)),
+    ),
+
+  /**
+   * How many proxies stand in front of the API, so the visitor's own address
+   * is read from X-Forwarded-For rather than the proxy's. Production has one,
+   * Caddy; development has none.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
 });
 
 export type Env = z.output<typeof envSchema>;

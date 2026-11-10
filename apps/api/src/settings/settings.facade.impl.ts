@@ -15,6 +15,10 @@ export class SettingsFacadeImpl extends SettingsFacade {
     return permitsSignIn(await this.settings.current(), email);
   }
 
+  async blockedCountries(): Promise<readonly string[]> {
+    return (await this.settings.current()).blockedCountries;
+  }
+
   async defaultStorageQuotaBytes(): Promise<number> {
     return (await this.settings.current()).defaultStorageQuotaBytes;
   }

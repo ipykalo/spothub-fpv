@@ -52,6 +52,8 @@ export const adminUserSchema = z.object({
   storageLimitBytes: z.number(),
   /** Their own limit, when an admin set one; null follows the default. */
   storageQuotaBytes: z.number().nullable(),
+  /** ISO code of the country their last sign-in came from, refused or not. */
+  lastSignInCountry: z.string().nullable(),
 });
 
 /**

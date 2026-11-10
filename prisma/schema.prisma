@@ -44,6 +44,9 @@ model User {
   /// The currency this pilot's cost totals are shown in, besides USD. One of
   /// `CURRENCIES` in libs/shared.
   homeCurrency      String     @default("USD") @map("home_currency") @db.VarChar(3)
+  /// The country of the IP their last sign-in came from, refused or not — for
+  /// the Admin page. Null when it could not be placed.
+  lastSignInCountry String?    @map("last_sign_in_country") @db.VarChar(2)
   avatarUrl        String?    @map("avatar_url")
   role              Role       @default(USER)
   status            UserStatus @default(ACTIVE)
@@ -987,6 +990,9 @@ model AppSettings {
   /// How much each pilot may keep in storage — photos, post images and flight
   /// logs — unless their own `storage_quota_bytes` says otherwise. 512 MiB.
   defaultStorageQuotaBytes BigInt   @default(536870912) @map("default_storage_quota_bytes")
+  /// ISO country codes nobody may sign in from, by the country of their IP.
+  /// Admins are never refused.
+  blockedCountries         String[] @default(["RU", "BY", "IR", "KP", "SY", "CU"]) @map("blocked_countries")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")

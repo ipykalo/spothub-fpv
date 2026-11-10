@@ -10,6 +10,9 @@ export abstract class SettingsFacade {
    */
   abstract permitsSignIn(email: string): Promise<boolean>;
 
+  /** ISO codes of the countries nobody but an admin may sign in from, as they stand now. */
+  abstract blockedCountries(): Promise<readonly string[]>;
+
   /** What a pilot without a limit of their own may keep in storage. */
   abstract defaultStorageQuotaBytes(): Promise<number>;
 }

@@ -24,7 +24,8 @@
     "db:seed": "ts-node -P prisma/tsconfig.json prisma/seed.ts",
     "db:seed:undo": "ts-node -P prisma/tsconfig.json prisma/seed.ts --undo",
     "decoder:build": "docker build --target blackbox-decode -t spothub-blackbox-decode -f apps/api/Dockerfile .",
-    "coverage": "node scripts/coverage.mjs"
+    "coverage": "node scripts/coverage.mjs",
+    "geo:download": "node scripts/download-geoip.mjs"
   },
   "private": true,
   "dependencies": {
@@ -58,6 +59,7 @@
     "leaflet": "^1.9.4",
     "marked": "^18.0.13",
     "material-icons": "1.13.14",
+    "mmdb-lib": "^3.0.5",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
