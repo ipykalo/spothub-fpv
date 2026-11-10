@@ -147,8 +147,14 @@
               }
             </span>
 
-            @if (source.url; as link) {
-              <a [href]="link" target="_blank" rel="noopener noreferrer">Open listing</a>
+            @if (source.url | linkHost; as host) {
+              <a
+                [href]="source.url"
+                target="_blank"
+                rel="noopener noreferrer nofollow ugc"
+                [title]="'Opens ' + host + ' in a new tab'"
+                >Open on {{ host }}</a
+              >
             } @else {
               <span class="text-muted italic">no link</span>
             }

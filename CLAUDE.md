@@ -352,6 +352,18 @@ The rules that keep Tailwind and Angular Material from fighting:
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
 - Google identities key on the `sub` claim, never the email.
+- **A link a pilot pastes is a web address and nothing else.** Shop links
+  (a part source's `url`, a bought build's `purchaseUrl`) and the preview's
+  input go through `webLinkSchema` (`libs/shared/src/lib/web-link.ts`):
+  `http(s)` and a real domain, never `javascript:`, `data:`, `file:` or a bare
+  IP. Every outside link the client renders — those, and links in a post's
+  Markdown — opens in a new tab with `rel="noopener noreferrer nofollow ugc"`
+  and names its site (`linkHost`, the `linkHost` pipe); a Markdown link that
+  is not a web address stays its words. **The URL preview is the one place
+  the server opens an address someone else chose**: it connects through
+  `publicOnlyLookup`, which refuses a name unless every address it resolves
+  to is public (`public-address.ts`), follows at most three redirects by
+  hand re-checking each, and reads at most 512 KB (`links.e2e.spec.ts`).
 - **Nobody else ever sees a pilot's full Google name.** `users.display_name`
   is shown to the pilot (account page) and an admin (Pilots table) only.
   Every owner and author name the API hands out — shared builds and spots,

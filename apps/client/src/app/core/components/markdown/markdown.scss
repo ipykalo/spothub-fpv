@@ -78,6 +78,12 @@
     border-radius: 6px;
   }
 
+  // The site a link goes to, after its words, so nobody follows one blind.
+  .sh-markdown-host {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.85em;
+  }
+
   // A reference to an image the post no longer has.
   .sh-markdown-missing {
     color: var(--mat-sys-on-surface-variant);

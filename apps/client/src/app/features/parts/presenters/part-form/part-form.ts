@@ -35,6 +35,7 @@ import {
 } from '@spothub/shared';
 
 import { DateField } from '../../../../core/components/date-field/date-field';
+import { LinkHostPipe } from '../../../../core/format/link-host.pipe';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { choicesFrom } from '../../../../core/components/choice-option';
 import { PART_CATEGORY_ICONS } from '../../part-category';
@@ -99,6 +100,7 @@ const SPEC_SUGGESTIONS: Readonly<Record<PartCategory, readonly string[]>> = {
   imports: [
     DateField,
     Autocomplete,
+    LinkHostPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,

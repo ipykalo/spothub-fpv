@@ -35,6 +35,7 @@ import {
 } from '@spothub/shared';
 
 import { Markdown } from '../../../core/components/markdown/markdown';
+import { LinkHostPipe } from '../../../core/format/link-host.pipe';
 import { Section } from '../../../core/components/section/section';
 import { CollapseAll } from '../../../core/components/section/collapse-all';
 import { SectionGroup } from '../../../core/components/section/section-group';
@@ -89,6 +90,7 @@ import { BuildsStore } from '../builds.store';
     PhotoGallery,
     BuildVideoForm,
     BuildVideoList,
+    LinkHostPipe,
     InstalledPartsList,
     RepairForm,
     RepairTimeline,

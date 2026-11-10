@@ -1,24 +1,27 @@
+import { type LookupAddress, type LookupOptions, lookup as dnsLookup } from 'node:dns';
+import http from 'node:http';
+import https from 'node:https';
+import { isIP } from 'node:net';
+
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import type { UrlPreviewDto } from '@spothub/shared';
+
+import { isPublicAddress } from './public-address';
 
 /** Anything larger is not a product page; stop reading and move on. */
 const MAX_BYTES = 512 * 1024;
 const TIMEOUT_MS = 6_000;
+/** A shop's short link may bounce once or twice; more is not a product page. */
+const MAX_REDIRECTS = 3;
 
 /**
- * Hostnames that must never be fetched. The API would otherwise be a proxy
- * into the private network it runs in — paste `http://169.254.169.254/` on a
- * cloud host and the response is instance credentials.
+ * Names refused before anything is resolved. The API would otherwise be a
+ * proxy into the private network it runs in — paste `http://169.254.169.254/`
+ * on a cloud host and the response is instance credentials. The real guard is
+ * `publicOnlyLookup`, on the address connected to; this only answers the
+ * obvious cases with a clear message.
  */
-const BLOCKED_HOSTNAMES = new Set([
-  'localhost',
-  '0.0.0.0',
-  '169.254.169.254',
-  'metadata.google.internal',
-]);
-
-const PRIVATE_IPV4 =
-  /^(?:10\.|127\.|0\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/;
+const BLOCKED_HOSTNAMES = new Set(['localhost', 'metadata.google.internal']);
 
 /**
  * Reads OpenGraph tags off a pasted product page.
@@ -76,13 +79,16 @@ export class UrlPreviewService {
     }
 
     const hostname = url.hostname.toLowerCase();
+    // An address written into the link is never looked up, so it is judged here.
+    const literal = hostname.replace(/^\[|\]$/g, '');
 
     if (
       BLOCKED_HOSTNAMES.has(hostname) ||
       hostname.endsWith('.localhost') ||
       hostname.endsWith('.internal') ||
-      PRIVATE_IPV4.test(hostname) ||
-      hostname === '[::1]'
+      (isIP(literal) !== 0 && !isPublicAddress(literal)) ||
+      url.username !== '' ||
+      url.password !== ''
     ) {
       throw new BadRequestException('That link cannot be read');
     }
@@ -90,32 +96,133 @@ export class UrlPreviewService {
     return url;
   }
 
-  /** Returns null rather than throwing: a failed preview is not a failed form. */
-  private async fetchHtml(url: URL): Promise<string | null> {
-    try {
-      const response = await fetch(url, {
-        redirect: 'follow',
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-        headers: {
-          // Some storefronts serve a stub to unknown agents.
-          'user-agent': 'Mozilla/5.0 (compatible; SpotHubFPV/1.0; +link preview)',
-          accept: 'text/html,application/xhtml+xml',
-        },
-      });
+  /**
+   * Returns null rather than throwing: a failed preview is not a failed form.
+   *
+   * Redirects are followed by hand, a few at most, and each new address is
+   * checked like the first — a public page that answers "go to
+   * http://169.254.169.254/" is the oldest way round a check made only once.
+   */
+  private async fetchHtml(start: URL): Promise<string | null> {
+    const signal = AbortSignal.timeout(TIMEOUT_MS);
+    let url = start;
 
-      if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) {
-        return null;
+    try {
+      for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+        const page = await readPage(url, signal);
+
+        if (page.location !== null) {
+          url = this.parseSafeUrl(new URL(page.location, url).toString());
+          continue;
+        }
+
+        return page.status === 200 && page.contentType.includes('text/html') ? page.body : null;
       }
 
-      // Read at most MAX_BYTES: the tags are in <head>, and an unbounded read
-      // of an attacker-chosen URL is a memory-exhaustion vector.
-      const body = await response.text();
-      return body.slice(0, MAX_BYTES);
+      return null;
     } catch (error) {
       this.logger.warn(`Preview failed for ${url.hostname}: ${String(error)}`);
       return null;
     }
   }
+}
+
+interface FetchedPage {
+  readonly status: number;
+  readonly contentType: string;
+  /** Where a redirect points, unresolved; null for anything else. */
+  readonly location: string | null;
+  readonly body: string;
+}
+
+/**
+ * Resolves a name like `dns.lookup`, but refuses it unless every address it
+ * has is public. Handed to the HTTP client as its lookup, so the check runs on
+ * the address actually connected to: a name cannot resolve to something
+ * harmless when checked and to 127.0.0.1 a moment later when connected.
+ */
+const publicOnlyLookup = (
+  hostname: string,
+  options: LookupOptions,
+  callback: (error: Error | null, address: string | LookupAddress[], family?: number) => void,
+): void => {
+  dnsLookup(hostname, { ...options, all: true }, (error, addresses) => {
+    if (error) {
+      callback(error, '');
+      return;
+    }
+
+    if (addresses.length === 0 || addresses.some((entry) => !isPublicAddress(entry.address))) {
+      callback(new Error(`${hostname} does not resolve to a public address`), '');
+      return;
+    }
+
+    if (options.all) {
+      callback(null, addresses);
+    } else {
+      callback(null, addresses[0].address, addresses[0].family);
+    }
+  });
+};
+
+/** One request, no redirects followed, reading at most `MAX_BYTES` of the body. */
+function readPage(url: URL, signal: AbortSignal): Promise<FetchedPage> {
+  const client = url.protocol === 'https:' ? https : http;
+
+  return new Promise((resolve, reject) => {
+    const request = client.get(
+      url,
+      {
+        lookup: publicOnlyLookup,
+        signal,
+        headers: {
+          // Some storefronts serve a stub to unknown agents.
+          'user-agent': 'Mozilla/5.0 (compatible; SpotHubFPV/1.0; +link preview)',
+          accept: 'text/html,application/xhtml+xml',
+          // Node's client does not decompress, and nothing here needs it to.
+          'accept-encoding': 'identity',
+        },
+      },
+      (response) => {
+        const status = response.statusCode ?? 0;
+        const location = response.headers.location;
+
+        if (status >= 300 && status < 400 && location) {
+          response.destroy();
+          resolve({ status, contentType: '', location, body: '' });
+          return;
+        }
+
+        // The tags are in <head>: stop reading at MAX_BYTES, because an
+        // unbounded read of an address someone else chose fills the memory.
+        const chunks: Buffer[] = [];
+        let size = 0;
+
+        const finish = (): void => {
+          resolve({
+            status,
+            contentType: response.headers['content-type'] ?? '',
+            location: null,
+            body: Buffer.concat(chunks).toString('utf8').slice(0, MAX_BYTES),
+          });
+        };
+
+        response.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+          size += chunk.byteLength;
+
+          if (size >= MAX_BYTES) {
+            response.destroy();
+            finish();
+          }
+        });
+        response.on('end', finish);
+        response.on('error', reject);
+      },
+    );
+
+    request.on('error', reject);
+  });
 }
 
 function empty(): UrlPreviewDto {

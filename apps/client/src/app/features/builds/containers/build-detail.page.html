@@ -101,13 +101,26 @@
               Bought complete
               @if (quad.purchaseVendor; as vendor) {
                 from
-                @if (quad.purchaseUrl; as link) {
-                  <a [href]="link" target="_blank" rel="noopener noreferrer">{{ vendor }}</a>
+                @if (quad.purchaseUrl | linkHost; as host) {
+                  <a
+                    [href]="quad.purchaseUrl"
+                    target="_blank"
+                    rel="noopener noreferrer nofollow ugc"
+                    [title]="'Opens ' + host + ' in a new tab'"
+                    >{{ vendor }}</a
+                  >
+                  <span class="text-xs text-muted">({{ host }})</span>
                 } @else {
                   {{ vendor }}
                 }
-              } @else if (quad.purchaseUrl; as link) {
-                (<a [href]="link" target="_blank" rel="noopener noreferrer">listing</a>)
+              } @else if (quad.purchaseUrl | linkHost; as host) {
+                (<a
+                  [href]="quad.purchaseUrl"
+                  target="_blank"
+                  rel="noopener noreferrer nofollow ugc"
+                  [title]="'Opens ' + host + ' in a new tab'"
+                  >listing on {{ host }}</a
+                >)
               }
             </dd>
           </div>

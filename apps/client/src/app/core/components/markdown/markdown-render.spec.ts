@@ -102,6 +102,30 @@ describe('markdownBlocks', () => {
       expect(out).toContain('&lt;script&gt;');
     });
 
+    it('makes a link say where it goes, open in a new tab, and lend the site nothing', () => {
+      const out = html(markdownBlocks('Bought from [this **shop**](https://www.getfpv.com/motor).'));
+
+      expect(out).toContain('href="https://www.getfpv.com/motor"');
+      expect(out).toContain('target="_blank"');
+      expect(out).toContain('rel="noopener noreferrer nofollow ugc"');
+      expect(out).toContain('title="Opens getfpv.com in a new tab"');
+      expect(out).toContain('<strong>shop</strong>');
+      expect(out).toContain('(getfpv.com)');
+    });
+
+    it('leaves a link that is not a web address as its words', () => {
+      for (const body of [
+        '[click me](javascript:alert(1))',
+        '[click me](data:text/html,hi)',
+        '[click me](file:///etc/passwd)',
+      ]) {
+        const out = html(markdownBlocks(body));
+
+        expect(out, body).not.toContain('<a');
+        expect(out, body).toContain('click me');
+      }
+    });
+
     it('turns an outside image into a link rather than loading it', () => {
       const out = html(markdownBlocks('![tracker](https://evil.example/pixel.gif)'));
 

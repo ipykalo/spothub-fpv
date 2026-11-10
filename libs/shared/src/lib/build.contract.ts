@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { BuildClass, BuildStatus, Visibility } from './enums';
 import { likesSchema } from './like.contract';
+import { optionalWebLinkSchema } from './web-link';
 
 /**
  * The build contract, defined once.
@@ -34,9 +35,8 @@ const vendor = z
   .union([z.string().trim().max(80), z.null()])
   .transform((value) => (value === null || value === '' ? null : value));
 
-const optionalUrl = z
-  .union([z.url('That does not look like a link'), z.literal(''), z.null()])
-  .transform((value) => (value === null || value === '' ? null : value));
+/** Where a ready-made quad was bought: a web address only (`webLinkSchema`). */
+const optionalUrl = optionalWebLinkSchema;
 
 export const buildNameSchema = z
   .string()

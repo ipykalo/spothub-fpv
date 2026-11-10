@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { PartCategory, PartCondition } from './enums';
+import { optionalWebLinkSchema, webLinkSchema } from './web-link';
 
 /**
  * The parts contract, defined once.
@@ -80,9 +81,7 @@ export const partSourceFields = z.object({
   vendor: z
     .union([z.string().trim().max(80), z.null()])
     .transform((value) => (value === null || value === '' ? null : value)),
-  url: z
-    .union([z.url('That does not look like a link'), z.literal(''), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value)),
+  url: optionalWebLinkSchema,
   // Order matters: `z.coerce.number()` accepts null and '' and turns both into
   // 0, so it must come last or an unfilled price is stored as a real zero.
   price: z.union([
@@ -203,7 +202,7 @@ export const listPartsQuerySchema = z.object({
 
 /** Paste-a-URL enrichment: the API fetches the page and reads its OpenGraph tags. */
 export const enrichUrlSchema = z.object({
-  url: z.url('Paste a full link, including https://'),
+  url: webLinkSchema,
 });
 
 export const urlPreviewSchema = z.object({

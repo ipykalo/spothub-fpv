@@ -2,6 +2,7 @@ import {
   POST_IMAGE_SCHEME,
   type PostImageDto,
   type YouTubeVideo,
+  linkHost,
   parseYouTubeUrl,
 } from '@spothub/shared';
 import { Marked, type Token, type Tokens, type TokensList } from 'marked';
@@ -107,10 +108,36 @@ function markedFor(images: readonly PostImageDto[]): Marked {
           return `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(token.text)}"${size}>`;
         }
 
-        return `<a href="${escapeHtml(token.href)}">${escapeHtml(token.text || token.href)}</a>`;
+        return outsideLink(token.href, token.text || token.href);
+      },
+      link(token: Tokens.Link): string {
+        return outsideLink(token.href, this.parser.parseInline(token.tokens), true);
       },
     },
   });
+}
+
+/**
+ * A link out of a post, made plain about where it goes: only a web address
+ * becomes a link — `javascript:`, `data:` and the rest are left as their
+ * words — it opens in a new tab, says its site on hover and after its words,
+ * and carries `nofollow ugc` so the site lends nothing to whatever a writer
+ * linked. `rendered` says the words are already HTML (a link's own inline
+ * Markdown); otherwise they are escaped here.
+ */
+function outsideLink(href: string, words: string, rendered = false): string {
+  const text = rendered ? words : escapeHtml(words);
+  const host = linkHost(href);
+
+  if (host === null) {
+    return text;
+  }
+
+  return (
+    `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer nofollow ugc"` +
+    ` title="Opens ${escapeHtml(host)} in a new tab">${text}</a>` +
+    `<span class="sh-markdown-host"> (${escapeHtml(host)})</span>`
+  );
 }
 
 /** A paragraph that is one YouTube link and nothing else, as a video block. */
