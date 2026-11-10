@@ -38,7 +38,7 @@ describe('partial updates', () => {
 
   const auth = (): string => `Bearer ${owner.accessToken}`;
 
-  it('renaming a build leaves its class, status, weight, GPS, notes and dates alone', async () => {
+  it('renaming a build leaves its class, status, weight, GPS, notes, dates and price alone', async () => {
     const created = await request(testApp.server)
       .post('/api/builds')
       .set('Authorization', auth())
@@ -52,6 +52,11 @@ describe('partial updates', () => {
         descriptionMd: 'Freestyle rig',
         builtOn: '2026-03-01',
         retiredOn: '2026-08-01',
+        boughtComplete: true,
+        purchasePrice: 219.99,
+        purchaseCurrency: 'USD',
+        purchaseVendor: 'GEPRC',
+        purchaseUrl: 'https://example.com/quad',
       })
       .expect(201);
 
@@ -73,6 +78,13 @@ describe('partial updates', () => {
     expect(after.descriptionMd).toBe('Freestyle rig');
     expect(after.builtOn).toBe('2026-03-01');
     expect(after.retiredOn).toBe('2026-08-01');
+    expect(after).toMatchObject({
+      boughtComplete: true,
+      purchasePrice: 219.99,
+      purchaseCurrency: 'USD',
+      purchaseVendor: 'GEPRC',
+      purchaseUrl: 'https://example.com/quad',
+    });
   });
 
   describe('a part, its unit and its source', () => {

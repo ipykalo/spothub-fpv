@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type {
+  AddStockPartsDto,
   BuildCostDto,
   BuildPartDto,
   InstallPartDto,
@@ -32,6 +33,11 @@ export class BuildPartsApi {
 
   install(buildId: string, body: InstallPartDto): Observable<BuildPartDto> {
     return this.http.post<BuildPartDto>(this.url(buildId), body);
+  }
+
+  /** The parts a ready-made quad came with: created on the shelf and fitted, in one go. */
+  addStock(buildId: string, body: AddStockPartsDto): Observable<BuildPartDto[]> {
+    return this.http.post<BuildPartDto[]>(`${this.url(buildId)}/stock`, body);
   }
 
   /**

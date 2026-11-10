@@ -1,9 +1,17 @@
-import type { PartDto, PartUnitDto } from '@spothub/shared';
+import type { PartCategory, PartDto, PartUnitDto } from '@spothub/shared';
 
 /** A physical unit together with the kind of part it is one of. */
 export interface FittedUnitDto {
   readonly unit: PartUnitDto;
   readonly part: PartDto;
+}
+
+/** A part to add to the inventory with this many units, for a caller about to fit them. */
+export interface NewPartWithUnits {
+  readonly category: PartCategory;
+  readonly manufacturer: string | null;
+  readonly model: string | null;
+  readonly quantity: number;
 }
 
 /**
@@ -29,4 +37,19 @@ export abstract class PartsFacade {
 
   /** True when the unit exists and belongs to this owner. */
   abstract unitExists(ownerId: string, unitId: string): Promise<boolean>;
+
+  /**
+   * Adds parts to the owner's inventory, each with its units, in one
+   * transaction: all of them or none. Answered in the order given.
+   */
+  abstract createWithUnits(
+    ownerId: string,
+    parts: readonly NewPartWithUnits[],
+  ): Promise<PartDto[]>;
+
+  /**
+   * Takes back parts this caller just created, when what it meant to do with
+   * them failed — so a half-done batch leaves nothing on the shelf.
+   */
+  abstract deleteParts(ownerId: string, partIds: readonly string[]): Promise<void>;
 }

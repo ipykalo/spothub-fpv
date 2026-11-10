@@ -1,4 +1,9 @@
-import type { AuthProviderKind, LinkIdentityInput, UserEntity } from '../user.entity';
+import type {
+  AuthProviderKind,
+  LinkIdentityInput,
+  UpdateUserAdminData,
+  UserEntity,
+} from '../user.entity';
 
 /**
  * The persistence contract for users.
@@ -20,4 +25,34 @@ export abstract class UsersRepository {
    * linking the identity as needed. Idempotent: signing in twice is one user.
    */
   abstract upsertFromIdentity(input: LinkIdentityInput): Promise<UserEntity>;
+
+  /**
+   * Every account, oldest first, for the Admin page. Not owner-scoped: who
+   * may list them is checked by role before this is asked.
+   */
+  abstract findAll(): Promise<UserEntity[]>;
+
+  /** Null when there is no such user. */
+  abstract updateAdminFields(
+    id: string,
+    data: UpdateUserAdminData,
+  ): Promise<UserEntity | null>;
+
+  /**
+   * What each of these pilots keeps in storage, in bytes: photos, post
+   * images and flight logs. An upload signed but never finished counts for a
+   * day: long enough to stop a burst of requests racing past the limit, short
+   * enough that an abandoned one does not hold space for ever. A pilot with
+   * nothing stored is absent from the map.
+   */
+  abstract storageUsedBy(ids: readonly string[]): Promise<ReadonlyMap<string, number>>;
+
+  abstract countAdmins(): Promise<number>;
+
+  /**
+   * Deletes the account. Every row it owns — builds, parts, flights, logs,
+   * spots, posts, comments, likes, sessions — cascades from it in the
+   * database. False when there was no such user.
+   */
+  abstract delete(id: string): Promise<boolean>;
 }

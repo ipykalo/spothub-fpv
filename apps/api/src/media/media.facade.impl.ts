@@ -46,15 +46,36 @@ export class MediaFacadeImpl extends MediaFacade {
     return this.sign(await this.assets.findThumbKeysForOwner(ownerId, assetIds));
   }
 
-  async postImages(authorId: string, postId: string): Promise<PostImageDto[]> {
+  async postImages(
+    authorId: string,
+    postId: string,
+    signed: boolean,
+  ): Promise<PostImageDto[]> {
     const assets = await this.assets.findManyForSubject(
       authorId,
       AssetSubject.Post,
       postId,
     );
 
-    // Addresses, not signatures: a post's images are served through the API,
-    // which signs one per request. Nothing here expires.
+    if (signed) {
+      // A draft is its author's alone, and an <img> cannot prove who is
+      // asking, so its images are signed for the author here, as a build's are.
+      return Promise.all(
+        assets.map(async (asset) => ({
+          id: asset.id,
+          url: await this.storage.presignGet(asset.storageKey, this.downloadTtl),
+          thumbUrl:
+            asset.thumbKey === null
+              ? null
+              : await this.storage.presignGet(asset.thumbKey, this.downloadTtl),
+          width: asset.width,
+          height: asset.height,
+        })),
+      );
+    }
+
+    // Addresses, not signatures: a shared post's images are served through
+    // the API, which signs one per request. Nothing here expires.
     return assets.map((asset) => ({
       id: asset.id,
       url: postImageUrl(postId, asset.id),

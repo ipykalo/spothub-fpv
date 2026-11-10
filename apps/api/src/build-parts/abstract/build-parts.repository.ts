@@ -49,6 +49,16 @@ export abstract class BuildPartsRepository {
     data: CreateBuildPartData,
   ): Promise<BuildPartEntity | null>;
 
+  /**
+   * Several fittings to one build, all or none. Null when the build is not
+   * the owner's. Answered in the order given.
+   */
+  abstract installMany(
+    ownerId: string,
+    buildId: string,
+    data: readonly CreateBuildPartData[],
+  ): Promise<BuildPartEntity[] | null>;
+
   /** Records an end date. The row survives — that is the point of the table. */
   abstract remove(
     ownerId: string,

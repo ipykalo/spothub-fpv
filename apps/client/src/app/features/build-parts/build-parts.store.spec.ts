@@ -60,6 +60,8 @@ describe('BuildPartsStore', () => {
 
   const cost = (over: Partial<BuildCostDto> = {}): BuildCostDto => ({
     totals: [{ currency: 'EUR', amount: 120 }],
+    boughtFor: null,
+    stockCount: 0,
     unpricedCount: 1,
     installedCount: 2,
     repairTotals: [],
@@ -90,6 +92,10 @@ describe('BuildPartsStore', () => {
 
     install(): Observable<BuildPartDto> {
       return of(install('3'));
+    }
+
+    addStock(): Observable<BuildPartDto[]> {
+      return of([install('s1'), install('s2')]);
     }
 
     remove(buildId: string, installId: string): Observable<BuildPartDto> {
@@ -165,6 +171,15 @@ describe('BuildPartsStore', () => {
 
       expect(store.installs()[0].id).toBe('3');
       expect(store.fitted().map((entry) => entry.id)).toEqual(['3', '1']);
+      expect(api.calls.at(-1)).toBe('cost:b1');
+    });
+
+    it('puts a quad’s stock parts at the top, in the order given, and re-reads the cost', async () => {
+      await store.load('b1');
+
+      await store.addStock('b1', {} as never);
+
+      expect(store.fitted().map((entry) => entry.id)).toEqual(['s1', 's2', '1']);
       expect(api.calls.at(-1)).toBe('cost:b1');
     });
 

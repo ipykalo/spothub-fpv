@@ -25,6 +25,7 @@ import type { Env } from '../config';
 import { FlightsFacade } from '../flights';
 import { JobQueue } from '../jobs';
 import { StorageGateway } from '../storage';
+import { UsersFacade } from '../users';
 import { FlightLogsRepository } from './abstract/flight-logs.repository';
 import { FLIGHT_LOG_IMPORT_JOB } from './flight-log-import.job';
 import { toLogImportDto } from './flight-logs.mapper';
@@ -68,6 +69,7 @@ export class FlightLogsService {
     private readonly storage: StorageGateway,
     private readonly jobs: JobQueue,
     private readonly readers: LogReaders,
+    private readonly users: UsersFacade,
     config: ConfigService<Env, true>,
   ) {
     this.uploadTtl = config.get('S3_UPLOAD_URL_TTL', { infer: true });
@@ -96,6 +98,7 @@ export class FlightLogsService {
     }
 
     const reader = this.readers.for(format);
+    await this.users.assertCanStore(ownerId, input.sizeBytes);
 
     // The key is ours, never the radio's or the flight controller's file name.
     const file = await this.logs.reserveFile({

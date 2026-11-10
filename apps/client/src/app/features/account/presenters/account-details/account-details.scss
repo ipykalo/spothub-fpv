@@ -1,0 +1,6 @@
+// Material's filled button takes its colours from its own tokens, which a
+// utility class cannot reach: the one destructive button on the site is red.
+.delete-button {
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+}

@@ -17,6 +17,7 @@ import sharp from 'sharp';
 
 import type { Env } from '../config';
 import { StorageGateway } from '../storage';
+import { UsersFacade } from '../users';
 import { AssetsRepository } from './abstract/assets.repository';
 import { type AssetEntity, AssetSubject } from './asset.entity';
 import { toAssetDto } from './assets.mapper';
@@ -49,6 +50,7 @@ export class AssetsService {
   constructor(
     private readonly assets: AssetsRepository,
     private readonly storage: StorageGateway,
+    private readonly users: UsersFacade,
     config: ConfigService<Env, true>,
   ) {
     this.uploadTtl = config.get('S3_UPLOAD_URL_TTL', { infer: true });
@@ -69,6 +71,7 @@ export class AssetsService {
     input: RequestUploadDto,
   ): Promise<UploadTicketDto> {
     await this.assertSubject(ownerId, subject, subjectId);
+    await this.users.assertCanStore(ownerId, input.sizeBytes);
 
     // The key is ours, never the client's file name: a name like
     // `../../etc/passwd` or a duplicate would otherwise decide where bytes land.

@@ -1,4 +1,4 @@
-import type { BuildCostDto, BuildPartDto } from '@spothub/shared';
+import { type BuildCostDto, type BuildPartDto, InstallReason } from '@spothub/shared';
 
 import {
   type CurrencyTotal,
@@ -70,6 +70,8 @@ export function withoutOwnersDetails(
 export function toBuildCostDto(cost: BuildCost): BuildCostDto {
   return {
     totals: cost.totals.map(toMoneyDto),
+    boughtFor: cost.boughtFor === null ? null : toMoneyDto(cost.boughtFor),
+    stockCount: cost.stockCount,
     unpricedCount: cost.unpricedCount,
     installedCount: cost.installedCount,
     repairTotals: cost.repairTotals.map(toMoneyDto),
@@ -83,27 +85,45 @@ const toMoneyDto = (total: CurrencyTotal): CurrencyTotal => ({
 });
 
 /**
- * What the fitted parts cost, grouped by the currency they were bought in.
+ * What the quad cost, grouped by the currency it was paid in.
  *
  * Only a recorded purchase counts — `purchasePrice` is already the price of
  * the part's purchase source, and a browsed listing is price history, not
  * money spent. Parts fitted without one are counted separately, so the total
  * reads as the floor it actually is rather than as a complete figure.
+ *
+ * A quad bought ready-made starts from its own price, and the parts it came
+ * with — its INITIAL installs — are inside that price: counted as stock, never
+ * as unpriced, and never added again even if one carries a price of its own.
+ * Whatever was fitted since, as a replacement or an upgrade, adds its own.
  */
 export function rollUpCost(
-  parts: readonly FittedUnitDto[],
+  fitted: readonly { readonly reason: InstallReason; readonly fitted: FittedUnitDto }[],
+  access: Pick<BuildAccess, 'boughtComplete' | 'boughtFor'>,
   repairTotals: readonly CurrencyTotal[] = [],
   repairCount = 0,
 ): BuildCost {
-  const priced = parts.map((fitted) => ({
-    price: fitted.part.purchasePrice,
-    currency: fitted.part.purchaseCurrency,
-  }));
+  const isStock = (reason: InstallReason): boolean =>
+    access.boughtComplete && reason === InstallReason.Initial;
+
+  const priced = fitted
+    .filter((row) => !isStock(row.reason))
+    .map((row) => ({
+      price: row.fitted.part.purchasePrice,
+      currency: row.fitted.part.purchaseCurrency,
+    }));
+
+  const quad =
+    access.boughtFor === null
+      ? []
+      : [{ price: access.boughtFor.amount, currency: access.boughtFor.currency }];
 
   return {
-    totals: sumByCurrency(priced),
+    totals: sumByCurrency([...quad, ...priced]),
+    boughtFor: access.boughtFor,
+    stockCount: fitted.length - priced.length,
     unpricedCount: priced.filter((row) => row.price === null).length,
-    installedCount: parts.length,
+    installedCount: fitted.length,
     repairTotals,
     repairCount,
   };

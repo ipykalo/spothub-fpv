@@ -19,6 +19,7 @@ import { PartsModule } from '../parts';
 import { PostsModule } from '../posts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
+import { SettingsModule } from '../settings';
 import { SpotsModule } from '../spots';
 import { StorageModule } from '../storage';
 import { UsersModule } from '../users';
@@ -52,6 +53,7 @@ import { UsersModule } from '../users';
     CommentsModule,
     PostsModule,
     LikesModule,
+    SettingsModule,
     HealthModule,
   ],
   providers: [

@@ -144,8 +144,13 @@ export class BuildsListPage {
   );
 
   /** Nothing in the chosen list at all, as opposed to nothing matching a filter. */
+  /** The open list has answered once; before that, empty is not yet known. */
+  protected readonly loaded = computed(() =>
+    this.isShared() ? this.store.sharedLoaded() : this.store.loaded(),
+  );
+
   protected readonly firstRun = computed(
-    () => !this.loading() && this.list().length === 0 && this.store.status() === null,
+    () => this.loaded() && this.list().length === 0 && this.store.status() === null,
   );
 
   constructor() {

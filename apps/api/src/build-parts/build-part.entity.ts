@@ -14,6 +14,13 @@ export interface BuildAccess {
   readonly shareCosts: boolean;
   /** The owner's notes on a part or a unit are theirs alone unless this is on. */
   readonly shareNotes: boolean;
+  /**
+   * Bought ready-made: the parts it came with (its INITIAL installs) are
+   * covered by `boughtFor` rather than priced on their own.
+   */
+  readonly boughtComplete: boolean;
+  /** A bought quad's own price, when one was recorded with its currency. */
+  readonly boughtFor: CurrencyTotal | null;
 }
 
 /**
@@ -47,6 +54,8 @@ export interface CreateBuildPartData {
 
 export interface BuildCost {
   readonly totals: readonly CurrencyTotal[];
+  readonly boughtFor: CurrencyTotal | null;
+  readonly stockCount: number;
   readonly unpricedCount: number;
   readonly installedCount: number;
   /** Money spent on repairs, kept apart from what the fitted parts cost. */

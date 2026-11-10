@@ -35,6 +35,7 @@ apps/api/src/
   comments/                                  questions and replies on spots, builds and posts
   posts/                                     the blog: posts pilots write about their builds
   likes/                                     hearts on posts and builds
+  settings/                                  what an admin changes on the Admin page
   health/
 ```
 
@@ -113,7 +114,7 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are eight: `UsersFacade` (consumed by auth),
+that module's `exports`. There are nine: `UsersFacade` and `SettingsFacade` (both consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
 `FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
 comments), `BuildsFacade` (consumed by comments and posts), `LikesFacade`
@@ -184,6 +185,7 @@ features/
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
   posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
   likes/        likes.api, like-button container (dropped into the post and build pages)
+  admin/        admin.api/store, admin.page container + sign-up-settings presenter
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -218,6 +220,14 @@ in, outputs out, no store.
   choice, `compact` gives a 40px field for a list row. It registers itself as
   its control's value accessor through `NgControl`, the way `MatSelect` does —
   not through an `NG_VALUE_ACCESSOR` provider, which would need `forwardRef`.
+- **`sh-date-field`** — every date in the app: a Material datepicker that a
+  click anywhere in the field opens, still typeable. Its value is the ISO day
+  the contracts speak (`2026-04-01`, or `''` when empty), so no form converts
+  anything; the `Date` the picker needs never leaves it. Registers itself
+  through `NgControl` like `sh-autocomplete`. A plain `type="date"` input
+  should not reappear. `iso-date.ts` beside it holds `toIsoDate`,
+  `fromIsoDate` and `localToday` — local, never `toISOString().slice(0, 10)`,
+  which gives UTC's day and in Ukraine says yesterday until 02:00.
 - **`ChoiceOption<T>` + `choicesFrom()`** — `{ value, label, icon?, hint? }`,
   built once from an enum and its label map and handed to either the
   autocomplete or the chips.
@@ -292,8 +302,54 @@ The rules that keep Tailwind and Angular Material from fighting:
 - The Alpine runtime needs the musl binary target — already set in
   `schema.prisma`, do not remove it.
 - Migrations run at container startup, never in a Dockerfile layer.
-- `ALLOWED_EMAILS` gates registration. Empty means nobody can sign in; that is
-  the intended default, not a bug.
+- **Who may sign in is changed on the Admin page (`/admin`), not in `.env`.**
+  The `settings` module keeps one `app_settings` row — `open_registration`
+  and `allowed_emails` — and `auth` asks `SettingsFacade.permitsSignIn` at
+  every sign-in, so a change needs no restart. `OPEN_REGISTRATION` and
+  `ALLOWED_EMAILS` are only the row's **starting values**, read once when it
+  is first created; changing them later does nothing. Closed with an empty
+  list means nobody can sign in — the intended default, not a bug. `*` no
+  longer opens sign-up; it is dropped from the starting list.
+- **An admin is a user whose `role` is `ADMIN`.** The column existed unused
+  until the Admin page; its migration made the oldest account the admin, and
+  anyone else is promoted by a deliberate `UPDATE users SET role = 'ADMIN'`.
+  `GET`/`PATCH /admin/settings` answer 403 to everyone else, and the client
+  shows the link and the route only to an admin (`adminGuard`). An admin who
+  closes sign-up and takes their own address off the list can no longer sign
+  in again — existing sessions keep working, and the row can be fixed in SQL
+  (`apps/api/e2e/settings.e2e.spec.ts`).
+- **A pilot is ACTIVE, RESTRICTED (read-only) or BLOCKED** (`users.status`),
+  set from the Admin page's Pilots table (`PATCH /admin/users/:id`; an
+  admin's own status never changes there). Blocked is refused at sign-in, at
+  refresh and by `JwtStrategy` on every request, so it bites at once rather
+  than when the access token runs out. Read-only is one check in the global
+  `JwtAuthGuard`: anything but GET/HEAD/OPTIONS answers 403 unless the route
+  is `@AllowedWhenReadOnly()` — kept for leaving the app. A refused Google
+  sign-in redirects to `/login?denied=1` rather than showing the browser a
+  JSON 403 (`apps/api/e2e/admin-users.e2e.spec.ts`). Avatars are not shown on
+  the Admin page: they are Google URLs, and this site never calls Google.
+- **Each pilot has a storage limit**: `app_settings.default_storage_quota_bytes`
+  (512 MiB to start, set on the Admin page) unless `users.storage_quota_bytes` gives them
+  their own. Usage is photos, post images and flight logs, summed in SQL in
+  the users repository (`storageUsedBy`); an upload signed but never finished
+  counts for a day, then stops. `media` and `flight-logs` ask
+  `UsersFacade.assertCanStore` before signing an upload, and going past
+  answers 413 with "Your storage is full: …", which the client shows as it
+  is (`core/api/api-error.ts`). Spot covers are not counted — a few KB each,
+  made by the server. `GET /users/me/storage` is a pilot's own
+  (`apps/api/e2e/storage-limit.e2e.spec.ts`).
+- **A pilot deletes their own account** at `/account` (their name in the
+  toolbar), typing DELETE to confirm. `DELETE /auth/me` lives in `auth`
+  because the session cookie is its to clear, and is
+  `@AllowedWhenReadOnly()`. `UsersFacade.deleteAccount` deletes **files
+  first, then rows**: every key a pilot's uploads were stored under starts
+  with their id — photos, thumbnails, logs, spot covers — so
+  `StorageGateway.deletePrefix('<id>/')` finds them all, and a storage
+  failure leaves the account intact to try again rather than files nobody
+  can reach. The row delete cascades to everything owned. The only admin is
+  refused with 409 (`apps/api/e2e/delete-account.e2e.spec.ts`). **Any new
+  stored file must keep its key under `<owner>/`**, or it survives its
+  owner's deletion.
 - Google identities key on the `sub` claim, never the email.
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed
@@ -387,6 +443,20 @@ verifies and publishes images to GHCR. **Every V1 feature:**
   sources (`part_sources`), paste-a-URL OpenGraph enrichment
 - Install/remove on a build (`build_parts`) with a cost rollup that sums only
   rows marked as actual purchases
+- **A quad bought ready-made** (BNF/PNP/RTF) is a build with `bought_complete`
+  and its own `purchase_price` / currency / vendor / url — paid for once, as a
+  whole. On such a build an INITIAL install is a part it came with: covered by
+  the quad's price, counted as `stockCount`, never as unpriced, and never
+  added again even if that part carries a price of its own. Replacements and
+  upgrades fitted since add their own purchase. The rollup reads the price
+  from `findBuildAccessForViewer`'s join on `builds`; the build DTO nulls the
+  price, vendor and link for a reader without `shareCosts`
+  (`apps/api/e2e/bought-builds.e2e.spec.ts`). Its spec sheet goes in at once
+  through `POST /builds/:id/parts/stock` (the build page's "What it came
+  with"): each line becomes a part with `count` units via
+  `PartsFacade.createWithUnits`, every unit fitted INITIAL. The parts cannot
+  share build-parts' transaction, so the build's owner is checked first and
+  the parts are taken back through `PartsFacade.deleteParts` if fitting fails.
 - Repairs, with installs linkable to the repair that caused them
 - Firmware config snapshots — Betaflight CLI captures parsed by a function
   shared with the client, downloadable under Configurator's own filename
@@ -925,7 +995,13 @@ and what it cost to undo it are worth remembering before opening anything else.
   are still nobody else's. That address is what a post's DTO carries, which
   is what makes `og:image` and a picture card possible at all, and it also
   fixes a page left open losing its images when the signature expired. Build
-  photos stay presigned: they are not public reading.
+  photos stay presigned: they are not public reading. **A draft's images are
+  presigned too**, for its author: an `<img>` request carries no bearer token
+  (the access token lives in memory, not a cookie), so the lasting address
+  answered a Private post's own author with a 404 and every draft's pictures
+  broke after a reload. `MediaFacade.postImages(…, signed)` and the summaries'
+  `signedDraftCovers` sign exactly when the post is Private; published, it is
+  back to lasting addresses (`post-images.e2e.spec.ts`).
 - **A server-rendered page renders from data resolved before it exists.** The
   browser's first render must match the server's HTML, and anything fetched
   after a component is created lands too late for that. So the public pages
@@ -965,8 +1041,15 @@ MinIO image has a shell and `mc` but **no awk** — write its scripts with `mc
 find` and shell expansion. The runbook's "Backups" section has the real
 restore, on this box and on a new one.
 
-**Next:** a dead-man's switch on the nightly backup (it fails silently into
-`backups/backup.log` today), then invite a few pilots.
+**A failed backup is reported**, not just logged: with
+`BACKUP_HEARTBEAT_URL` set (a healthchecks.io check), `backup.sh` pings it on
+success and its `/fail` on any error, and the check emails when a failure
+arrives or nothing does. **The media mirror lets go of deleted accounts**:
+`backup-purge.sh` removes `media/<id>/` for an id no longer in `users`, the
+list coming from the database (never from storage) and an empty list removing
+nothing. It runs in the MinIO image, so it is shell patterns, no awk or grep.
+
+**Next:** invite a few pilots — the Admin page opens sign-up.
 
 **The media pipeline never lets file bytes reach the API.** The client asks for
 a presigned PUT, uploads straight to object storage, then calls commit — which

@@ -1,5 +1,7 @@
 import {
   Controller,
+  Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -15,7 +17,12 @@ import { AuthGuard } from '@nestjs/passport';
 import type { AccessTokenDto, CurrentUserDto } from '@spothub/shared';
 import type { CookieOptions, Request, Response } from 'express';
 
-import { type AuthenticatedUser, CurrentUser, Public } from '../common';
+import {
+  AllowedWhenReadOnly,
+  type AuthenticatedUser,
+  CurrentUser,
+  Public,
+} from '../common';
 import type { Env } from '../config';
 import { AuthService } from './services/auth.service';
 import type { GoogleProfile } from './auth.types';
@@ -52,7 +59,19 @@ export class AuthController {
     @Res() response: Response,
   ): Promise<void> {
     const profile = request.user as GoogleProfile;
-    const tokens = await this.auth.signInWithGoogle(profile);
+    let tokens: IssuedTokens;
+
+    try {
+      tokens = await this.auth.signInWithGoogle(profile);
+    } catch (error) {
+      // A browser arrives here from Google, so a refusal is a page to land on,
+      // not a JSON body: back to sign-in, saying why in general terms.
+      if (error instanceof ForbiddenException) {
+        response.redirect(`${this.clientUrl}/login?denied=1`);
+        return;
+      }
+      throw error;
+    }
 
     this.setRefreshCookie(response, tokens);
 
@@ -91,6 +110,23 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.auth.signOut(this.readRefreshCookie(request));
+    response.clearCookie(REFRESH_COOKIE, this.cookieOptions(0));
+  }
+
+  /**
+   * Deletes the signed-in pilot's account for good, and signs them out. Open
+   * to a read-only account too: no restriction stands between someone and
+   * leaving. Lives here rather than in `users` because the session cookie is
+   * this controller's to clear.
+   */
+  @Delete('me')
+  @AllowedWhenReadOnly()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    await this.auth.deleteAccount(user.id);
     response.clearCookie(REFRESH_COOKIE, this.cookieOptions(0));
   }
 

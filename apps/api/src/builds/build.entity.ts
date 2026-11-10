@@ -21,6 +21,12 @@ export interface BuildEntity {
   readonly coverAssetId: string | null;
   readonly builtOn: Date | null;
   readonly retiredOn: Date | null;
+  /** Bought ready-made, and what it cost as a whole. */
+  readonly boughtComplete: boolean;
+  readonly purchasePrice: number | null;
+  readonly purchaseCurrency: string | null;
+  readonly purchaseVendor: string | null;
+  readonly purchaseUrl: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
@@ -40,6 +46,11 @@ export interface CreateBuildData {
   readonly descriptionMd: string | null;
   readonly builtOn: Date | null;
   readonly retiredOn: Date | null;
+  readonly boughtComplete: boolean;
+  readonly purchasePrice: number | null;
+  readonly purchaseCurrency: string | null;
+  readonly purchaseVendor: string | null;
+  readonly purchaseUrl: string | null;
 }
 
 /**

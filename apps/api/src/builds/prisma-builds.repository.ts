@@ -179,6 +179,12 @@ function toEntity(build: BuildRow): BuildEntity {
     coverAssetId: build.coverAssetId,
     builtOn: build.builtOn,
     retiredOn: build.retiredOn,
+    boughtComplete: build.boughtComplete,
+    // `Decimal` is a Prisma type and must not escape this file.
+    purchasePrice: build.purchasePrice === null ? null : build.purchasePrice.toNumber(),
+    purchaseCurrency: build.purchaseCurrency,
+    purchaseVendor: build.purchaseVendor,
+    purchaseUrl: build.purchaseUrl,
     createdAt: build.createdAt,
     updatedAt: build.updatedAt,
   };

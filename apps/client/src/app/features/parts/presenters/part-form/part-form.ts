@@ -34,6 +34,7 @@ import {
   type UrlPreviewDto,
 } from '@spothub/shared';
 
+import { DateField } from '../../../../core/components/date-field/date-field';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { choicesFrom } from '../../../../core/components/choice-option';
 import { PART_CATEGORY_ICONS } from '../../part-category';
@@ -96,6 +97,7 @@ const SPEC_SUGGESTIONS: Readonly<Record<PartCategory, readonly string[]>> = {
   selector: 'sh-part-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DateField,
     Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,

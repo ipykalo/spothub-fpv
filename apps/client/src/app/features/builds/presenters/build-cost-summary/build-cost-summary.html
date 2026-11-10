@@ -15,8 +15,16 @@
       <p class="mt-2 mb-0 text-sm text-muted">Nothing priced yet.</p>
     }
 
+    @if (boughtNote(); as note) {
+      <p class="mt-0 mb-2 text-sm text-muted">{{ note }}</p>
+    }
+
     <p class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
       {{ cost().installedCount }} fitted
+
+      @if (cost().stockCount) {
+        <span>{{ cost().stockCount }} came with the quad</span>
+      }
 
       @if (cost().unpricedCount) {
         <span class="inline-flex items-center gap-1">

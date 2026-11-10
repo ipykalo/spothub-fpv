@@ -18,6 +18,8 @@ export const SITEMAP_TTL_MS = 5 * 60 * 1000;
  */
 const DISALLOWED = [
   '/hangar',
+  '/admin',
+  '/account',
   '/parts',
   '/flights',
   '/spots',

@@ -1,4 +1,4 @@
-import type { Role } from '@spothub/shared';
+import type { Role, UserStatus } from '@spothub/shared';
 
 /**
  * The user as the domain understands it.
@@ -13,6 +13,17 @@ export interface UserEntity {
   readonly displayName: string | null;
   readonly avatarUrl: string | null;
   readonly role: Role;
+  readonly status: UserStatus;
+  readonly createdAt: Date;
+  readonly lastSignInAt: Date | null;
+  /** Their own storage limit; null follows the default in the settings. */
+  readonly storageQuotaBytes: number | null;
+}
+
+/** What an admin may change about a pilot. Only the keys present are written. */
+export interface UpdateUserAdminData {
+  readonly status?: UserStatus;
+  readonly storageQuotaBytes?: number | null;
 }
 
 export const AuthProviderKind = {

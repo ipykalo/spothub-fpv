@@ -94,9 +94,29 @@
           <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Visibility</dt>
           <dd class="m-0">{{ visibilityLabels[quad.visibility] }}</dd>
         </div>
+        @if (quad.boughtComplete) {
+          <div>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Origin</dt>
+            <dd class="m-0">
+              Bought complete
+              @if (quad.purchaseVendor; as vendor) {
+                from
+                @if (quad.purchaseUrl; as link) {
+                  <a [href]="link" target="_blank" rel="noopener noreferrer">{{ vendor }}</a>
+                } @else {
+                  {{ vendor }}
+                }
+              } @else if (quad.purchaseUrl; as link) {
+                (<a [href]="link" target="_blank" rel="noopener noreferrer">listing</a>)
+              }
+            </dd>
+          </div>
+        }
         @if (quad.builtOn; as built) {
           <div>
-            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Built</dt>
+            <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">
+              {{ quad.boughtComplete ? 'Bought' : 'Built' }}
+            </dt>
             <dd class="m-0 tabular-nums">{{ built }}</dd>
           </div>
         }
@@ -140,6 +160,30 @@
     />
   </sh-section>
 
+  <!-- A ready-made quad's spec sheet, entered in one go rather than one part at a time. -->
+  @if (owned() && build()?.boughtComplete) {
+    <sh-section
+      heading="What it came with"
+      storageKey="build.stock"
+      addLabel="Add stock parts"
+      [(adding)]="addingStock"
+    >
+      @if (addingStock()) {
+        <sh-stock-parts-form
+          [receivedOn]="build()?.builtOn ?? null"
+          [saving]="saving()"
+          (saved)="addStock($event)"
+          (cancelled)="addingStock.set(false)"
+        />
+      } @else {
+        <p class="m-0 text-sm text-muted">
+          {{ installs.cost().stockCount }} part{{ installs.cost().stockCount === 1 ? '' : 's' }} fitted as stock,
+          covered by the quad's price.
+        </p>
+      }
+    </sh-section>
+  }
+
   @if (owned()) {
     <sh-section heading="Fit a part" storageKey="build.fit" addLabel="Add part" [(adding)]="addingFit">
       @if (addingFit()) {
@@ -162,6 +206,7 @@
       [installs]="installs.fitted()"
       [pendingRemoval]="pendingRemoval()"
       [readOnly]="!owned()"
+      [boughtComplete]="build()?.boughtComplete ?? false"
       (removeRequested)="remove($event)"
     />
   </sh-section>
@@ -174,7 +219,12 @@
       [count]="installs.removed().length"
       [open]="false"
     >
-      <sh-installed-parts-list [installs]="installs.removed()" [history]="true" [readOnly]="!owned()" />
+      <sh-installed-parts-list
+        [installs]="installs.removed()"
+        [history]="true"
+        [readOnly]="!owned()"
+        [boughtComplete]="build()?.boughtComplete ?? false"
+      />
     </sh-section>
   }
 

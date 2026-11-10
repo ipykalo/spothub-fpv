@@ -20,7 +20,7 @@
   </button>
 </div>
 
-@if (!firstRun()) {
+@if (store.loaded() && !firstRun()) {
   <sh-grid-toolbar
     [(query)]="grid.query"
     [(sort)]="grid.sort"
@@ -54,7 +54,7 @@
     <button matButton routerLink="/parts/new">Add your first part</button>
   </div>
 } @else if (!groups().length) {
-  @if (!store.loading()) {
+  @if (store.loaded() && !store.loading()) {
     <p class="py-8 text-muted">Nothing matches.</p>
   }
 } @else {

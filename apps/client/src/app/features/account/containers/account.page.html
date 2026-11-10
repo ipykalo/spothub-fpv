@@ -1,0 +1,13 @@
+<header class="mb-6">
+  <h1 class="m-0 text-2xl">Your account</h1>
+</header>
+
+@if (auth.user(); as user) {
+  <sh-account-details
+    [user]="user"
+    [storage]="store.storage()"
+    [deleting]="store.deleting()"
+    [error]="store.error()"
+    (deleteConfirmed)="delete()"
+  />
+}

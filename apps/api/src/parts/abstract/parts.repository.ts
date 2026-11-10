@@ -22,6 +22,9 @@ export abstract class PartsRepository {
 
   abstract create(data: CreatePartData): Promise<PartEntity>;
 
+  /** Several parts with their units, in one transaction, in the order given. */
+  abstract createMany(data: readonly CreatePartData[]): Promise<PartEntity[]>;
+
   abstract updateForOwner(
     ownerId: string,
     id: string,
@@ -29,4 +32,6 @@ export abstract class PartsRepository {
   ): Promise<PartEntity | null>;
 
   abstract deleteForOwner(ownerId: string, id: string): Promise<boolean>;
+
+  abstract deleteManyForOwner(ownerId: string, ids: readonly string[]): Promise<void>;
 }

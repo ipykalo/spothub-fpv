@@ -1,4 +1,4 @@
-import type { Role } from '@spothub/shared';
+import type { Role, UserStatus } from '@spothub/shared';
 
 /**
  * The authenticated principal attached to a request by the JWT strategy.
@@ -11,4 +11,6 @@ export interface AuthenticatedUser {
   readonly id: string;
   readonly email: string;
   readonly role: Role;
+  /** A read-only account is refused every write by the global guard. */
+  readonly status: UserStatus;
 }

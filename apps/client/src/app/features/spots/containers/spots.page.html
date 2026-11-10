@@ -82,7 +82,7 @@
           <a matButton routerLink="/spots/new">Add your first spot</a>
         }
       </div>
-    } @else {
+    } @else if (loaded()) {
       <sh-grid-toolbar
         [(query)]="grid.query"
         [(sort)]="grid.sort"

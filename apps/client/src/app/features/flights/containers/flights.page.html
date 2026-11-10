@@ -56,7 +56,7 @@
     <p class="m-0 py-8 text-center text-muted">
       No flights yet. Import the LOGS folder from your radio's SD card to start the logbook.
     </p>
-  } @else {
+  } @else if (store.loaded()) {
     <sh-grid-toolbar
       [(query)]="grid.query"
       [(sort)]="grid.sort"

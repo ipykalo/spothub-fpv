@@ -20,6 +20,7 @@ import {
 } from '@spothub/shared';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
 
+import { apiMessage } from '../../../core/api/api-error';
 import { BuildsStore } from '../../builds/builds.store';
 import { PhotosApi } from '../../photos/photos.api';
 import {
@@ -159,8 +160,8 @@ export class PostFormPage {
         width: asset.width,
         height: asset.height,
       };
-    } catch {
-      throw new Error(`${file.name} did not upload. Try again.`);
+    } catch (error) {
+      throw new Error(apiMessage(error, `${file.name} did not upload. Try again.`));
     }
   }
 

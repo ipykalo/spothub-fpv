@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { FlightsModule } from '../flights';
 import { JobsModule } from '../jobs';
 import { StorageModule } from '../storage';
+import { UsersModule } from '../users';
 import { BlackboxDecoder } from './abstract/blackbox-decoder';
 import { FlightLogsRepository } from './abstract/flight-logs.repository';
 import { FlightLogImportJob } from './flight-log-import.job';
@@ -22,9 +23,11 @@ import { PrismaFlightLogsRepository } from './prisma-flight-logs.repository';
  * Flights and sessions belong to `flights`, which this module reaches only
  * through `FlightsFacade`. Knowing whether a log's flights are still in the
  * logbook is a join inside this module's own repository, not a facade call.
+ * Whether an upload still fits under the pilot's storage limit is asked of
+ * `UsersFacade`.
  */
 @Module({
-  imports: [FlightsModule, JobsModule, StorageModule],
+  imports: [FlightsModule, JobsModule, StorageModule, UsersModule],
   controllers: [FlightLogsController],
   providers: [
     FlightLogsService,

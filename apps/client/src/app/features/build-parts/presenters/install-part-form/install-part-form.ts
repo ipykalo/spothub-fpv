@@ -23,6 +23,8 @@ import {
   type RepairDto,
 } from '@spothub/shared';
 
+import { DateField } from '../../../../core/components/date-field/date-field';
+import { localToday } from '../../../../core/components/date-field/iso-date';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import {
   type ChoiceOption,
@@ -36,6 +38,7 @@ import type { FittableUnit } from '../../../parts/part-condition';
   selector: 'sh-install-part-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DateField,
     Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
@@ -99,7 +102,7 @@ export class InstallPartForm {
     unitId: [null as string | null],
     position: [''],
     // Defaults to today, which is when a part is fitted in almost every case.
-    installedOn: [new Date().toISOString().slice(0, 10)],
+    installedOn: [localToday()],
     reason: [InstallReason.Initial as InstallReason],
     repairId: [null as string | null],
   });

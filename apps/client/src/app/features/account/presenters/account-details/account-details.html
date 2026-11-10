@@ -1,0 +1,58 @@
+<div class="grid max-w-176 gap-8">
+  <dl class="m-0 grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-4">
+    <div>
+      <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Name</dt>
+      <dd class="m-0">{{ user().displayName ?? '—' }}</dd>
+    </div>
+    <div>
+      <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Signed in with Google as</dt>
+      <dd class="m-0 break-all">{{ user().email }}</dd>
+    </div>
+    <div>
+      <dt class="mb-0.5 text-xs tracking-wider text-muted uppercase">Storage used</dt>
+      <dd class="m-0">
+        @if (used(); as storage) {
+          <span class="tabular-nums">{{ storage.text }}</span>
+          <span class="mt-1 block h-1.5 overflow-hidden rounded-full bg-outline-variant" aria-hidden="true">
+            <span
+              class="block h-full rounded-full"
+              [class.bg-primary]="!storage.full"
+              [class.bg-danger]="storage.full"
+              [style.width.%]="storage.percent"
+            ></span>
+          </span>
+          <span class="mt-1 block text-xs text-muted">Photos, post images and flight logs.</span>
+        } @else {
+          <span class="text-muted italic">Not known</span>
+        }
+      </dd>
+    </div>
+  </dl>
+
+  <section class="tone-stop rounded border border-l-4 border-outline-variant border-l-(--tone) p-4">
+    <h2 class="mt-0 mb-2 text-lg">Delete my account</h2>
+    <p class="mt-0 mb-3 text-sm">
+      This deletes your account and everything in it, for good: builds, parts, flights and logs, spots, posts, comments
+      and likes, and every photo and file you uploaded. It cannot be undone.
+    </p>
+    <p class="mt-0 mb-3 text-sm text-muted">
+      The off-site backup lets go too: your files at the next nightly backup, and the database copies that still hold
+      your rows within eight weeks, as they expire.
+    </p>
+
+    <form class="flex flex-wrap items-start gap-3" (submit)="$event.preventDefault(); confirm()">
+      <mat-form-field class="w-56" subscriptSizing="dynamic">
+        <mat-label>Type {{ confirmation }} to confirm</mat-label>
+        <input matInput autocomplete="off" [value]="typed()" (input)="onTyped($event)" />
+      </mat-form-field>
+      <button matButton="filled" type="submit" class="delete-button mt-2" [disabled]="!confirmed() || deleting()">
+        <mat-icon>delete_forever</mat-icon>
+        {{ deleting() ? 'Deleting…' : 'Delete my account' }}
+      </button>
+    </form>
+
+    @if (error(); as message) {
+      <p class="mt-3 mb-0 text-sm text-danger" role="alert">{{ message }}</p>
+    }
+  </section>
+</div>

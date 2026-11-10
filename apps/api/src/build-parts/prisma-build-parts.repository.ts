@@ -34,10 +34,31 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
         id: buildId,
         ...(viewerId === null ? shared : { OR: [{ ownerId: viewerId }, shared] }),
       },
-      select: { ownerId: true, shareCosts: true, shareNotes: true },
+      select: {
+        ownerId: true,
+        shareCosts: true,
+        shareNotes: true,
+        boughtComplete: true,
+        purchasePrice: true,
+        purchaseCurrency: true,
+      },
     });
 
-    return build;
+    if (build === null) {
+      return null;
+    }
+
+    const { purchasePrice, purchaseCurrency, ...access } = build;
+
+    return {
+      ...access,
+      // `Decimal` is a Prisma type and must not escape this file. A price
+      // without a currency cannot be added to anything, so it is no price.
+      boughtFor:
+        build.boughtComplete && purchasePrice !== null && purchaseCurrency !== null
+          ? { amount: purchasePrice.toNumber(), currency: purchaseCurrency }
+          : null,
+    };
   }
 
   async findManyForOwner(
@@ -89,6 +110,31 @@ export class PrismaBuildPartsRepository extends BuildPartsRepository {
 
     const install = await this.prisma.buildPart.create({ data: { ...data } });
     return toEntity(install);
+  }
+
+  async installMany(
+    ownerId: string,
+    buildId: string,
+    data: readonly CreateBuildPartData[],
+  ): Promise<BuildPartEntity[] | null> {
+    // The owner check and the writes share a transaction, so a build deleted
+    // in between cannot be half-filled.
+    return this.prisma.$transaction(async (tx) => {
+      const build = await tx.build.findFirst({
+        where: { id: buildId, ownerId },
+        select: { id: true },
+      });
+
+      if (!build) {
+        return null;
+      }
+
+      const installs = await Promise.all(
+        data.map((row) => tx.buildPart.create({ data: { ...row, buildId } })),
+      );
+
+      return installs.map(toEntity);
+    });
   }
 
   async remove(

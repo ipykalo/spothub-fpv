@@ -1,6 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import type { AccessTokenDto, CurrentUserDto } from '@spothub/shared';
+import {
+  type AccessTokenDto,
+  type CurrentUserDto,
+  Role,
+  UserStatus,
+} from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../api/api.tokens';
@@ -27,6 +32,12 @@ export class AuthStore {
   readonly user = this.currentUser.asReadonly();
   readonly ready = this.initialised.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUser() !== null);
+  /** Shows the Admin page. The API checks the role again on every request. */
+  readonly isAdmin = computed(() => this.currentUser()?.role === Role.Admin);
+  /** An admin made this account read-only; the API refuses its writes. */
+  readonly isReadOnly = computed(
+    () => this.currentUser()?.status === UserStatus.Restricted,
+  );
   readonly displayName = computed(
     () => this.currentUser()?.displayName ?? this.currentUser()?.email ?? '',
   );

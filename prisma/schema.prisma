@@ -24,14 +24,30 @@ enum Role {
   ADMIN
 }
 
+/// What an admin allows an account to do. RESTRICTED may sign in and read
+/// but change nothing; BLOCKED may not sign in, and is refused on every
+/// request at once rather than when its access token runs out.
+enum UserStatus {
+  ACTIVE
+  RESTRICTED
+  BLOCKED
+}
+
 model User {
-  id          String   @id @default(uuid()) @db.Uuid
-  email       String   @unique
-  displayName String?  @map("display_name")
-  avatarUrl   String?  @map("avatar_url")
-  role        Role     @default(USER)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                String     @id @default(uuid()) @db.Uuid
+  email             String     @unique
+  displayName       String?    @map("display_name")
+  avatarUrl         String?    @map("avatar_url")
+  role              Role       @default(USER)
+  status            UserStatus @default(ACTIVE)
+  /// Stamped by a Google sign-in, not by a token refresh: when the person last
+  /// came through the front door, for the Admin page's list of pilots.
+  lastSignInAt      DateTime?  @map("last_sign_in_at")
+  /// How much this pilot may keep in storage, overriding the default in
+  /// `app_settings`. Null follows the default.
+  storageQuotaBytes BigInt?    @map("storage_quota_bytes")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
 
   identities    AuthIdentity[]
   refreshTokens RefreshToken[]
@@ -125,27 +141,36 @@ enum Visibility {
 }
 
 model Build {
-  id            String      @id @default(uuid()) @db.Uuid
-  ownerId       String      @map("owner_id") @db.Uuid
-  name          String
-  slug          String
-  buildClass    BuildClass? @map("build_class")
-  status        BuildStatus @default(PLANNING)
-  visibility    Visibility  @default(PRIVATE)
-  weightG       Int?        @map("weight_g")
-  hasGps        Boolean     @default(false) @map("has_gps")
+  id               String      @id @default(uuid()) @db.Uuid
+  ownerId          String      @map("owner_id") @db.Uuid
+  name             String
+  slug             String
+  buildClass       BuildClass? @map("build_class")
+  status           BuildStatus @default(PLANNING)
+  visibility       Visibility  @default(PRIVATE)
+  weightG          Int?        @map("weight_g")
+  hasGps           Boolean     @default(false) @map("has_gps")
   /// What a reader who is not the owner is shown once the build is shared.
   /// Off by default: sharing a build has never meant sharing what it cost.
-  shareCosts    Boolean     @default(false) @map("share_costs")
-  shareNotes    Boolean     @default(false) @map("share_notes")
-  descriptionMd String?     @map("description_md")
+  shareCosts       Boolean     @default(false) @map("share_costs")
+  shareNotes       Boolean     @default(false) @map("share_notes")
+  descriptionMd    String?     @map("description_md")
+  /// A quad bought ready-made (BNF, PNP, RTF) rather than built from parts.
+  /// It was paid for once, as a whole: the price lives here, and the parts it
+  /// came with -- its INITIAL installs -- are covered by it, never priced on
+  /// their own. What is fitted later still counts its own purchase.
+  boughtComplete   Boolean     @default(false) @map("bought_complete")
+  purchasePrice    Decimal?    @map("purchase_price") @db.Decimal(10, 2)
+  purchaseCurrency String?     @map("purchase_currency")
+  purchaseVendor   String?     @map("purchase_vendor")
+  purchaseUrl      String?     @map("purchase_url")
   /// The photo shown on the build card. One of this build's linked assets;
   /// SetNull so deleting the photo does not delete the quad.
-  coverAssetId  String?     @map("cover_asset_id") @db.Uuid
-  builtOn       DateTime?   @map("built_on") @db.Date
-  retiredOn     DateTime?   @map("retired_on") @db.Date
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  coverAssetId     String?     @map("cover_asset_id") @db.Uuid
+  builtOn          DateTime?   @map("built_on") @db.Date
+  retiredOn        DateTime?   @map("retired_on") @db.Date
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
 
   owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   cover        Asset?        @relation("BuildCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
@@ -395,15 +420,15 @@ model Asset {
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
-  owner    User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner        User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   /// Self-relation: a THUMB belongs to the IMAGE it was derived from, and
   /// dropping the original takes its derivative with it.
-  thumb    Asset?      @relation("AssetThumb", fields: [thumbId], references: [id], onDelete: SetNull)
-  original Asset?      @relation("AssetThumb")
-  links    AssetLink[]
-  coverFor Build[]     @relation("BuildCover")
+  thumb        Asset?      @relation("AssetThumb", fields: [thumbId], references: [id], onDelete: SetNull)
+  original     Asset?      @relation("AssetThumb")
+  links        AssetLink[]
+  coverFor     Build[]     @relation("BuildCover")
   /// Posts this image is the cover of.
-  postCoverFor Post[]  @relation("PostCover")
+  postCoverFor Post[]      @relation("PostCover")
 
   @@index([ownerId, status])
   @@map("assets")
@@ -729,39 +754,39 @@ enum SpotAccess {
 /// Kept apart from flights on purpose: a spot is somewhere, a flight is
 /// something that happened. Nothing here is derived from a log.
 model Spot {
-  id            String       @id @default(uuid()) @db.Uuid
-  ownerId       String       @map("owner_id") @db.Uuid
-  name          String
-  slug          String
+  id              String       @id @default(uuid()) @db.Uuid
+  ownerId         String       @map("owner_id") @db.Uuid
+  name            String
+  slug            String
   /// Plain numerics rather than PostGIS: nothing queries by distance yet, and
   /// Prisma cannot read a geography column without raw SQL. Six decimal
   /// places is about 11 cm.
-  lat           Decimal      @db.Decimal(9, 6)
-  lng           Decimal      @db.Decimal(9, 6)
+  lat             Decimal      @db.Decimal(9, 6)
+  lng             Decimal      @db.Decimal(9, 6)
   /// Nearest town or region, as the owner would say it.
-  locality      String?
-  terrain       SpotTerrain?
-  access        SpotAccess   @default(UNKNOWN)
+  locality        String?
+  terrain         SpotTerrain?
+  access          SpotAccess   @default(UNKNOWN)
   /// 1 (wide open, easy) to 5 (tight and unforgiving).
-  difficulty    Int?         @db.SmallInt
-  hazards       SpotHazard[] @default([])
-  descriptionMd String?      @map("description_md")
+  difficulty      Int?         @db.SmallInt
+  hazards         SpotHazard[] @default([])
+  descriptionMd   String?      @map("description_md")
   /// Parking, the way in, who to ask.
-  accessNotesMd String?      @map("access_notes_md")
-  visibility    Visibility   @default(PRIVATE)
+  accessNotesMd   String?      @map("access_notes_md")
+  visibility      Visibility   @default(PRIVATE)
   /// Captured from a GPS fix with nothing filled in yet. Created private, and
   /// anything that lists spots publicly must skip drafts.
-  isDraft       Boolean      @default(false) @map("is_draft")
+  isDraft         Boolean      @default(false) @map("is_draft")
   /// A flight video on YouTube: its 11-character id and an optional start
   /// time, never the pasted URL. One per spot, by being these two columns.
-  youtubeVideoId String?     @map("youtube_video_id") @db.VarChar(11)
-  youtubeStartS  Int?        @map("youtube_start_s")
+  youtubeVideoId  String?      @map("youtube_video_id") @db.VarChar(11)
+  youtubeStartS   Int?         @map("youtube_start_s")
   /// The video's thumbnail, fetched once by the `spot.cover` job and kept in
   /// our own bucket, so a card showing it never contacts YouTube. A key, never
   /// a URL: every read is a short-lived presigned GET.
-  coverStorageKey String?    @unique @map("cover_storage_key")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  coverStorageKey String?      @unique @map("cover_storage_key")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
 
   owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   comments     Comment[]
@@ -842,27 +867,27 @@ model CommentRead {
 /// its author sees, Unlisted opens for anyone with the link, signed in or not,
 /// and Public is also listed on the blog.
 model Post {
-  id          String     @id @default(uuid()) @db.Uuid
-  authorId    String     @map("author_id") @db.Uuid
-  title       String
-  slug        String
+  id           String     @id @default(uuid()) @db.Uuid
+  authorId     String     @map("author_id") @db.Uuid
+  title        String
+  slug         String
   /// A line or two for the blog list and link previews.
-  summary     String?
-  bodyMd      String     @default("") @map("body_md")
-  visibility  Visibility @default(PRIVATE)
+  summary      String?
+  bodyMd       String     @default("") @map("body_md")
+  visibility   Visibility @default(PRIVATE)
   /// Set the first time the post leaves Private, and kept after that: the day
   /// it was published, not the last day it was made public again.
-  publishedAt DateTime?  @map("published_at")
+  publishedAt  DateTime?  @map("published_at")
   /// The cover image, one of the post's own uploaded images. SetNull, so
   /// deleting the image does not delete the post.
-  coverAssetId String?   @map("cover_asset_id") @db.Uuid
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  coverAssetId String?    @map("cover_asset_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  cover  Asset?      @relation("PostCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
-  builds PostBuild[]
-  likes  Like[]
+  author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  cover        Asset?        @relation("PostCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  builds       PostBuild[]
+  likes        Like[]
   comments     Comment[]
   commentReads CommentRead[]
 
@@ -907,4 +932,24 @@ model Like {
   @@unique([postId, userId])
   @@unique([buildId, userId])
   @@map("likes")
+}
+
+// ------------------------------------------------------------ app settings
+
+/// Settings an admin changes from the Admin page, rather than in `.env` with a
+/// restart. Exactly one row (id 1, held there by a CHECK in the migration),
+/// created on first read from OPEN_REGISTRATION and ALLOWED_EMAILS so that
+/// moving them here changed nothing until someone flipped one. Secrets stay
+/// in the environment: nothing that can start or break the app lives here.
+model AppSettings {
+  id                       Int      @id @default(1)
+  openRegistration         Boolean  @default(false) @map("open_registration")
+  /// Lower-cased. Who may sign in while registration is closed.
+  allowedEmails            String[] @default([]) @map("allowed_emails")
+  /// How much each pilot may keep in storage — photos, post images and flight
+  /// logs — unless their own `storage_quota_bytes` says otherwise. 512 MiB.
+  defaultStorageQuotaBytes BigInt   @default(536870912) @map("default_storage_quota_bytes")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
 }

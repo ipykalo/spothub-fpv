@@ -1,0 +1,60 @@
+<div class="mb-6 grid max-w-176 gap-5">
+  <div class="grid gap-1">
+    <mat-slide-toggle
+      [checked]="settings().openRegistration"
+      [disabled]="saving()"
+      (change)="openChanged.emit($event.checked)"
+    >
+      Anyone with a Google account can sign in
+    </mat-slide-toggle>
+    <p class="m-0 text-sm text-muted">
+      @if (settings().openRegistration) {
+        Sign-up is open. The list below is kept, but not used, until you switch this off.
+      } @else {
+        Sign-up is closed. Only the addresses below can sign in.
+      }
+    </p>
+  </div>
+
+  <div class="grid gap-2" [class.opacity-60]="settings().openRegistration">
+    <h3 class="m-0 text-sm font-semibold tracking-wider text-muted uppercase">
+      Allowed addresses ({{ settings().allowedEmails.length }})
+    </h3>
+
+    <form class="flex flex-wrap items-start gap-2" (submit)="$event.preventDefault(); add()">
+      <mat-form-field class="min-w-64 flex-1" subscriptSizing="dynamic">
+        <mat-label>Add an email address</mat-label>
+        <input matInput type="email" autocomplete="off" [value]="draft()" (input)="onDraft($event)" />
+      </mat-form-field>
+      <button matButton="filled" type="submit" class="mt-2" [disabled]="saving() || !draft().trim()">
+        <mat-icon>add</mat-icon>
+        Add
+      </button>
+    </form>
+    @if (error(); as message) {
+      <p class="m-0 text-sm text-danger" role="alert">{{ message }}</p>
+    }
+
+    @if (settings().allowedEmails.length) {
+      <ul class="m-0 grid list-none gap-1 p-0">
+        @for (email of settings().allowedEmails; track email) {
+          <li class="flex items-center gap-2 rounded bg-surface-container px-3 py-1">
+            <mat-icon class="icon-sm text-muted" aria-hidden="true">mail</mat-icon>
+            <span class="min-w-0 flex-1 truncate">{{ email }}</span>
+            <button
+              matIconButton
+              type="button"
+              [disabled]="saving()"
+              [attr.aria-label]="'Remove ' + email"
+              (click)="emailRemoved.emit(email)"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="m-0 text-sm text-muted">Nobody is on the list. With sign-up closed, no one new can sign in.</p>
+    }
+  </div>
+</div>

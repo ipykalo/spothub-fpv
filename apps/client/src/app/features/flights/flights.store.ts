@@ -16,13 +16,18 @@ export class FlightsStore {
 
   private readonly items = signal<readonly SessionDto[]>([]);
   private readonly busy = signal(false);
+  /** A load has answered at least once; until then "empty" is not known. */
+  private readonly settled = signal(false);
   private readonly failure = signal<string | null>(null);
 
   readonly sessions = this.items.asReadonly();
   readonly loading = this.busy.asReadonly();
   readonly error = this.failure.asReadonly();
 
-  readonly isEmpty = computed(() => !this.busy() && this.items().length === 0);
+  readonly loaded = this.settled.asReadonly();
+
+  /** Known to be empty: false until the first load answers, kept through a reload. */
+  readonly isEmpty = computed(() => this.settled() && this.items().length === 0);
 
   readonly flightTotal = computed(() =>
     this.items().reduce((sum, session) => sum + session.flightCount, 0),
@@ -38,6 +43,7 @@ export class FlightsStore {
       this.failure.set('Could not load your flights.');
     } finally {
       this.busy.set(false);
+      this.settled.set(true);
     }
   }
 

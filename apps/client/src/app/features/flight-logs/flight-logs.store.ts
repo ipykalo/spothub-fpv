@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   type FlightTimelineDto,
@@ -11,6 +10,7 @@ import {
 } from '@spothub/shared';
 import { firstValueFrom, lastValueFrom, tap } from 'rxjs';
 
+import { apiMessage } from '../../core/api/api-error';
 import { FlightLogsApi } from './flight-logs.api';
 
 /** Where one dropped file has got to. */
@@ -181,7 +181,7 @@ export class FlightLogsStore {
       );
       this.finish(failed ? 'failed' : 'done', null);
     } catch (error) {
-      this.finish('failed', messageOf(error, 'The import could not be started.'));
+      this.finish('failed', apiMessage(error, 'The import could not be started.'));
     }
   }
 
@@ -328,7 +328,7 @@ export class FlightLogsStore {
         this.patch(key, { state: 'uploaded', progress: 100 });
         ids.push(ticket.logFileId);
       } catch (error) {
-        this.patch(key, { state: 'failed', error: messageOf(error, 'Upload failed') });
+        this.patch(key, { state: 'failed', error: apiMessage(error, 'Upload failed') });
       }
     }
 
@@ -381,22 +381,4 @@ async function sha256(file: File): Promise<string> {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/** The API's own explanation when it gave one, rather than a status code. */
-function messageOf(error: unknown, fallback: string): string {
-  if (error instanceof HttpErrorResponse) {
-    const body: unknown = error.error;
-
-    if (
-      typeof body === 'object' &&
-      body !== null &&
-      'message' in body &&
-      typeof body.message === 'string'
-    ) {
-      return body.message;
-    }
-  }
-
-  return fallback;
 }

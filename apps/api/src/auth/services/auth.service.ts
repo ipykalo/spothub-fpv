@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import type { CurrentUserDto } from '@spothub/shared';
+import { type CurrentUserDto, UserStatus } from '@spothub/shared';
 
+import { SettingsFacade } from '../../settings';
 import { AuthProviderKind, type UserEntity, UsersFacade } from '../../users';
-import { AllowlistService } from './allowlist.service';
 import type { GoogleProfile } from '../auth.types';
 import { IssuedTokens, TokenService } from './token.service';
 
@@ -18,12 +18,13 @@ export class AuthService {
 
   constructor(
     private readonly users: UsersFacade,
-    private readonly allowlist: AllowlistService,
+    private readonly settings: SettingsFacade,
     private readonly tokens: TokenService,
   ) {}
 
   async signInWithGoogle(profile: GoogleProfile): Promise<IssuedTokens> {
-    if (!this.allowlist.permits(profile.email)) {
+    // Asked at every sign-in, so a change on the Admin page needs no restart.
+    if (!(await this.settings.permitsSignIn(profile.email))) {
       this.logger.warn(`Rejected sign-in for non-allowlisted address`);
       throw new ForbiddenException('This account is not allowed to sign in');
     }
@@ -36,11 +37,25 @@ export class AuthService {
       avatarUrl: profile.avatarUrl,
     });
 
+    if (user.status === UserStatus.Blocked) {
+      this.logger.warn(`Rejected sign-in for a blocked account`);
+      throw new ForbiddenException('This account has been blocked');
+    }
+
     return this.tokens.issueForLogin(user);
   }
 
+  /** A blocked account's refresh fails like a deleted one's: its family is revoked. */
   refresh(refreshToken: string): Promise<IssuedTokens> {
-    return this.tokens.rotate(refreshToken, (id) => this.users.findById(id));
+    return this.tokens.rotate(refreshToken, async (id) => {
+      const user = await this.users.findById(id);
+      return user?.status === UserStatus.Blocked ? null : user;
+    });
+  }
+
+  /** Every row and file the account owns goes with it, its sessions included. */
+  deleteAccount(userId: string): Promise<void> {
+    return this.users.deleteAccount(userId);
   }
 
   signOut(refreshToken: string | undefined): Promise<void> {
@@ -59,6 +74,7 @@ export class AuthService {
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
       role: user.role,
+      status: user.status,
     };
   }
 }

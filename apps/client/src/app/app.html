@@ -35,9 +35,23 @@
       </a>
       <a matButton routerLink="/">Blog</a>
       <a matButton routerLink="/about">About</a>
+      @if (auth.isAdmin()) {
+        <a matButton routerLink="/admin">Admin</a>
+      }
     </nav>
     <span class="flex-1"></span>
-    <span class="max-[40rem]:hidden">{{ auth.displayName() }}</span>
+    <a
+      class="text-inherit no-underline hover:underline max-[40rem]:hidden"
+      routerLink="/account"
+      title="Your account"
+      >{{ auth.displayName() }}</a
+    >
+    <!-- A display utility on a Material host loses to Material's own rule; the wrapper takes it. -->
+    <span class="min-[40rem]:hidden">
+      <a matIconButton routerLink="/account" aria-label="Your account">
+        <mat-icon>account_circle</mat-icon>
+      </a>
+    </span>
     <button
       matIconButton
       type="button"
@@ -75,6 +89,11 @@
 }
 
 <main class="mx-auto max-w-6xl p-6">
+  @if (auth.isReadOnly()) {
+    <p class="tone-work mt-0 mb-4 rounded bg-(--tone-surface) px-4 py-3 text-sm" role="status">
+      Your account is read-only for now: you can look around, but not add or change anything.
+    </p>
+  }
   <router-outlet />
 </main>
 

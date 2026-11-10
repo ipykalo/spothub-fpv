@@ -36,6 +36,14 @@ export abstract class StorageGateway {
 
   abstract delete(keys: readonly string[]): Promise<void>;
 
+  /**
+   * Deletes every object whose key starts with `prefix`, and answers how many.
+   * Unlike `delete`, a failure is thrown rather than logged: it serves a
+   * pilot deleting their account, who is owed either all of it gone or an
+   * error that says it is not.
+   */
+  abstract deletePrefix(prefix: string): Promise<number>;
+
   /** Whether the client actually uploaded, and what landed. */
   abstract head(key: string): Promise<{ sizeBytes: number } | null>;
 }

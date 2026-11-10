@@ -8,6 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -26,6 +27,7 @@ import {
   type CreateBuildDto,
 } from '@spothub/shared';
 
+import { DateField } from '../../../../core/components/date-field/date-field';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { choicesFrom } from '../../../../core/components/choice-option';
 import { BUILD_STATUS_STYLES } from '../../build-status';
@@ -39,6 +41,7 @@ import { BUILD_STATUS_STYLES } from '../../build-status';
   selector: 'sh-build-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DateField,
     Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
@@ -98,6 +101,18 @@ export class BuildForm {
     shareCosts: [false],
     shareNotes: [false],
     descriptionMd: [''],
+    builtOn: [''],
+    retiredOn: [''],
+    boughtComplete: [false],
+    purchasePrice: [null as number | null],
+    purchaseCurrency: [''],
+    purchaseVendor: [''],
+    purchaseUrl: [''],
+  });
+
+  /** A bought quad's form asks what it cost and where, and when it was bought rather than built. */
+  protected readonly bought = toSignal(this.form.controls.boughtComplete.valueChanges, {
+    initialValue: false,
   });
 
   constructor() {
@@ -118,6 +133,13 @@ export class BuildForm {
         shareCosts: build.shareCosts,
         shareNotes: build.shareNotes,
         descriptionMd: build.descriptionMd ?? '',
+        builtOn: build.builtOn ?? '',
+        retiredOn: build.retiredOn ?? '',
+        boughtComplete: build.boughtComplete,
+        purchasePrice: build.purchasePrice,
+        purchaseCurrency: build.purchaseCurrency ?? '',
+        purchaseVendor: build.purchaseVendor ?? '',
+        purchaseUrl: build.purchaseUrl ?? '',
       });
     });
   }
@@ -128,9 +150,16 @@ export class BuildForm {
     // The same schema the API validates against, so the two cannot disagree
     // about what a valid build looks like.
     const raw = this.form.getRawValue();
+    // A quad that was built, not bought, has no price of its own: whatever was
+    // typed before the box was unticked is not saved.
+    const bought = raw.boughtComplete;
     const parsed = createBuildSchema.safeParse({
       ...raw,
       descriptionMd: raw.descriptionMd || null,
+      purchasePrice: bought ? raw.purchasePrice : null,
+      purchaseCurrency: bought ? raw.purchaseCurrency : null,
+      purchaseVendor: bought ? raw.purchaseVendor : null,
+      purchaseUrl: bought ? raw.purchaseUrl : null,
     });
 
     if (!parsed.success) {

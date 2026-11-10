@@ -47,10 +47,13 @@
       aria-label="Which day the blackbox logs were flown"
     >
       <p class="m-0 w-full text-sm">{{ pendingPrompt() }}</p>
-      <mat-form-field subscriptSizing="dynamic">
-        <mat-label>Flown on</mat-label>
-        <input matInput type="date" [value]="flownOn()" [max]="today" (input)="onDayChosen($event)" />
-      </mat-form-field>
+      <sh-date-field
+        label="Flown on"
+        subscriptSizing="dynamic"
+        [max]="today"
+        [value]="flownOn()"
+        (valueChange)="flownOn.set($event)"
+      />
       <button matButton="filled" type="button" [disabled]="!flownOn() || busy()" (click)="importPending()">
         Import
       </button>

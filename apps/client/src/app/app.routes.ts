@@ -1,6 +1,6 @@
 import { type Route } from '@angular/router';
 
-import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { adminGuard, authGuard, guestGuard } from './core/auth/auth.guard';
 import {
   postConversationResolver,
   postResolver,
@@ -177,6 +177,20 @@ export const appRoutes: Route[] = [
           ),
       },
     ],
+  },
+  {
+    // The pilot's own account: storage used, and deleting it.
+    path: 'account',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/account/containers/account.page').then((m) => m.AccountPage),
+  },
+  {
+    // Who may sign in, changed without SSH or a restart. Admins only.
+    path: 'admin',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/admin/containers/admin.page').then((m) => m.AdminPage),
   },
   {
     // The logbook: imported flights, grouped into the outings they were flown in.

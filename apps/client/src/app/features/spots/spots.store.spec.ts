@@ -86,8 +86,22 @@ describe('SpotsStore', () => {
   it('starts empty and not loading', () => {
     expect(store.spots()).toEqual([]);
     expect(store.shared()).toEqual([]);
-    expect(store.isEmpty()).toBe(true);
+    // Not known to be empty until a load has answered.
+    expect(store.isEmpty()).toBe(false);
+    expect(store.loaded()).toBe(false);
     expect(store.error()).toBeNull();
+  });
+
+  it('is empty once a load answers with nothing, and each list settles apart', async () => {
+    api.own = [];
+    await store.load();
+
+    expect(store.isEmpty()).toBe(true);
+    expect(store.loaded()).toBe(true);
+    expect(store.sharedLoaded()).toBe(false);
+
+    await store.loadShared();
+    expect(store.sharedLoaded()).toBe(true);
   });
 
   describe('loading', () => {
