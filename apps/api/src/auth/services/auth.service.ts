@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import type { CurrentUserDto } from '@spothub/shared';
 
+import { SettingsFacade } from '../../settings';
 import { AuthProviderKind, type UserEntity, UsersFacade } from '../../users';
-import { AllowlistService } from './allowlist.service';
 import type { GoogleProfile } from '../auth.types';
 import { IssuedTokens, TokenService } from './token.service';
 
@@ -18,12 +18,13 @@ export class AuthService {
 
   constructor(
     private readonly users: UsersFacade,
-    private readonly allowlist: AllowlistService,
+    private readonly settings: SettingsFacade,
     private readonly tokens: TokenService,
   ) {}
 
   async signInWithGoogle(profile: GoogleProfile): Promise<IssuedTokens> {
-    if (!this.allowlist.permits(profile.email)) {
+    // Asked at every sign-in, so a change on the Admin page needs no restart.
+    if (!(await this.settings.permitsSignIn(profile.email))) {
       this.logger.warn(`Rejected sign-in for non-allowlisted address`);
       throw new ForbiddenException('This account is not allowed to sign in');
     }

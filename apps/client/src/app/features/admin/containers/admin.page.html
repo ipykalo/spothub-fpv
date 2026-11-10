@@ -1,0 +1,24 @@
+<header class="mb-4">
+  <h1 class="m-0 text-2xl">Admin</h1>
+  <p class="mt-1 mb-0 text-sm text-muted">Changes save as you make them and apply to the next sign-in.</p>
+</header>
+
+@if (store.loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (store.error(); as message) {
+  <p class="text-danger" role="alert">{{ message }}</p>
+}
+
+@if (store.settings(); as settings) {
+  <sh-section heading="Who can sign in" icon="how_to_reg">
+    <sh-sign-up-settings
+      [settings]="settings"
+      [saving]="store.saving()"
+      (openChanged)="setOpen($event)"
+      (emailAdded)="add($event)"
+      (emailRemoved)="remove($event)"
+    />
+  </sh-section>
+}

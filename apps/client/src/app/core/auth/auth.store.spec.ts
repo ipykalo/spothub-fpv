@@ -104,6 +104,17 @@ describe('AuthStore', () => {
       expect(store.ready()).toBe(true);
     });
 
+    it('shows the Admin page only to an admin', async () => {
+      expect(store.isAdmin()).toBe(false);
+
+      await store.restoreSession();
+      expect(store.isAdmin()).toBe(false);
+
+      http.profile = { ...user, role: Role.Admin };
+      await store.adoptToken('token-3');
+      expect(store.isAdmin()).toBe(true);
+    });
+
     it('is ready even when there was no session to restore', async () => {
       http.refreshFails = true;
 

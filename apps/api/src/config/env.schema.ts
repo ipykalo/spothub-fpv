@@ -35,11 +35,13 @@ export const envSchema = z.object({
    * The single gate on registration. `*` opens sign-up to any Google account;
    * a comma-separated list restricts it; empty admits nobody.
    */
-  ALLOWED_EMAILS: csvEmails,
   /**
-   * The one switch on sign-up. On, any Google account may sign in; off — the
-   * default — only the addresses in `ALLOWED_EMAILS`.
+   * Who may sign in, as a fresh database starts: read once, when the
+   * `app_settings` row is first created, and changed on the Admin page from
+   * then on. Open, any Google account may sign in; closed — the default —
+   * only the addresses on the list.
    */
+  ALLOWED_EMAILS: csvEmails,
   OPEN_REGISTRATION: z
     .union([z.boolean(), z.enum(['true', 'false'])])
     .transform((value) => value === true || value === 'true')

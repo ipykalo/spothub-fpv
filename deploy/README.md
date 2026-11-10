@@ -170,9 +170,10 @@ connect. Hex has no character a URL treats specially.
 Fill in every blank. `ALLOWED_EMAILS` is the one that decides whether anyone
 can sign in at all; empty means nobody, which is the intended default.
 `OPEN_REGISTRATION=true` opens sign-up to anyone with a Google account and
-makes the list irrelevant; set it back to `false` and only the list gets in
-again. Either way, change it in `.env` and run `docker compose up -d api` —
-a restart is all it takes.
+makes the list irrelevant. **Both are only starting values**: they are read
+once, when the database first needs them, and from then on who may sign in is
+changed on the site's Admin page, with no restart. The first account to sign
+in is the admin.
 
 ## 5. Google
 

@@ -18,6 +18,7 @@ describe('robots.txt', () => {
     expect(lines[0]).toBe('User-agent: *');
     expect(lines).toContain('Disallow: /hangar');
     expect(lines).toContain('Disallow: /flights');
+    expect(lines).toContain('Disallow: /admin');
     expect(lines).toContain('Disallow: /api');
     expect(lines.some((line) => line === 'Disallow: /blog')).toBe(false);
     expect(lines.some((line) => line === 'Disallow: /')).toBe(false);

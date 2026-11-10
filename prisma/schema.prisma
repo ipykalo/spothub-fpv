@@ -917,3 +917,20 @@ model Like {
   @@unique([buildId, userId])
   @@map("likes")
 }
+
+// ------------------------------------------------------------ app settings
+
+/// Settings an admin changes from the Admin page, rather than in `.env` with a
+/// restart. Exactly one row (id 1, held there by a CHECK in the migration),
+/// created on first read from OPEN_REGISTRATION and ALLOWED_EMAILS so that
+/// moving them here changed nothing until someone flipped one. Secrets stay
+/// in the environment: nothing that can start or break the app lives here.
+model AppSettings {
+  id               Int      @id @default(1)
+  openRegistration Boolean  @default(false) @map("open_registration")
+  /// Lower-cased. Who may sign in while registration is closed.
+  allowedEmails    String[] @default([]) @map("allowed_emails")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}

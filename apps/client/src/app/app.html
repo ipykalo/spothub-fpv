@@ -35,6 +35,9 @@
       </a>
       <a matButton routerLink="/">Blog</a>
       <a matButton routerLink="/about">About</a>
+      @if (auth.isAdmin()) {
+        <a matButton routerLink="/admin">Admin</a>
+      }
     </nav>
     <span class="flex-1"></span>
     <span class="max-[40rem]:hidden">{{ auth.displayName() }}</span>

@@ -35,6 +35,7 @@ apps/api/src/
   comments/                                  questions and replies on spots, builds and posts
   posts/                                     the blog: posts pilots write about their builds
   likes/                                     hearts on posts and builds
+  settings/                                  what an admin changes on the Admin page
   health/
 ```
 
@@ -113,7 +114,7 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are eight: `UsersFacade` (consumed by auth),
+that module's `exports`. There are nine: `UsersFacade` and `SettingsFacade` (both consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
 `FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
 comments), `BuildsFacade` (consumed by comments and posts), `LikesFacade`
@@ -184,6 +185,7 @@ features/
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
   posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
   likes/        likes.api, like-button container (dropped into the post and build pages)
+  admin/        admin.api/store, admin.page container + sign-up-settings presenter
 ```
 
 `build-detail.page.ts` stays in `builds/containers/` and imports the other
@@ -300,10 +302,22 @@ The rules that keep Tailwind and Angular Material from fighting:
 - The Alpine runtime needs the musl binary target — already set in
   `schema.prisma`, do not remove it.
 - Migrations run at container startup, never in a Dockerfile layer.
-- **`OPEN_REGISTRATION` opens sign-up; `ALLOWED_EMAILS` is the list while
-  it is off** (the default). Off with an empty list means nobody can sign in;
-  that is the intended default, not a bug. `*` in the list used to open
-  sign-up and no longer does — the API logs a warning if it finds one.
+- **Who may sign in is changed on the Admin page (`/admin`), not in `.env`.**
+  The `settings` module keeps one `app_settings` row — `open_registration`
+  and `allowed_emails` — and `auth` asks `SettingsFacade.permitsSignIn` at
+  every sign-in, so a change needs no restart. `OPEN_REGISTRATION` and
+  `ALLOWED_EMAILS` are only the row's **starting values**, read once when it
+  is first created; changing them later does nothing. Closed with an empty
+  list means nobody can sign in — the intended default, not a bug. `*` no
+  longer opens sign-up; it is dropped from the starting list.
+- **An admin is a user whose `role` is `ADMIN`.** The column existed unused
+  until the Admin page; its migration made the oldest account the admin, and
+  anyone else is promoted by a deliberate `UPDATE users SET role = 'ADMIN'`.
+  `GET`/`PATCH /admin/settings` answer 403 to everyone else, and the client
+  shows the link and the route only to an admin (`adminGuard`). An admin who
+  closes sign-up and takes their own address off the list can no longer sign
+  in again — existing sessions keep working, and the row can be fixed in SQL
+  (`apps/api/e2e/settings.e2e.spec.ts`).
 - Google identities key on the `sub` claim, never the email.
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed
