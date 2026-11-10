@@ -362,6 +362,16 @@ The rules that keep Tailwind and Angular Material from fighting:
   currency read off a shop page is taken only if `isCurrency`. Adding one to
   the list means adding a rate source that covers it
   (`currency.e2e.spec.ts`).
+- **Exchange rates come from the National Bank of Ukraine**, in their own
+  `exchange-rates` module: `exchange_rates` holds hryvnias per unit, one row
+  per currency per day, and `conversion.ts` (pure, specced) goes from any
+  currency to any other through the hryvnia. Nothing is fetched on a
+  schedule: `ExchangeRatesFacade.totals` converts each price at its own day's
+  rate, and a day not stored yet is converted with the nearest stored day —
+  marked `exact: false` — while a `rates.fetch` job fetches and keeps it. A
+  past rate never changes, so each day is fetched once, and no request ever
+  waits on the bank. `RateSource` is the seam: `NbuRateSource` in
+  production, `StubRateSource` in the e2e suite (`exchange-rates.e2e.spec.ts`).
 - **A link a pilot pastes is a web address and nothing else.** Shop links
   (a part source's `url`, a bought build's `purchaseUrl`) and the preview's
   input go through `webLinkSchema` (`libs/shared/src/lib/web-link.ts`):

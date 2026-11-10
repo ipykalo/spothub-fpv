@@ -9,6 +9,8 @@ import { BlackboxDecoder } from '../../src/flight-logs/abstract/blackbox-decoder
 import { YouTubeThumbnails } from '../../src/spots/abstract/youtube-thumbnails';
 import { StubBlackboxDecoder } from './stub-blackbox-decoder';
 import { StubYouTubeThumbnails } from './stub-youtube-thumbnails';
+import { RateSource } from '../../src/exchange-rates';
+import { StubRateSource } from './stub-rate-source';
 
 const GLOBAL_PREFIX = 'api';
 
@@ -30,7 +32,8 @@ export interface TestApp {
  * blackbox logs need Betaflight's native decoder or Docker, neither
  * guaranteed on a test runner, so `BlackboxDecoder` reads already-decoded
  * fixtures instead. And a spot cover would otherwise be fetched from YouTube,
- * so `YouTubeThumbnails` generates its image locally.
+ * so `YouTubeThumbnails` generates its image locally. Exchange rates come
+ * from `StubRateSource` rather than the National Bank of Ukraine.
  */
 export async function createTestApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -38,6 +41,8 @@ export async function createTestApp(): Promise<TestApp> {
     .useClass(StubBlackboxDecoder)
     .overrideProvider(YouTubeThumbnails)
     .useClass(StubYouTubeThumbnails)
+    .overrideProvider(RateSource)
+    .useClass(StubRateSource)
     .compile();
 
   const app = moduleRef.createNestApplication();

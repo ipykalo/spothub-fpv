@@ -20,6 +20,7 @@ import { PostsModule } from '../posts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
 import { BuildVideosModule } from '../build-videos';
+import { ExchangeRatesModule } from '../exchange-rates';
 import { SettingsModule } from '../settings';
 import { SpotsModule } from '../spots';
 import { StorageModule } from '../storage';
@@ -46,6 +47,7 @@ import { UsersModule } from '../users';
     BuildPartsModule,
     RepairsModule,
     BuildVideosModule,
+    ExchangeRatesModule,
     ConfigsModule,
     PartsModule,
     MediaModule,

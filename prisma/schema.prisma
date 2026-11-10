@@ -375,6 +375,19 @@ model Repair {
   @@map("repairs")
 }
 
+/// The NBU's official rate of one currency on one day, as hryvnias per unit.
+/// A past day's rate never changes, so a day is fetched once, when a price
+/// dated that day first needs converting, and kept.
+model ExchangeRate {
+  day        DateTime @db.Date
+  currency   String   @db.VarChar(3)
+  uahPerUnit Decimal  @map("uah_per_unit") @db.Decimal(18, 8)
+  fetchedAt  DateTime @default(now()) @map("fetched_at")
+
+  @@id([day, currency])
+  @@map("exchange_rates")
+}
+
 /// A YouTube video on a build -- its flights, its build-up. Only YouTube:
 /// what is stored is the video's id and start time, never a pasted address,
 /// so a row cannot point anywhere else.
