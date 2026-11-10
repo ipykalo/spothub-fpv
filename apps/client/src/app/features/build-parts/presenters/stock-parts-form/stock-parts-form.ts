@@ -24,6 +24,8 @@ import {
   type AddStockPartsDto,
 } from '@spothub/shared';
 
+import { DateField } from '../../../../core/components/date-field/date-field';
+import { localToday } from '../../../../core/components/date-field/iso-date';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { choicesFrom } from '../../../../core/components/choice-option';
 import { PART_CATEGORY_ICONS } from '../../../parts/part-category';
@@ -48,8 +50,6 @@ type StockLine = FormGroup<{
   count: FormControl<number>;
 }>;
 
-const today = (): string => new Date().toISOString().slice(0, 10);
-
 /**
  * Presenter: the parts a ready-made quad came with, entered in one go. Starts
  * from the usual spec sheet; rows can be added or dropped. Each row becomes a
@@ -60,6 +60,7 @@ const today = (): string => new Date().toISOString().slice(0, 10);
   selector: 'sh-stock-parts-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DateField,
     Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
@@ -89,7 +90,7 @@ export class StockPartsForm {
   protected readonly error = signal<string | null>(null);
 
   protected readonly form = this.fb.group({
-    installedOn: [today()],
+    installedOn: [localToday()],
     parts: this.fb.array(USUAL_LINES.map((line) => this.line(line.category, line.count))),
   });
 

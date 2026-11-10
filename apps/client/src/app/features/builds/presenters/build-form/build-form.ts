@@ -27,6 +27,7 @@ import {
   type CreateBuildDto,
 } from '@spothub/shared';
 
+import { DateField } from '../../../../core/components/date-field/date-field';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { choicesFrom } from '../../../../core/components/choice-option';
 import { BUILD_STATUS_STYLES } from '../../build-status';
@@ -40,6 +41,7 @@ import { BUILD_STATUS_STYLES } from '../../build-status';
   selector: 'sh-build-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DateField,
     Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,

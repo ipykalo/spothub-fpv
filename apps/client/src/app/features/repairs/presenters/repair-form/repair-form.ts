@@ -11,6 +11,8 @@ import {
   type CreateRepairDto,
 } from '@spothub/shared';
 
+import { DateField } from '../../../../core/components/date-field/date-field';
+import { localToday } from '../../../../core/components/date-field/iso-date';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { REPAIR_CAUSE_STYLES } from '../../repair-cause';
 
@@ -19,6 +21,7 @@ import { REPAIR_CAUSE_STYLES } from '../../repair-cause';
   selector: 'sh-repair-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DateField,
     Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
@@ -46,7 +49,7 @@ export class RepairForm {
 
   protected readonly form = this.fb.group({
     // Defaults to today: things are usually logged the evening they break.
-    occurredOn: [new Date().toISOString().slice(0, 10)],
+    occurredOn: [localToday()],
     cause: [RepairCause.Crash as RepairCause],
     descriptionMd: [''],
     cost: [null as number | null],

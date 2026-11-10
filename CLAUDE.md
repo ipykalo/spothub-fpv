@@ -218,6 +218,14 @@ in, outputs out, no store.
   choice, `compact` gives a 40px field for a list row. It registers itself as
   its control's value accessor through `NgControl`, the way `MatSelect` does —
   not through an `NG_VALUE_ACCESSOR` provider, which would need `forwardRef`.
+- **`sh-date-field`** — every date in the app: a Material datepicker that a
+  click anywhere in the field opens, still typeable. Its value is the ISO day
+  the contracts speak (`2026-04-01`, or `''` when empty), so no form converts
+  anything; the `Date` the picker needs never leaves it. Registers itself
+  through `NgControl` like `sh-autocomplete`. A plain `type="date"` input
+  should not reappear. `iso-date.ts` beside it holds `toIsoDate`,
+  `fromIsoDate` and `localToday` — local, never `toISOString().slice(0, 10)`,
+  which gives UTC's day and in Ukraine says yesterday until 02:00.
 - **`ChoiceOption<T>` + `choicesFrom()`** — `{ value, label, icon?, hint? }`,
   built once from an enum and its label map and handed to either the
   autocomplete or the chips.

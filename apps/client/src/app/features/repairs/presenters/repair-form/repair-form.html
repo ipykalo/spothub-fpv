@@ -10,10 +10,7 @@
 
   <sh-autocomplete formControlName="cause" label="Cause" [options]="causeOptions" />
 
-  <mat-form-field>
-    <mat-label>When</mat-label>
-    <input matInput type="date" formControlName="occurredOn" />
-  </mat-form-field>
+  <sh-date-field formControlName="occurredOn" label="When" />
 
   <mat-form-field>
     <mat-label>Cost</mat-label>

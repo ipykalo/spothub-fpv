@@ -133,10 +133,7 @@
             <input matInput formControlName="currency" maxlength="3" />
           </mat-form-field>
 
-          <mat-form-field>
-            <mat-label>Purchased on</mat-label>
-            <input matInput type="date" formControlName="purchasedOn" />
-          </mat-form-field>
+          <sh-date-field formControlName="purchasedOn" label="Purchased on" />
         </div>
 
         <mat-checkbox formControlName="isPurchase"> This is where I actually bought it </mat-checkbox>

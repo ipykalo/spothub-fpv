@@ -1,0 +1,25 @@
+<mat-form-field class="w-full" [subscriptSizing]="subscriptSizing()">
+  @if (label(); as text) {
+    <mat-label>{{ text }}</mat-label>
+  }
+
+  <!-- A click anywhere in the field opens the calendar; typing still works. -->
+  <input
+    matInput
+    autocomplete="off"
+    [matDatepicker]="picker"
+    [value]="date()"
+    [min]="minDate()"
+    [max]="maxDate()"
+    [disabled]="disabled()"
+    (dateChange)="onDate($event)"
+    (click)="picker.open()"
+    (blur)="onBlur()"
+  />
+  <mat-datepicker-toggle matIconSuffix [for]="picker" />
+  <mat-datepicker #picker />
+
+  @if (hint(); as text) {
+    <mat-hint>{{ text }}</mat-hint>
+  }
+</mat-form-field>

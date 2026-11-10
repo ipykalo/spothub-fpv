@@ -4,10 +4,7 @@
     prices, since the quad's own price covers them. Leave out a line by removing it.
   </p>
 
-  <mat-form-field class="max-w-56">
-    <mat-label>Received on</mat-label>
-    <input matInput type="date" formControlName="installedOn" />
-  </mat-form-field>
+  <sh-date-field class="max-w-56" formControlName="installedOn" label="Received on" />
 
   <ul class="m-0 grid list-none gap-2 p-0" formArrayName="parts">
     @for (line of lines.controls; track line; let i = $index) {

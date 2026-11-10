@@ -16,10 +16,7 @@
     <input matInput formControlName="position" placeholder="motor FR" />
   </mat-form-field>
 
-  <mat-form-field>
-    <mat-label>Fitted on</mat-label>
-    <input matInput type="date" formControlName="installedOn" />
-  </mat-form-field>
+  <sh-date-field formControlName="installedOn" label="Fitted on" />
 
   <sh-autocomplete formControlName="reason" label="Reason" [options]="reasonOptions" />
 

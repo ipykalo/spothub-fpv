@@ -52,14 +52,8 @@
       }
 
       <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-2">
-        <mat-form-field>
-          <mat-label>{{ bought() ? 'Bought on' : 'Built on' }}</mat-label>
-          <input matInput type="date" formControlName="builtOn" />
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Retired on</mat-label>
-          <input matInput type="date" formControlName="retiredOn" />
-        </mat-form-field>
+        <sh-date-field formControlName="builtOn" [label]="bought() ? 'Bought on' : 'Built on'" />
+        <sh-date-field formControlName="retiredOn" label="Retired on" />
       </div>
 
       <!-- What sharing gives away is the owner's to decide. Both off by default,

@@ -19,6 +19,8 @@ import {
 } from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import { DateField } from '../../../../core/components/date-field/date-field';
+import { localToday } from '../../../../core/components/date-field/iso-date';
 import type { ChoiceOption } from '../../../../core/components/choice-option';
 import type { ImportFile, ImportPhase } from '../../flight-logs.store';
 
@@ -46,6 +48,7 @@ export interface LogImportRequest {
   selector: 'sh-log-import-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DateField,
     Autocomplete,
     MatButtonModule,
     MatFormFieldModule,
@@ -170,10 +173,6 @@ export class LogImportPanel {
     this.emit(files);
   }
 
-  protected onDayChosen(event: Event): void {
-    this.flownOn.set((event.target as HTMLInputElement).value);
-  }
-
   protected importPending(): void {
     const files = this.pending();
     const day = this.flownOn();
@@ -213,14 +212,6 @@ export class LogImportPanel {
 
     this.importRequested.emit({ files, buildId: this.buildId(), flownOn: null });
   }
-}
-
-/** Today as YYYY-MM-DD in the browser's own zone, the way a date input reads it. */
-function localToday(): string {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
-    .toISOString()
-    .slice(0, 10);
 }
 
 /** Every file under the dropped entries, walking into folders. */
