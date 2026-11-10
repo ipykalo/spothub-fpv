@@ -271,9 +271,14 @@ Every night at 03:17 UTC, cron runs `backup.sh` as `spothub`:
    too;
 3. object storage (photos, logs, covers) mirrored to `media/`, **additively**:
    nothing is ever removed from the mirror, so a file deleted by mistake or by
-   a bug is still there;
+   a bug is still there — **except an account its pilot deleted**, whose
+   folder (`media/<user id>/`) is removed, as the account page promises. The
+   list of accounts that still exist comes from the database
+   (`backups/live-users.txt`), never from storage, and an empty list removes
+   nothing (`backup-purge.sh`);
 4. pruning: daily dumps after 14 days, weekly after 8 weeks, and all but the
-   newest three dumps kept on the server in `backups/`.
+   newest three dumps kept on the server in `backups/`;
+5. a report to `BACKUP_HEARTBEAT_URL`, when set: success, or `/fail`.
 
 The bucket is Cloudflare R2, `spothub-backups`, in the **EU jurisdiction** —
 the copies hold users' data, so they stay in the EU like the server. The
@@ -287,6 +292,25 @@ crontab -l                                 # the schedule
 
 `last-success.txt` at the bucket's root holds the time the last run finished;
 the Cloudflare dashboard shows it under R2 → spothub-backups.
+
+### Being told when it fails
+
+A backup that fails at night writes to `backup.log` and nothing else, so
+nobody would know. `BACKUP_HEARTBEAT_URL` fixes that with a dead-man's switch:
+
+1. At https://healthchecks.io (free for this), add a check: **period 1 day,
+   grace 2 hours**, and an email integration to your own address.
+2. Copy its ping URL — `https://hc-ping.com/<uuid>` — into `/opt/spothub/.env`
+   as `BACKUP_HEARTBEAT_URL=`.
+3. Run `/opt/spothub/backup.sh` once by hand; the check turns green.
+
+From then on you get an email when a night fails (`/fail` arrives) **or when
+no report arrives at all** — which also covers a cron that stopped and a
+server that is off. The monitor being unreachable never fails the backup.
+
+The scripts live in `/opt/spothub` beside `.env`: after changing any of
+`backup.sh`, `backup-offsite.sh` or `backup-purge.sh` in the repository, copy
+all three there again.
 
 ### Prove it restores
 

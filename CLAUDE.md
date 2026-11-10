@@ -1041,8 +1041,15 @@ MinIO image has a shell and `mc` but **no awk** — write its scripts with `mc
 find` and shell expansion. The runbook's "Backups" section has the real
 restore, on this box and on a new one.
 
-**Next:** a dead-man's switch on the nightly backup (it fails silently into
-`backups/backup.log` today), then invite a few pilots.
+**A failed backup is reported**, not just logged: with
+`BACKUP_HEARTBEAT_URL` set (a healthchecks.io check), `backup.sh` pings it on
+success and its `/fail` on any error, and the check emails when a failure
+arrives or nothing does. **The media mirror lets go of deleted accounts**:
+`backup-purge.sh` removes `media/<id>/` for an id no longer in `users`, the
+list coming from the database (never from storage) and an empty list removing
+nothing. It runs in the MinIO image, so it is shell patterns, no awk or grep.
+
+**Next:** invite a few pilots — the Admin page opens sign-up.
 
 **The media pipeline never lets file bytes reach the API.** The client asks for
 a presigned PUT, uploads straight to object storage, then calls commit — which

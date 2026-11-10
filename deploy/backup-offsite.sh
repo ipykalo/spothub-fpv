@@ -4,6 +4,8 @@
 # minio:9000 without publishing a port. Not meant to be run by hand.
 #
 #   backup-offsite.sh <dump file name in /backups> <weekly: yes|no>
+#
+# /backups/live-users.txt lists every account that exists, one id a line.
 set -eu
 
 dump="$1"
@@ -24,6 +26,14 @@ fi
 # Additive on purpose: no --remove, so a deletion here never reaches the copy.
 mc mirror -q --overwrite "local/$S3_BUCKET" "$r2/media" > /dev/null
 echo "storage: mirrored to media/ ($(mc ls --recursive "$r2/media" | wc -l) files there)"
+
+# The one deletion that does reach it: a pilot who deleted their account.
+# Every file is stored under its owner's id, so a top-level folder whose id is
+# no longer an account belongs to someone who left. The list of accounts comes
+# from the database, never from storage — a storage bucket lost or emptied by
+# mistake removes nothing here — and an empty list removes nothing at all.
+. /backup-purge.sh
+purge_departed "$r2/media" /backups/live-users.txt
 
 # Nothing old enough yet is not an error, so an empty prune passes.
 mc rm -q --recursive --force --older-than 14d "$r2/db/daily/" > /dev/null 2>&1 || true
