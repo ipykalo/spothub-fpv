@@ -253,7 +253,7 @@ by `ThemeStore` (`core/theme/`). **No font comes from Google**: Material
 Icons, which `<mat-icon>` needs, is bundled from the `material-icons` package
 (filled set only) through `project.json`'s styles. It was a Google Fonts link
 until the site went public, which handed every visitor's address to Google
-on every page and contradicted what `/about` promises. The site icon is
+on every page. The site icon is
 `public/favicon.svg`, with `.ico` and `apple-touch-icon.png` rendered from it.
 
 The rules that keep Tailwind and Angular Material from fighting:
@@ -947,8 +947,9 @@ signed-in pilots may open a build, never whether a signed-out visitor may** —
 every build read is guarded, whatever its visibility says.
 
 **The blog is the public face of the site, and nothing else is** — apart
-from `/about`, a static page saying what the site is, what each part does,
-how to start and what it never does with anyone's data, linked from the
+from `/about`, a static page saying what the site is, what each part does
+and how to start — it deliberately lists no privacy or tracking details, and
+carries only the DB-IP credit its licence requires — linked from the
 visitor's header and a footer on every page and listed in the sitemap. The
 blog is the home page (`/`, with `/blog` redirecting there so the feed has one
 address) and it renders on the server. The hangar, parts, flights and spots are behind
