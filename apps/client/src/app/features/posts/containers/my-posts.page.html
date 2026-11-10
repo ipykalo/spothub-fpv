@@ -29,7 +29,7 @@
       <sh-post-card [post]="post" [manage]="true" [deleting]="pendingDelete() === post.id" (delete)="remove($event)" />
     }
   </div>
-} @else if (!store.loading() && !store.error()) {
+} @else if (store.loaded() && !store.error()) {
   <div class="px-4 py-12 text-center text-muted">
     <p>No posts yet.</p>
     <a matButton routerLink="/posts/new">Write your first</a>

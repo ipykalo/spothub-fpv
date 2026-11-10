@@ -19,7 +19,7 @@
   </button>
 </div>
 
-@if (!firstRun()) {
+@if (loaded() && !firstRun()) {
   <sh-grid-toolbar
     [(query)]="grid.query"
     [(sort)]="grid.sort"
@@ -56,7 +56,7 @@
     }
   </div>
 } @else if (!rows().length) {
-  @if (!loading()) {
+  @if (loaded() && !loading()) {
     <p class="py-8 text-muted">Nothing matches.</p>
   }
 } @else {

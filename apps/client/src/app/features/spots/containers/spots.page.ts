@@ -156,9 +156,12 @@ export class SpotsPage {
   });
 
   /** Nothing in the chosen list at all, as opposed to nothing matching a search. */
-  protected readonly firstRun = computed(
-    () => !this.loading() && this.list().length === 0,
+  /** The open list has answered once; before that, empty is not yet known. */
+  protected readonly loaded = computed(() =>
+    this.isShared() ? this.store.sharedLoaded() : this.store.loaded(),
   );
+
+  protected readonly firstRun = computed(() => this.loaded() && this.list().length === 0);
 
   constructor() {
     void this.store.load();

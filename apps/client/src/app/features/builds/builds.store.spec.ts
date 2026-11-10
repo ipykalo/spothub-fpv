@@ -88,7 +88,18 @@ describe('BuildsStore', () => {
     expect(store.builds()).toEqual([]);
     expect(store.loading()).toBe(false);
     expect(store.error()).toBeNull();
+    // Not known to be empty until a load has answered.
+    expect(store.isEmpty()).toBe(false);
+    expect(store.loaded()).toBe(false);
+  });
+
+  it('is empty once a load answers with nothing, and each list settles apart', async () => {
+    api.own = [];
+    await store.load();
+
     expect(store.isEmpty()).toBe(true);
+    expect(store.loaded()).toBe(true);
+    expect(store.sharedLoaded()).toBe(false);
   });
 
   describe('loading', () => {

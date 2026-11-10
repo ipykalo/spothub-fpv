@@ -38,6 +38,8 @@ export class PartsStore {
 
   private readonly items = signal<readonly PartDto[]>([]);
   private readonly busy = signal(false);
+  /** A load has answered at least once; until then "empty" is not known. */
+  private readonly settled = signal(false);
   private readonly failure = signal<string | null>(null);
   private readonly categoryFilter = signal<PartCategory | null>(null);
   private readonly conditionFilter = signal<PartCondition | null>(null);
@@ -48,7 +50,14 @@ export class PartsStore {
   readonly category = this.categoryFilter.asReadonly();
   readonly condition = this.conditionFilter.asReadonly();
 
-  readonly isEmpty = computed(() => !this.busy() && this.items().length === 0);
+  readonly loaded = this.settled.asReadonly();
+
+  /**
+   * Known to be empty. False until the first load answers — before it, the
+   * page would flash its empty state and then hide it behind the progress
+   * bar — and kept through a reload, so a revisit does not flicker either.
+   */
+  readonly isEmpty = computed(() => this.settled() && this.items().length === 0);
 
   /** Parts with at least one unit free to fit. */
   readonly fittable = computed(() => this.items().filter(isFittable));
@@ -110,6 +119,7 @@ export class PartsStore {
       this.failure.set('Could not load your parts.');
     } finally {
       this.busy.set(false);
+      this.settled.set(true);
     }
   }
 

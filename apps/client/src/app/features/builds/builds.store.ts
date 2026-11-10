@@ -23,11 +23,14 @@ export class BuildsStore {
 
   private readonly items = signal<readonly BuildDto[]>([]);
   private readonly busy = signal(false);
+  /** A load has answered at least once; until then "empty" is not known. */
+  private readonly settled = signal(false);
   private readonly failure = signal<string | null>(null);
   private readonly statusFilter = signal<BuildStatus | null>(null);
 
   private readonly sharedItems = signal<readonly BuildDto[]>([]);
   private readonly sharedBusy = signal(false);
+  private readonly sharedSettled = signal(false);
   private readonly sharedFailure = signal<string | null>(null);
 
   readonly builds = this.items.asReadonly();
@@ -40,7 +43,11 @@ export class BuildsStore {
   readonly sharedLoading = this.sharedBusy.asReadonly();
   readonly sharedError = this.sharedFailure.asReadonly();
 
-  readonly isEmpty = computed(() => !this.busy() && this.items().length === 0);
+  readonly loaded = this.settled.asReadonly();
+  readonly sharedLoaded = this.sharedSettled.asReadonly();
+
+  /** Known to be empty: false until the first load answers, kept through a reload. */
+  readonly isEmpty = computed(() => this.settled() && this.items().length === 0);
   readonly total = computed(() => this.items().length);
 
   async load(status: BuildStatus | null = this.statusFilter()): Promise<void> {
@@ -55,6 +62,7 @@ export class BuildsStore {
       this.failure.set('Could not load your builds.');
     } finally {
       this.busy.set(false);
+      this.settled.set(true);
     }
   }
 
@@ -70,6 +78,7 @@ export class BuildsStore {
       this.sharedFailure.set('Could not load the builds other pilots shared.');
     } finally {
       this.sharedBusy.set(false);
+      this.sharedSettled.set(true);
     }
   }
 

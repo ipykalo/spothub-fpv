@@ -112,10 +112,19 @@ describe('FlightsStore', () => {
     store = runInInjectionContext(injector, () => new FlightsStore());
   });
 
-  it('starts empty, and a pilot who has flown nothing is not an error', () => {
+  it('does not call the logbook empty before it has asked', () => {
     expect(store.sessions()).toEqual([]);
     expect(store.flightTotal()).toBe(0);
+    expect(store.isEmpty()).toBe(false);
+    expect(store.loaded()).toBe(false);
+  });
+
+  it('calls it empty once a load answers with nothing, which is not an error', async () => {
+    api.sessionList = [];
+    await store.load();
+
     expect(store.isEmpty()).toBe(true);
+    expect(store.loaded()).toBe(true);
     expect(store.error()).toBeNull();
   });
 

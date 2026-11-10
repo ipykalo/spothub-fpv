@@ -19,11 +19,14 @@ export class PostsStore {
 
   private readonly items = signal<readonly PostSummaryDto[]>([]);
   private readonly busy = signal(false);
+  private readonly settled = signal(false);
   private readonly failure = signal<string | null>(null);
 
   readonly mine = this.items.asReadonly();
   readonly loading = this.busy.asReadonly();
   readonly error = this.failure.asReadonly();
+  /** A load has answered at least once; until then "no posts" is not known. */
+  readonly loaded = this.settled.asReadonly();
 
   async loadMine(): Promise<void> {
     this.busy.set(true);
@@ -35,6 +38,7 @@ export class PostsStore {
       this.failure.set('Your posts could not be loaded.');
     } finally {
       this.busy.set(false);
+      this.settled.set(true);
     }
   }
 

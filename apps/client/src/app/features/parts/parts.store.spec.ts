@@ -139,8 +139,18 @@ describe('PartsStore', () => {
     store = runInInjectionContext(injector, () => new PartsStore());
   });
 
-  it('starts empty, and an empty shelf is not an error', () => {
+  it('does not call the shelf empty before it has asked', () => {
     expect(store.parts()).toEqual([]);
+    expect(store.loaded()).toBe(false);
+    expect(store.isEmpty()).toBe(false);
+    expect(store.error()).toBeNull();
+  });
+
+  it('calls it empty once a load answers with nothing, which is not an error', async () => {
+    api.parts = [];
+    await store.load();
+
+    expect(store.loaded()).toBe(true);
     expect(store.isEmpty()).toBe(true);
     expect(store.error()).toBeNull();
   });
