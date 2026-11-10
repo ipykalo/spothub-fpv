@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import { UserStatus } from '@spothub/shared';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import type { Env } from '../../config';
@@ -34,6 +35,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Account no longer exists');
     }
 
-    return { id: user.id, email: user.email, role: user.role };
+    // Checked here, on every request, so blocking someone takes effect at
+    // once rather than when their access token runs out.
+    if (user.status === UserStatus.Blocked) {
+      throw new UnauthorizedException('This account has been blocked');
+    }
+
+    return { id: user.id, email: user.email, role: user.role, status: user.status };
   }
 }

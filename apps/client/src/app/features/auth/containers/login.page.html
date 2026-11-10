@@ -8,6 +8,12 @@
         Your builds, parts, flight logs, battery packs and flying spots, in one place. Signing in is by invitation for
         now.
       </p>
+      @if (denied) {
+        <p class="tone-stop mb-4 rounded bg-(--tone-surface) px-3 py-2 text-sm" role="alert">
+          That Google account can't sign in here. Sign-up may be invite-only for now — ask to be added — or the account
+          may have been blocked.
+        </p>
+      }
       <button matButton="filled" type="button" (click)="signIn()">
         <mat-icon>login</mat-icon>
         Continue with Google

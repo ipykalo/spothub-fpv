@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { User } from '@prisma/client';
+import type { UserStatus } from '@spothub/shared';
 
 import { PrismaService } from '../prisma';
 import { UsersRepository } from './abstract/users.repository';
@@ -56,16 +57,23 @@ export class PrismaUsersRepository extends UsersRepository {
           data: {
             displayName: input.displayName ?? existing.user.displayName,
             avatarUrl: input.avatarUrl ?? existing.user.avatarUrl,
+            lastSignInAt: new Date(),
           },
         });
       }
 
       const created = await tx.user.upsert({
         where: { email },
-        create: { email, displayName: input.displayName, avatarUrl: input.avatarUrl },
+        create: {
+          email,
+          displayName: input.displayName,
+          avatarUrl: input.avatarUrl,
+          lastSignInAt: new Date(),
+        },
         update: {
           displayName: input.displayName ?? undefined,
           avatarUrl: input.avatarUrl ?? undefined,
+          lastSignInAt: new Date(),
         },
       });
 
@@ -79,6 +87,23 @@ export class PrismaUsersRepository extends UsersRepository {
     return PrismaUsersRepository.toEntity(user);
   }
 
+  async findAll(): Promise<UserEntity[]> {
+    const users = await this.prisma.user.findMany({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+
+    return users.map((user) => PrismaUsersRepository.toEntity(user));
+  }
+
+  async setStatus(id: string, status: UserStatus): Promise<UserEntity | null> {
+    const { count } = await this.prisma.user.updateMany({
+      where: { id },
+      data: { status },
+    });
+
+    return count === 0 ? null : this.findById(id);
+  }
+
   private static toEntity(user: User): UserEntity {
     return {
       id: user.id,
@@ -86,6 +111,9 @@ export class PrismaUsersRepository extends UsersRepository {
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
       role: user.role,
+      status: user.status,
+      createdAt: user.createdAt,
+      lastSignInAt: user.lastSignInAt,
     };
   }
 }

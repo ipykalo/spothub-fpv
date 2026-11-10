@@ -1,3 +1,5 @@
+import type { UserStatus } from '@spothub/shared';
+
 import type { AuthProviderKind, LinkIdentityInput, UserEntity } from '../user.entity';
 
 /**
@@ -20,4 +22,13 @@ export abstract class UsersRepository {
    * linking the identity as needed. Idempotent: signing in twice is one user.
    */
   abstract upsertFromIdentity(input: LinkIdentityInput): Promise<UserEntity>;
+
+  /**
+   * Every account, oldest first, for the Admin page. Not owner-scoped: who
+   * may list them is checked by role before this is asked.
+   */
+  abstract findAll(): Promise<UserEntity[]>;
+
+  /** Null when there is no such user. */
+  abstract setStatus(id: string, status: UserStatus): Promise<UserEntity | null>;
 }

@@ -1,4 +1,4 @@
-import type { Role } from '@spothub/shared';
+import type { Role, UserStatus } from '@spothub/shared';
 
 /**
  * The user as the domain understands it.
@@ -13,6 +13,9 @@ export interface UserEntity {
   readonly displayName: string | null;
   readonly avatarUrl: string | null;
   readonly role: Role;
+  readonly status: UserStatus;
+  readonly createdAt: Date;
+  readonly lastSignInAt: Date | null;
 }
 
 export const AuthProviderKind = {

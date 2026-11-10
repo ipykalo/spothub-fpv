@@ -1,5 +1,10 @@
 import { Injectable, inject, signal } from '@angular/core';
-import type { AppSettingsDto, UpdateAppSettingsDto } from '@spothub/shared';
+import type {
+  AdminUserDto,
+  AppSettingsDto,
+  UpdateAppSettingsDto,
+  UserStatus,
+} from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
 import { AdminApi } from './admin.api';
@@ -15,11 +20,13 @@ export class AdminStore {
   private readonly api = inject(AdminApi);
 
   private readonly current = signal<AppSettingsDto | null>(null);
+  private readonly pilots = signal<readonly AdminUserDto[]>([]);
   private readonly busy = signal(false);
   private readonly writing = signal(false);
   private readonly failure = signal<string | null>(null);
 
   readonly settings = this.current.asReadonly();
+  readonly users = this.pilots.asReadonly();
   readonly loading = this.busy.asReadonly();
   readonly saving = this.writing.asReadonly();
   readonly error = this.failure.asReadonly();
@@ -29,7 +36,12 @@ export class AdminStore {
     this.failure.set(null);
 
     try {
-      this.current.set(await firstValueFrom(this.api.settings()));
+      const [settings, users] = await Promise.all([
+        firstValueFrom(this.api.settings()),
+        firstValueFrom(this.api.users()),
+      ]);
+      this.current.set(settings);
+      this.pilots.set(users);
     } catch {
       this.failure.set('Could not load the settings.');
     } finally {
@@ -56,6 +68,23 @@ export class AdminStore {
   removeEmail(email: string): Promise<boolean> {
     const list = this.current()?.allowedEmails ?? [];
     return this.save({ allowedEmails: list.filter((entry) => entry !== email) });
+  }
+
+  /** True once saved; the row then shows what the API answered. */
+  async setUserStatus(id: string, status: UserStatus): Promise<boolean> {
+    this.writing.set(true);
+
+    try {
+      const updated = await firstValueFrom(this.api.updateUser(id, { status }));
+      this.pilots.update((users) =>
+        users.map((user) => (user.id === updated.id ? updated : user)),
+      );
+      return true;
+    } catch {
+      return false;
+    } finally {
+      this.writing.set(false);
+    }
   }
 
   /** True once saved. A failure leaves the settings as they were on screen. */

@@ -105,6 +105,16 @@ export const Role = {
 } as const;
 export type Role = (typeof Role)[keyof typeof Role];
 
+/** What an admin allows an account to do. */
+export const UserStatus = {
+  Active: 'ACTIVE',
+  /** Signs in and reads; changes nothing. */
+  Restricted: 'RESTRICTED',
+  /** Cannot sign in, and is signed out at once. */
+  Blocked: 'BLOCKED',
+} as const;
+export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
+
 /** Human labels, so the client never hand-maps enum values in a template. */
 export const BUILD_CLASS_LABELS: Readonly<Record<BuildClass, string>> = {
   [BuildClass.Whoop]: 'Tiny whoop',
@@ -121,6 +131,12 @@ export const BUILD_STATUS_LABELS: Readonly<Record<BuildStatus, string>> = {
   [BuildStatus.Active]: 'Active',
   [BuildStatus.Down]: 'Down',
   [BuildStatus.Retired]: 'Retired',
+};
+
+export const USER_STATUS_LABELS: Readonly<Record<UserStatus, string>> = {
+  [UserStatus.Active]: 'Active',
+  [UserStatus.Restricted]: 'Read-only',
+  [UserStatus.Blocked]: 'Blocked',
 };
 
 export const VISIBILITY_LABELS: Readonly<Record<Visibility, string>> = {

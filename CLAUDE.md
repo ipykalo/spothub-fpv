@@ -318,6 +318,16 @@ The rules that keep Tailwind and Angular Material from fighting:
   closes sign-up and takes their own address off the list can no longer sign
   in again — existing sessions keep working, and the row can be fixed in SQL
   (`apps/api/e2e/settings.e2e.spec.ts`).
+- **A pilot is ACTIVE, RESTRICTED (read-only) or BLOCKED** (`users.status`),
+  set from the Admin page's Pilots table (`PATCH /admin/users/:id`; an
+  admin's own status never changes there). Blocked is refused at sign-in, at
+  refresh and by `JwtStrategy` on every request, so it bites at once rather
+  than when the access token runs out. Read-only is one check in the global
+  `JwtAuthGuard`: anything but GET/HEAD/OPTIONS answers 403 unless the route
+  is `@AllowedWhenReadOnly()` — kept for leaving the app. A refused Google
+  sign-in redirects to `/login?denied=1` rather than showing the browser a
+  JSON 403 (`apps/api/e2e/admin-users.e2e.spec.ts`). Avatars are not shown on
+  the Admin page: they are Google URLs, and this site never calls Google.
 - Google identities key on the `sub` claim, never the email.
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed

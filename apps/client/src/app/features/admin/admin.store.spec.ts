@@ -1,5 +1,12 @@
 import { Injector, runInInjectionContext } from '@angular/core';
-import type { AppSettingsDto, UpdateAppSettingsDto } from '@spothub/shared';
+import {
+  type AdminUserDto,
+  type AppSettingsDto,
+  Role,
+  type UpdateAdminUserDto,
+  type UpdateAppSettingsDto,
+  UserStatus,
+} from '@spothub/shared';
 import { type Observable, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -18,10 +25,36 @@ describe('AdminStore', () => {
       updatedAt: '2026-11-10T00:00:00.000Z',
     };
     sent: UpdateAppSettingsDto[] = [];
+    pilots: AdminUserDto[] = [
+      {
+        id: 'u1',
+        email: 'pilot@example.com',
+        displayName: 'Pilot',
+        avatarUrl: null,
+        role: Role.User,
+        status: UserStatus.Active,
+        isViewer: false,
+        createdAt: '2026-11-01T00:00:00.000Z',
+        lastSignInAt: null,
+      },
+    ];
     fails = false;
 
     settings(): Observable<AppSettingsDto> {
       return this.fails ? throwError(() => new Error('offline')) : of(this.stored);
+    }
+
+    users(): Observable<AdminUserDto[]> {
+      return of(this.pilots);
+    }
+
+    updateUser(id: string, body: UpdateAdminUserDto): Observable<AdminUserDto> {
+      if (this.fails) {
+        return throwError(() => new Error('forbidden'));
+      }
+
+      const user = this.pilots.find((entry) => entry.id === id) ?? this.pilots[0];
+      return of({ ...user, ...body });
     }
 
     updateSettings(body: UpdateAppSettingsDto): Observable<AppSettingsDto> {
@@ -48,8 +81,9 @@ describe('AdminStore', () => {
     await store.load();
   });
 
-  it('loads the settings as they stand', () => {
+  it('loads the settings and the pilots', () => {
     expect(store.settings()?.allowedEmails).toEqual(['pilot@example.com']);
+    expect(store.users().map((user) => user.id)).toEqual(['u1']);
     expect(store.loading()).toBe(false);
   });
 
@@ -85,6 +119,19 @@ describe('AdminStore', () => {
     await store.removeEmail('pilot@example.com');
 
     expect(store.settings()?.allowedEmails).toEqual([]);
+  });
+
+  it('shows a pilot’s new status once the API has it', async () => {
+    expect(await store.setUserStatus('u1', UserStatus.Blocked)).toBe(true);
+
+    expect(store.users()[0].status).toBe(UserStatus.Blocked);
+  });
+
+  it('leaves a pilot’s status alone when the change fails', async () => {
+    api.fails = true;
+
+    expect(await store.setUserStatus('u1', UserStatus.Blocked)).toBe(false);
+    expect(store.users()[0].status).toBe(UserStatus.Active);
   });
 
   it('keeps the list as it was when a save fails, and says so', async () => {

@@ -5,6 +5,10 @@
  * Everything here is imported by feature modules; nothing here imports one.
  * That is what keeps it a sink in the dependency graph.
  */
+export {
+  ALLOWED_WHEN_READ_ONLY_KEY,
+  AllowedWhenReadOnly,
+} from './decorators/allowed-when-read-only.decorator';
 export { CurrentUser } from './decorators/current-user.decorator';
 export { CurrentViewer } from './decorators/current-viewer.decorator';
 export { IS_PUBLIC_KEY, Public } from './decorators/public.decorator';
@@ -15,4 +19,5 @@ export { AllExceptionsFilter } from './filters/all-exceptions.filter';
 export { JwtAuthGuard } from './guards/jwt-auth.guard';
 export { ZodValidationPipe } from './pipes/zod-validation.pipe';
 export type { AuthenticatedUser } from './types/authenticated-user';
+export { assertAdmin } from './utils/assert-admin';
 export { uniqueSlug } from './utils/slug.util';

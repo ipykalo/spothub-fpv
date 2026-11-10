@@ -1,0 +1,68 @@
+@if (users().length > 1) {
+  <sh-grid-toolbar
+    [(query)]="grid.query"
+    [(sort)]="grid.sort"
+    [sorts]="sorts"
+    [shown]="rows().length"
+    [total]="users().length"
+    searchLabel="Search pilots"
+  >
+    <sh-filter-chips [options]="statusOptions" [(selected)]="grid.filter" ariaLabel="Filter by status" />
+  </sh-grid-toolbar>
+}
+
+@if (rows().length) {
+  <ul class="m-0 grid list-none gap-1.5 p-0">
+    @for (user of rows(); track user.id) {
+      <li
+        class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 rounded bg-surface-container px-3 py-2 text-sm min-[48rem]:grid-cols-[auto_minmax(0,1fr)_9rem_9rem_12rem]"
+      >
+        <!-- No avatar: it would be fetched from Google, which this site never calls. -->
+        <mat-icon class="text-muted" aria-hidden="true">account_circle</mat-icon>
+
+        <span class="flex min-w-0 flex-col">
+          <span class="truncate font-semibold">
+            {{ user.displayName ?? user.email }}
+            @if (user.isViewer) {
+              <span class="font-normal text-muted">(you)</span>
+            }
+          </span>
+          <span class="truncate text-xs text-muted">{{ user.email }}</span>
+        </span>
+
+        <span class="col-start-2 text-xs text-muted min-[48rem]:col-auto">
+          Joined {{ user.createdAt | date: 'd MMM y' }}
+        </span>
+        <span class="col-start-2 text-xs text-muted min-[48rem]:col-auto">
+          @if (user.lastSignInAt; as seen) {
+            Signed in {{ seen | date: 'd MMM y' }}
+          } @else {
+            No sign-in recorded
+          }
+        </span>
+
+        <span class="col-start-2 min-[48rem]:col-auto">
+          @if (user.role === admin) {
+            <span class="inline-flex items-center gap-1 text-muted">
+              <mat-icon class="icon-sm" aria-hidden="true">shield_person</mat-icon>
+              Admin
+            </span>
+          } @else {
+            <sh-autocomplete
+              compact
+              subscriptSizing="dynamic"
+              [ariaLabel]="'Status of ' + (user.displayName ?? user.email)"
+              [options]="statusOptions"
+              [value]="user.status"
+              (valueChange)="change(user, $event)"
+            />
+          }
+        </span>
+      </li>
+    }
+  </ul>
+} @else if (users().length) {
+  <p class="m-0 py-5 text-muted">Nothing matches.</p>
+} @else {
+  <p class="m-0 py-5 text-muted">No pilots yet.</p>
+}

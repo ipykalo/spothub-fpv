@@ -17,6 +17,9 @@ export class LoginPage {
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly route = inject(ActivatedRoute);
 
+  /** Set when Google sign-in worked but this site refused the account. */
+  protected readonly denied = this.route.snapshot.queryParamMap.has('denied');
+
   /**
    * A full navigation rather than an XHR: the OAuth flow needs the browser to
    * follow redirects to Google and back.

@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -52,7 +53,19 @@ export class AuthController {
     @Res() response: Response,
   ): Promise<void> {
     const profile = request.user as GoogleProfile;
-    const tokens = await this.auth.signInWithGoogle(profile);
+    let tokens: IssuedTokens;
+
+    try {
+      tokens = await this.auth.signInWithGoogle(profile);
+    } catch (error) {
+      // A browser arrives here from Google, so a refusal is a page to land on,
+      // not a JSON body: back to sign-in, saying why in general terms.
+      if (error instanceof ForbiddenException) {
+        response.redirect(`${this.clientUrl}/login?denied=1`);
+        return;
+      }
+      throw error;
+    }
 
     this.setRefreshCookie(response, tokens);
 

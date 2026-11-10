@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import type { CurrentUserDto } from '@spothub/shared';
+import { type CurrentUserDto, UserStatus } from '@spothub/shared';
 
 import { SettingsFacade } from '../../settings';
 import { AuthProviderKind, type UserEntity, UsersFacade } from '../../users';
@@ -37,11 +37,20 @@ export class AuthService {
       avatarUrl: profile.avatarUrl,
     });
 
+    if (user.status === UserStatus.Blocked) {
+      this.logger.warn(`Rejected sign-in for a blocked account`);
+      throw new ForbiddenException('This account has been blocked');
+    }
+
     return this.tokens.issueForLogin(user);
   }
 
+  /** A blocked account's refresh fails like a deleted one's: its family is revoked. */
   refresh(refreshToken: string): Promise<IssuedTokens> {
-    return this.tokens.rotate(refreshToken, (id) => this.users.findById(id));
+    return this.tokens.rotate(refreshToken, async (id) => {
+      const user = await this.users.findById(id);
+      return user?.status === UserStatus.Blocked ? null : user;
+    });
   }
 
   signOut(refreshToken: string | undefined): Promise<void> {
@@ -60,6 +69,7 @@ export class AuthService {
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
       role: user.role,
+      status: user.status,
     };
   }
 }

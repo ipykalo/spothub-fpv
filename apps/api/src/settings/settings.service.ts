@@ -1,8 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { type AppSettingsDto, Role, type UpdateAppSettingsDto } from '@spothub/shared';
+import type { AppSettingsDto, UpdateAppSettingsDto } from '@spothub/shared';
 
-import type { AuthenticatedUser } from '../common';
+import { type AuthenticatedUser, assertAdmin } from '../common';
 import type { Env } from '../config';
 import type { AppSettingsEntity, UpdateAppSettingsData } from './app-settings.entity';
 import { SettingsRepository } from './abstract/settings.repository';
@@ -59,15 +59,5 @@ export class SettingsService {
     };
 
     return toAppSettingsDto(await this.settings.update(this.initial, data));
-  }
-}
-
-/**
- * 403 rather than 404: the route's existence is no secret, and a signed-in
- * pilot who opens it should be told plainly that it is not theirs.
- */
-function assertAdmin(user: AuthenticatedUser): void {
-  if (user.role !== Role.Admin) {
-    throw new ForbiddenException('Only an admin can change the settings');
   }
 }

@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Role, type CurrentUserDto } from '@spothub/shared';
+import { Role, UserStatus, type CurrentUserDto } from '@spothub/shared';
 import { Observable, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -20,6 +20,7 @@ describe('AuthStore', () => {
     displayName: 'Ivan',
     avatarUrl: null,
     role: Role.User,
+    status: UserStatus.Active,
   };
 
   class FakeHttp {
@@ -113,6 +114,15 @@ describe('AuthStore', () => {
       http.profile = { ...user, role: Role.Admin };
       await store.adoptToken('token-3');
       expect(store.isAdmin()).toBe(true);
+    });
+
+    it('knows when an admin has made the account read-only', async () => {
+      await store.restoreSession();
+      expect(store.isReadOnly()).toBe(false);
+
+      http.profile = { ...user, status: UserStatus.Restricted };
+      await store.adoptToken('token-3');
+      expect(store.isReadOnly()).toBe(true);
     });
 
     it('is ready even when there was no session to restore', async () => {
