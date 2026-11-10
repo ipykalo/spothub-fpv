@@ -26,7 +26,7 @@ whole public surface:
 apps/api/src/
   app/  common/  config/  prisma/  storage/  jobs/   infrastructure
   auth/  users/                              sign-in and accounts
-  builds/  build-parts/  repairs/  configs/  the hangar
+  builds/  build-parts/  repairs/  configs/  build-videos/  the hangar
   parts/                                     inventory (catalogue, units, sources)
   media/                                     build photos
   flights/                                   the logbook: flights, sessions
@@ -178,6 +178,7 @@ features/
   repairs/      repairs.api/store, repair-cause, repair-form + repair-timeline presenters
   configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
   photos/       photos.api/store, photo-gallery presenter
+  build-videos/ build-videos.api/store, build-video-form + build-video-list presenters
   parts/        catalogue, units, sources
   flights/      flights.api/store, chart-scale, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends/flight-map/flight-timeline presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
@@ -831,6 +832,14 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   youtube-nocookie player; `bypassSecurityTrustResourceUrl` is only ever given
   a URL built from an id re-checked against YouTube's alphabet. Uploaded,
   transcoded clips are a possible later extension.
+- **A build's videos are YouTube links too**, in their own `build-videos`
+  module (`build_videos`, up to `MAX_BUILD_VIDEOS` = 20 a build). The form
+  says "YouTube links only" before anything is typed and checks a pasted link
+  with `createBuildVideoSchema` as it is pasted; the API applies the same
+  schema, and a CHECK on `youtube_id` holds the column to YouTube's alphabet,
+  so no row can point anywhere else. Whoever may open the build sees them —
+  the join on `builds` as in repairs and photos, 404 for a build they cannot
+  open — and only its owner adds or removes (`build-videos.e2e.spec.ts`).
 - **A spot's cover is its video's thumbnail, stored, not linked.** Pointing a
   card at `i.ytimg.com` would tell Google who browsed which spots. Instead,
   setting a video queues `spot.cover`: the job asks the `YouTubeThumbnails`

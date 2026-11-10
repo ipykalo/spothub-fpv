@@ -21,6 +21,8 @@ import {
   VISIBILITY_LABELS,
   CommentSubject,
   type BuildDto,
+  type BuildVideoDto,
+  type CreateBuildVideoDto,
   type AssetDto,
   type BuildPartDto,
   type ConfigDto,
@@ -55,6 +57,9 @@ import { PartsStore } from '../../parts/parts.store';
 import { RepairForm } from '../../repairs/presenters/repair-form/repair-form';
 import { RepairTimeline } from '../../repairs/presenters/repair-timeline/repair-timeline';
 import { RepairsStore } from '../../repairs/repairs.store';
+import { BuildVideosStore } from '../../build-videos/build-videos.store';
+import { BuildVideoForm } from '../../build-videos/presenters/build-video-form/build-video-form';
+import { BuildVideoList } from '../../build-videos/presenters/build-video-list/build-video-list';
 import { BUILD_STATUS_STYLES } from '../build-status';
 import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
 import { BuildsApi } from '../builds.api';
@@ -82,6 +87,8 @@ import { BuildsStore } from '../builds.store';
     InstallPartForm,
     StockPartsForm,
     PhotoGallery,
+    BuildVideoForm,
+    BuildVideoList,
     InstalledPartsList,
     RepairForm,
     RepairTimeline,
@@ -104,6 +111,7 @@ export class BuildDetailPage {
   protected readonly configs = inject(ConfigsStore);
   protected readonly parts = inject(PartsStore);
   protected readonly photos = inject(PhotosStore);
+  protected readonly videos = inject(BuildVideosStore);
   protected readonly flights = inject(FlightsStore);
   private readonly builds = inject(BuildsStore);
   private readonly api = inject(BuildsApi);
@@ -126,6 +134,8 @@ export class BuildDetailPage {
   protected readonly addingFit = signal(false);
   protected readonly addingStock = signal(false);
   protected readonly addingRepair = signal(false);
+  protected readonly addingVideo = signal(false);
+  protected readonly removingVideoId = signal<string | null>(null);
   protected readonly addingConfig = signal(false);
 
   /**
@@ -173,6 +183,7 @@ export class BuildDetailPage {
         void this.installs.load(id, { withCost: false });
         void this.repairs.load(id);
         void this.photos.load(id);
+        void this.videos.load(id);
 
         void this.hydrate(id).then(() => {
           this.loadOwnersSections(id);
@@ -377,6 +388,26 @@ export class BuildDetailPage {
       this.snackBar.open('Could not delete that capture', undefined, { duration: 4000 });
     } finally {
       this.removingConfigId.set(null);
+    }
+  }
+
+  protected async addVideo(input: CreateBuildVideoDto): Promise<void> {
+    if (await this.videos.add(this.id(), input)) {
+      this.addingVideo.set(false);
+      this.snackBar.open('Video added', undefined, { duration: 2500 });
+    }
+  }
+
+  protected async removeVideo(video: BuildVideoDto): Promise<void> {
+    this.removingVideoId.set(video.id);
+
+    try {
+      await this.videos.remove(this.id(), video.id);
+      this.snackBar.open('Video removed', undefined, { duration: 2500 });
+    } catch {
+      this.snackBar.open('Could not remove that video', undefined, { duration: 4000 });
+    } finally {
+      this.removingVideoId.set(null);
     }
   }
 

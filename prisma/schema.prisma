@@ -180,6 +180,7 @@ model Build {
   cover        Asset?        @relation("BuildCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
   parts        BuildPart[]
   repairs      Repair[]
+  videos       BuildVideo[]
   configs      Config[]
   flights      Flight[]
   comments     Comment[]
@@ -369,6 +370,23 @@ model Repair {
 
   @@index([buildId, occurredOn])
   @@map("repairs")
+}
+
+/// A YouTube video on a build -- its flights, its build-up. Only YouTube:
+/// what is stored is the video's id and start time, never a pasted address,
+/// so a row cannot point anywhere else.
+model BuildVideo {
+  id        String   @id @default(uuid()) @db.Uuid
+  buildId   String   @map("build_id") @db.Uuid
+  youtubeId String   @map("youtube_id") @db.VarChar(11)
+  startS    Int?     @map("start_s")
+  title     String?  @db.VarChar(80)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@index([buildId, createdAt])
+  @@map("build_videos")
 }
 
 // --------------------------------------------------------- firmware config

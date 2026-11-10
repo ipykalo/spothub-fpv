@@ -19,6 +19,7 @@ import { PartsModule } from '../parts';
 import { PostsModule } from '../posts';
 import { PrismaModule } from '../prisma';
 import { RepairsModule } from '../repairs';
+import { BuildVideosModule } from '../build-videos';
 import { SettingsModule } from '../settings';
 import { SpotsModule } from '../spots';
 import { StorageModule } from '../storage';
@@ -44,6 +45,7 @@ import { UsersModule } from '../users';
     BuildsModule,
     BuildPartsModule,
     RepairsModule,
+    BuildVideosModule,
     ConfigsModule,
     PartsModule,
     MediaModule,

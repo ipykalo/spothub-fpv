@@ -160,6 +160,31 @@
     />
   </sh-section>
 
+  <sh-section
+    heading="Videos"
+    storageKey="build.videos"
+    [addLabel]="owned() ? 'Add video' : null"
+    [count]="videos.videos().length"
+    [(adding)]="addingVideo"
+  >
+    @if (addingVideo()) {
+      <div class="mb-4">
+        <sh-build-video-form [saving]="videos.saving()" [error]="videos.addError()" (added)="addVideo($event)" />
+      </div>
+    }
+
+    @if (videos.error(); as message) {
+      <p role="alert">{{ message }}</p>
+    }
+
+    <sh-build-video-list
+      [videos]="videos.videos()"
+      [readOnly]="!owned()"
+      [pendingRemoval]="removingVideoId()"
+      (removeRequested)="removeVideo($event)"
+    />
+  </sh-section>
+
   <!-- A ready-made quad's spec sheet, entered in one go rather than one part at a time. -->
   @if (owned() && build()?.boughtComplete) {
     <sh-section

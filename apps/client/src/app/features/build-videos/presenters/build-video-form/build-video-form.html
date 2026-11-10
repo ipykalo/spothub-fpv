@@ -1,0 +1,43 @@
+<form class="grid max-w-176 gap-3" (submit)="$event.preventDefault(); submit()">
+  <p class="m-0 flex items-start gap-2 text-sm text-muted">
+    <mat-icon class="icon-sm shrink-0" aria-hidden="true">smart_display</mat-icon>
+    <span>
+      <strong class="text-fg">YouTube links only.</strong>
+      Paste a video's address from YouTube — a watch, youtu.be or Shorts link, with a start time if you like. Links to
+      any other site are not accepted.
+    </span>
+  </p>
+
+  <div class="flex flex-wrap items-start gap-3">
+    <mat-form-field class="min-w-0 flex-auto basis-80" subscriptSizing="dynamic">
+      <mat-label>YouTube link</mat-label>
+      <input
+        matInput
+        type="url"
+        inputmode="url"
+        autocomplete="off"
+        placeholder="https://www.youtube.com/watch?v=…"
+        [value]="link()"
+        (input)="onLink($event)"
+      />
+      @if (draft().error; as message) {
+        <mat-hint class="text-danger">{{ message }}</mat-hint>
+      } @else if (draft().video) {
+        <mat-hint>YouTube video found.</mat-hint>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="min-w-0 flex-auto basis-56" subscriptSizing="dynamic">
+      <mat-label>Title (optional)</mat-label>
+      <input matInput maxlength="80" autocomplete="off" [value]="title()" (input)="onTitle($event)" />
+    </mat-form-field>
+
+    <button matButton="filled" type="submit" class="mt-2" [disabled]="!draft().value || saving()">
+      {{ saving() ? 'Adding…' : 'Add video' }}
+    </button>
+  </div>
+
+  @if (error(); as message) {
+    <p class="m-0 text-sm text-danger" role="alert">{{ message }}</p>
+  }
+</form>

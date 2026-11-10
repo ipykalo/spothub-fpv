@@ -15,3 +15,4 @@ export * from './lib/post.contract';
 export * from './lib/like.contract';
 export * from './lib/settings.contract';
 export * from './lib/pilot-name';
+export * from './lib/build-video.contract';
