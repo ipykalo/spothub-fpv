@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import type { User } from '@prisma/client';
-import type { UserStatus } from '@spothub/shared';
 
 import { PrismaService } from '../prisma';
 import { UsersRepository } from './abstract/users.repository';
-import type { AuthProviderKind, LinkIdentityInput, UserEntity } from './user.entity';
+import type {
+  AuthProviderKind,
+  LinkIdentityInput,
+  UpdateUserAdminData,
+  UserEntity,
+} from './user.entity';
+
+/** How long an upload signed but never finished still counts against a limit. */
+const PENDING_COUNTS_FOR_MS = 24 * 60 * 60 * 1000;
 
 /**
  * The only place in the users feature that knows Prisma exists.
@@ -95,13 +102,70 @@ export class PrismaUsersRepository extends UsersRepository {
     return users.map((user) => PrismaUsersRepository.toEntity(user));
   }
 
-  async setStatus(id: string, status: UserStatus): Promise<UserEntity | null> {
+  async updateAdminFields(
+    id: string,
+    data: UpdateUserAdminData,
+  ): Promise<UserEntity | null> {
     const { count } = await this.prisma.user.updateMany({
       where: { id },
-      data: { status },
+      data: {
+        ...(data.status === undefined ? {} : { status: data.status }),
+        ...(data.storageQuotaBytes === undefined
+          ? {}
+          : {
+              storageQuotaBytes:
+                data.storageQuotaBytes === null ? null : BigInt(data.storageQuotaBytes),
+            }),
+      },
     });
 
     return count === 0 ? null : this.findById(id);
+  }
+
+  /**
+   * Two grouped sums over other modules' tables. A join in SQL, not a call
+   * into their code: the same rule as a repository's owner predicate.
+   */
+  async storageUsedBy(ids: readonly string[]): Promise<ReadonlyMap<string, number>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const owners = { in: [...ids] };
+    const counted = {
+      OR: [
+        { status: { not: 'PENDING' as const } },
+        { createdAt: { gt: new Date(Date.now() - PENDING_COUNTS_FOR_MS) } },
+      ],
+    };
+
+    const [assets, logs] = await Promise.all([
+      this.prisma.asset.groupBy({
+        by: ['ownerId'],
+        where: { ownerId: owners, ...counted },
+        _sum: { sizeBytes: true },
+      }),
+      this.prisma.logFile.groupBy({
+        by: ['ownerId'],
+        where: { ownerId: owners, ...counted },
+        _sum: { sizeBytes: true },
+      }),
+    ]);
+
+    const used = new Map<string, number>();
+
+    for (const row of assets) {
+      used.set(
+        row.ownerId,
+        (used.get(row.ownerId) ?? 0) + Number(row._sum.sizeBytes ?? 0),
+      );
+    }
+
+    for (const row of logs) {
+      used.set(row.ownerId, (used.get(row.ownerId) ?? 0) + (row._sum.sizeBytes ?? 0));
+    }
+
+    return used;
   }
 
   private static toEntity(user: User): UserEntity {
@@ -114,6 +178,8 @@ export class PrismaUsersRepository extends UsersRepository {
       status: user.status,
       createdAt: user.createdAt,
       lastSignInAt: user.lastSignInAt,
+      storageQuotaBytes:
+        user.storageQuotaBytes === null ? null : Number(user.storageQuotaBytes),
     };
   }
 }

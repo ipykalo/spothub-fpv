@@ -16,6 +16,14 @@ export interface UserEntity {
   readonly status: UserStatus;
   readonly createdAt: Date;
   readonly lastSignInAt: Date | null;
+  /** Their own storage limit; null follows the default in the settings. */
+  readonly storageQuotaBytes: number | null;
+}
+
+/** What an admin may change about a pilot. Only the keys present are written. */
+export interface UpdateUserAdminData {
+  readonly status?: UserStatus;
+  readonly storageQuotaBytes?: number | null;
 }
 
 export const AuthProviderKind = {

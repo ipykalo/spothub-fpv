@@ -14,4 +14,8 @@ export class SettingsFacadeImpl extends SettingsFacade {
   async permitsSignIn(email: string): Promise<boolean> {
     return permitsSignIn(await this.settings.current(), email);
   }
+
+  async defaultStorageQuotaBytes(): Promise<number> {
+    return (await this.settings.current()).defaultStorageQuotaBytes;
+  }
 }

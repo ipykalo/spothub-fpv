@@ -1,3 +1,17 @@
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <span class="text-sm">Storage each pilot may use</span>
+  <sh-autocomplete
+    class="w-40"
+    compact
+    subscriptSizing="dynamic"
+    ariaLabel="Default storage limit"
+    [options]="defaultLimitOptions()"
+    [value]="defaultLimitBytes()"
+    (valueChange)="changeDefault($event)"
+  />
+  <span class="text-xs text-muted">Photos, post images and flight logs. A pilot can be given more below.</span>
+</div>
+
 @if (users().length > 1) {
   <sh-grid-toolbar
     [(query)]="grid.query"
@@ -15,7 +29,7 @@
   <ul class="m-0 grid list-none gap-1.5 p-0">
     @for (user of rows(); track user.id) {
       <li
-        class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 rounded bg-surface-container px-3 py-2 text-sm min-[48rem]:grid-cols-[auto_minmax(0,1fr)_9rem_9rem_12rem]"
+        class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 rounded bg-surface-container px-3 py-2 text-sm min-[64rem]:grid-cols-[auto_minmax(0,1fr)_8rem_9rem_10rem_11rem]"
       >
         <!-- No avatar: it would be fetched from Google, which this site never calls. -->
         <mat-icon class="text-muted" aria-hidden="true">account_circle</mat-icon>
@@ -30,18 +44,45 @@
           <span class="truncate text-xs text-muted">{{ user.email }}</span>
         </span>
 
-        <span class="col-start-2 text-xs text-muted min-[48rem]:col-auto">
-          Joined {{ user.createdAt | date: 'd MMM y' }}
-        </span>
-        <span class="col-start-2 text-xs text-muted min-[48rem]:col-auto">
-          @if (user.lastSignInAt; as seen) {
-            Signed in {{ seen | date: 'd MMM y' }}
-          } @else {
-            No sign-in recorded
-          }
+        <span class="col-start-2 flex flex-col text-xs text-muted min-[64rem]:col-auto">
+          <span>Joined {{ user.createdAt | date: 'd MMM y' }}</span>
+          <span>
+            @if (user.lastSignInAt; as seen) {
+              Seen {{ seen | date: 'd MMM y' }}
+            } @else {
+              Not seen yet
+            }
+          </span>
         </span>
 
-        <span class="col-start-2 min-[48rem]:col-auto">
+        <span class="col-start-2 flex flex-col gap-1 text-xs min-[64rem]:col-auto">
+          <span>
+            {{ formatBytes(user.storageUsedBytes) }}
+            <span class="text-muted">of {{ formatBytes(user.storageLimitBytes) }}</span>
+          </span>
+          <span class="block h-1.5 overflow-hidden rounded-full bg-outline-variant" aria-hidden="true">
+            <span
+              class="block h-full rounded-full"
+              [class.bg-primary]="user.storageUsedBytes < user.storageLimitBytes"
+              [class.bg-danger]="user.storageUsedBytes >= user.storageLimitBytes"
+              [style.width.%]="percentUsed(user.storageUsedBytes, user.storageLimitBytes)"
+            ></span>
+          </span>
+        </span>
+
+        <span class="col-start-2 min-[64rem]:col-auto">
+          <sh-autocomplete
+            compact
+            subscriptSizing="dynamic"
+            [ariaLabel]="'Storage limit of ' + (user.displayName ?? user.email)"
+            [emptyLabel]="defaultLabel()"
+            [options]="limitOptions().get(user.id) ?? []"
+            [value]="user.storageQuotaBytes"
+            (valueChange)="changeLimit(user, $event)"
+          />
+        </span>
+
+        <span class="col-start-2 min-[64rem]:col-auto">
           @if (user.role === admin) {
             <span class="inline-flex items-center gap-1 text-muted">
               <mat-icon class="icon-sm" aria-hidden="true">shield_person</mat-icon>

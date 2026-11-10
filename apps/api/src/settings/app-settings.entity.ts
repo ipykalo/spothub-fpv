@@ -3,10 +3,14 @@ export interface AppSettingsEntity {
   readonly openRegistration: boolean;
   /** Lower-cased. */
   readonly allowedEmails: readonly string[];
+  readonly defaultStorageQuotaBytes: number;
   readonly updatedAt: Date;
 }
 
 /** A sparse patch. Only the keys present are written. */
 export type UpdateAppSettingsData = Partial<
-  Pick<AppSettingsEntity, 'openRegistration' | 'allowedEmails'>
+  Pick<
+    AppSettingsEntity,
+    'openRegistration' | 'allowedEmails' | 'defaultStorageQuotaBytes'
+  >
 >;

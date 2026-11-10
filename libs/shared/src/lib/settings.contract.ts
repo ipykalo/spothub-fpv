@@ -12,11 +12,22 @@ export const allowedEmailSchema = z
   .toLowerCase()
   .pipe(z.email('That does not look like an email address'));
 
+const GIB = 1024 ** 3;
+
+/** A storage limit: at least 100 MiB, at most 1 TiB, in whole bytes. */
+export const storageQuotaSchema = z
+  .number()
+  .int()
+  .min(100 * 1024 ** 2, 'Allow at least 100 MB')
+  .max(1024 * GIB, 'Allow at most 1 TB');
+
 export const appSettingsSchema = z.object({
   /** Anyone with a Google account may sign in. */
   openRegistration: z.boolean(),
   /** Who may sign in while registration is closed. */
   allowedEmails: z.array(z.string()),
+  /** What each pilot may keep in storage unless given their own limit. */
+  defaultStorageQuotaBytes: z.number(),
   updatedAt: z.string(),
 });
 
@@ -32,6 +43,7 @@ export const updateAppSettingsSchema = z
       .array(allowedEmailSchema)
       .max(500, 'Keep the list under 500 addresses')
       .transform((emails) => [...new Set(emails)]),
+    defaultStorageQuotaBytes: storageQuotaSchema,
   })
   .partial()
   .refine((value) => Object.keys(value).length > 0, {

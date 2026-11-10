@@ -7,6 +7,7 @@ export function toAppSettingsDto(settings: AppSettingsEntity): AppSettingsDto {
   return {
     openRegistration: settings.openRegistration,
     allowedEmails: [...settings.allowedEmails],
+    defaultStorageQuotaBytes: settings.defaultStorageQuotaBytes,
     updatedAt: settings.updatedAt.toISOString(),
   };
 }

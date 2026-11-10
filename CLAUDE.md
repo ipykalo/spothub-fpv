@@ -328,6 +328,16 @@ The rules that keep Tailwind and Angular Material from fighting:
   sign-in redirects to `/login?denied=1` rather than showing the browser a
   JSON 403 (`apps/api/e2e/admin-users.e2e.spec.ts`). Avatars are not shown on
   the Admin page: they are Google URLs, and this site never calls Google.
+- **Each pilot has a storage limit**: `app_settings.default_storage_quota_bytes`
+  (2 GiB, set on the Admin page) unless `users.storage_quota_bytes` gives them
+  their own. Usage is photos, post images and flight logs, summed in SQL in
+  the users repository (`storageUsedBy`); an upload signed but never finished
+  counts for a day, then stops. `media` and `flight-logs` ask
+  `UsersFacade.assertCanStore` before signing an upload, and going past
+  answers 413 with "Your storage is full: …", which the client shows as it
+  is (`core/api/api-error.ts`). Spot covers are not counted — a few KB each,
+  made by the server. `GET /users/me/storage` is a pilot's own
+  (`apps/api/e2e/storage-limit.e2e.spec.ts`).
 - Google identities key on the `sub` claim, never the email.
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed

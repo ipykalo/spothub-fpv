@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { USER_STATUS_LABELS, type UserStatus } from '@spothub/shared';
 
 import { Section } from '../../../core/components/section/section';
+import { formatBytes } from '../../../core/format/bytes';
 import { AdminStore } from '../admin.store';
 import { PilotsTable } from '../presenters/pilots-table/pilots-table';
 import { SignUpSettings } from '../presenters/sign-up-settings/sign-up-settings';
@@ -44,13 +45,35 @@ export class AdminPage {
   }
 
   protected async setStatus(change: { id: string; status: UserStatus }): Promise<void> {
-    const user = this.store.users().find((entry) => entry.id === change.id);
-    const name = user?.displayName ?? user?.email ?? 'Pilot';
-
     this.tell(
-      await this.store.setUserStatus(change.id, change.status),
-      `${name}: ${USER_STATUS_LABELS[change.status]}`,
+      await this.store.updateUser(change.id, { status: change.status }),
+      `${this.nameOf(change.id)}: ${USER_STATUS_LABELS[change.status]}`,
     );
+  }
+
+  protected async setLimit(change: { id: string; bytes: number | null }): Promise<void> {
+    this.tell(
+      await this.store.updateUser(change.id, { storageQuotaBytes: change.bytes }),
+      change.bytes === null
+        ? `${this.nameOf(change.id)} is back on the default limit`
+        : `${this.nameOf(change.id)} may now use ${formatBytes(change.bytes)}`,
+    );
+  }
+
+  protected async setDefaultLimit(bytes: number): Promise<void> {
+    const saved = await this.store.setDefaultStorageLimit(bytes);
+
+    // Every pilot on the default has a new limit: read the list again.
+    if (saved) {
+      await this.store.load();
+    }
+
+    this.tell(saved, `Each pilot may now use ${formatBytes(bytes)} by default`);
+  }
+
+  private nameOf(id: string): string {
+    const user = this.store.users().find((entry) => entry.id === id);
+    return user?.displayName ?? user?.email ?? 'Pilot';
   }
 
   private tell(saved: boolean, done: string): void {

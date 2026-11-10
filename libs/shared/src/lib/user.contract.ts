@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { Role, UserStatus } from './enums';
+import { storageQuotaSchema } from './settings.contract';
 
 /** The authenticated user as the client sees it. Never includes tokens. */
 export const currentUserSchema = z.object({
@@ -36,12 +37,35 @@ export const adminUserSchema = z.object({
   isViewer: z.boolean(),
   createdAt: z.string(),
   lastSignInAt: z.string().nullable(),
+  /** Photos, post images and flight logs, as stored. */
+  storageUsedBytes: z.number(),
+  /** What this pilot may keep: their own limit, else the default. */
+  storageLimitBytes: z.number(),
+  /** Their own limit, when an admin set one; null follows the default. */
+  storageQuotaBytes: z.number().nullable(),
 });
 
-/** What an admin may change about a pilot. */
-export const updateAdminUserSchema = z.object({
-  status: z.enum(UserStatus),
+/**
+ * What an admin may change about a pilot: either, or both. A null limit puts
+ * them back on the default.
+ */
+export const updateAdminUserSchema = z
+  .object({
+    status: z.enum(UserStatus),
+    storageQuotaBytes: storageQuotaSchema.nullable(),
+  })
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Provide at least one change',
+  });
+
+/** How much of their storage a pilot has used. */
+export const storageUsageSchema = z.object({
+  usedBytes: z.number(),
+  limitBytes: z.number(),
 });
+
+export type StorageUsageDto = z.output<typeof storageUsageSchema>;
 
 export type AdminUserDto = z.output<typeof adminUserSchema>;
 export type UpdateAdminUserDto = z.output<typeof updateAdminUserSchema>;

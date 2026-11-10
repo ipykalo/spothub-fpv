@@ -2,8 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import type {
   AdminUserDto,
   AppSettingsDto,
+  UpdateAdminUserDto,
   UpdateAppSettingsDto,
-  UserStatus,
 } from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
@@ -70,12 +70,20 @@ export class AdminStore {
     return this.save({ allowedEmails: list.filter((entry) => entry !== email) });
   }
 
-  /** True once saved; the row then shows what the API answered. */
-  async setUserStatus(id: string, status: UserStatus): Promise<boolean> {
+  /** What each pilot may keep unless given their own limit. */
+  setDefaultStorageLimit(bytes: number): Promise<boolean> {
+    return this.save({ defaultStorageQuotaBytes: bytes });
+  }
+
+  /**
+   * A pilot's status or own storage limit (null puts them back on the
+   * default). True once saved; the row then shows what the API answered.
+   */
+  async updateUser(id: string, change: UpdateAdminUserDto): Promise<boolean> {
     this.writing.set(true);
 
     try {
-      const updated = await firstValueFrom(this.api.updateUser(id, { status }));
+      const updated = await firstValueFrom(this.api.updateUser(id, change));
       this.pilots.update((users) =>
         users.map((user) => (user.id === updated.id ? updated : user)),
       );

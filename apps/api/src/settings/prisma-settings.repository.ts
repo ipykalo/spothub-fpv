@@ -46,6 +46,7 @@ export class PrismaSettingsRepository extends SettingsRepository {
 function toColumns(data: UpdateAppSettingsData): {
   openRegistration?: boolean;
   allowedEmails?: string[];
+  defaultStorageQuotaBytes?: bigint;
 } {
   return {
     ...(data.openRegistration === undefined
@@ -54,6 +55,9 @@ function toColumns(data: UpdateAppSettingsData): {
     ...(data.allowedEmails === undefined
       ? {}
       : { allowedEmails: [...data.allowedEmails] }),
+    ...(data.defaultStorageQuotaBytes === undefined
+      ? {}
+      : { defaultStorageQuotaBytes: BigInt(data.defaultStorageQuotaBytes) }),
   };
 }
 
@@ -61,6 +65,8 @@ function toEntity(row: AppSettings): AppSettingsEntity {
   return {
     openRegistration: row.openRegistration,
     allowedEmails: row.allowedEmails,
+    // A terabyte is far inside a double's exact range.
+    defaultStorageQuotaBytes: Number(row.defaultStorageQuotaBytes),
     updatedAt: row.updatedAt,
   };
 }

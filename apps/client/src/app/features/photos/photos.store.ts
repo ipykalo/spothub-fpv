@@ -7,6 +7,7 @@ import {
 } from '@spothub/shared';
 import { firstValueFrom, lastValueFrom, tap } from 'rxjs';
 
+import { apiMessage } from '../../core/api/api-error';
 import { PhotosApi } from './photos.api';
 
 /** One file on its way up, so the tile can show progress before it exists. */
@@ -138,8 +139,9 @@ export class PhotosStore {
       const asset = await firstValueFrom(this.api.commit(buildId, ticket.assetId));
       this.items.update((photos) => [...photos, asset]);
       this.drop(id, previewUrl);
-    } catch {
-      this.patch(id, { error: 'Upload failed', progress: 0 });
+    } catch (error) {
+      // "Your storage is full: …" says what to do; "Upload failed" does not.
+      this.patch(id, { error: apiMessage(error, 'Upload failed'), progress: 0 });
     }
   }
 

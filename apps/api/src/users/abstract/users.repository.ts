@@ -1,6 +1,9 @@
-import type { UserStatus } from '@spothub/shared';
-
-import type { AuthProviderKind, LinkIdentityInput, UserEntity } from '../user.entity';
+import type {
+  AuthProviderKind,
+  LinkIdentityInput,
+  UpdateUserAdminData,
+  UserEntity,
+} from '../user.entity';
 
 /**
  * The persistence contract for users.
@@ -30,5 +33,17 @@ export abstract class UsersRepository {
   abstract findAll(): Promise<UserEntity[]>;
 
   /** Null when there is no such user. */
-  abstract setStatus(id: string, status: UserStatus): Promise<UserEntity | null>;
+  abstract updateAdminFields(
+    id: string,
+    data: UpdateUserAdminData,
+  ): Promise<UserEntity | null>;
+
+  /**
+   * What each of these pilots keeps in storage, in bytes: photos, post
+   * images and flight logs. An upload signed but never finished counts for a
+   * day: long enough to stop a burst of requests racing past the limit, short
+   * enough that an abandoned one does not hold space for ever. A pilot with
+   * nothing stored is absent from the map.
+   */
+  abstract storageUsedBy(ids: readonly string[]): Promise<ReadonlyMap<string, number>>;
 }

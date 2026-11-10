@@ -23,6 +23,13 @@
   </sh-section>
 
   <sh-section heading="Pilots" icon="group" [count]="store.users().length">
-    <sh-pilots-table [users]="store.users()" [saving]="store.saving()" (statusChanged)="setStatus($event)" />
+    <sh-pilots-table
+      [users]="store.users()"
+      [defaultLimitBytes]="settings.defaultStorageQuotaBytes"
+      [saving]="store.saving()"
+      (statusChanged)="setStatus($event)"
+      (limitChanged)="setLimit($event)"
+      (defaultLimitChanged)="setDefaultLimit($event)"
+    />
   </sh-section>
 }

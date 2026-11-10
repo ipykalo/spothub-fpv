@@ -22,6 +22,7 @@ describe('AdminStore', () => {
     stored: AppSettingsDto = {
       openRegistration: false,
       allowedEmails: ['pilot@example.com'],
+      defaultStorageQuotaBytes: 2048,
       updatedAt: '2026-11-10T00:00:00.000Z',
     };
     sent: UpdateAppSettingsDto[] = [];
@@ -36,6 +37,9 @@ describe('AdminStore', () => {
         isViewer: false,
         createdAt: '2026-11-01T00:00:00.000Z',
         lastSignInAt: null,
+        storageUsedBytes: 0,
+        storageLimitBytes: 2048,
+        storageQuotaBytes: null,
       },
     ];
     fails = false;
@@ -122,15 +126,28 @@ describe('AdminStore', () => {
   });
 
   it('shows a pilot’s new status once the API has it', async () => {
-    expect(await store.setUserStatus('u1', UserStatus.Blocked)).toBe(true);
+    expect(await store.updateUser('u1', { status: UserStatus.Blocked })).toBe(true);
 
     expect(store.users()[0].status).toBe(UserStatus.Blocked);
+  });
+
+  it('gives a pilot their own storage limit', async () => {
+    await store.updateUser('u1', { storageQuotaBytes: 4096 });
+
+    expect(store.users()[0].storageQuotaBytes).toBe(4096);
+  });
+
+  it('changes the default limit with that setting alone', async () => {
+    await store.setDefaultStorageLimit(8192);
+
+    expect(api.sent).toEqual([{ defaultStorageQuotaBytes: 8192 }]);
+    expect(store.settings()?.defaultStorageQuotaBytes).toBe(8192);
   });
 
   it('leaves a pilot’s status alone when the change fails', async () => {
     api.fails = true;
 
-    expect(await store.setUserStatus('u1', UserStatus.Blocked)).toBe(false);
+    expect(await store.updateUser('u1', { status: UserStatus.Blocked })).toBe(false);
     expect(store.users()[0].status).toBe(UserStatus.Active);
   });
 

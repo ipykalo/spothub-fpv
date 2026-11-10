@@ -56,6 +56,9 @@ export class SettingsService {
       ...(input.allowedEmails === undefined
         ? {}
         : { allowedEmails: input.allowedEmails }),
+      ...(input.defaultStorageQuotaBytes === undefined
+        ? {}
+        : { defaultStorageQuotaBytes: input.defaultStorageQuotaBytes }),
     };
 
     return toAppSettingsDto(await this.settings.update(this.initial, data));

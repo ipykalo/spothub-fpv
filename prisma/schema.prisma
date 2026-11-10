@@ -34,17 +34,20 @@ enum UserStatus {
 }
 
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  email        String     @unique
-  displayName  String?    @map("display_name")
-  avatarUrl    String?    @map("avatar_url")
-  role         Role       @default(USER)
-  status       UserStatus @default(ACTIVE)
+  id                String     @id @default(uuid()) @db.Uuid
+  email             String     @unique
+  displayName       String?    @map("display_name")
+  avatarUrl         String?    @map("avatar_url")
+  role              Role       @default(USER)
+  status            UserStatus @default(ACTIVE)
   /// Stamped by a Google sign-in, not by a token refresh: when the person last
   /// came through the front door, for the Admin page's list of pilots.
-  lastSignInAt DateTime?  @map("last_sign_in_at")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  lastSignInAt      DateTime?  @map("last_sign_in_at")
+  /// How much this pilot may keep in storage, overriding the default in
+  /// `app_settings`. Null follows the default.
+  storageQuotaBytes BigInt?    @map("storage_quota_bytes")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
 
   identities    AuthIdentity[]
   refreshTokens RefreshToken[]
@@ -939,11 +942,14 @@ model Like {
 /// moving them here changed nothing until someone flipped one. Secrets stay
 /// in the environment: nothing that can start or break the app lives here.
 model AppSettings {
-  id               Int      @id @default(1)
-  openRegistration Boolean  @default(false) @map("open_registration")
+  id                       Int      @id @default(1)
+  openRegistration         Boolean  @default(false) @map("open_registration")
   /// Lower-cased. Who may sign in while registration is closed.
-  allowedEmails    String[] @default([]) @map("allowed_emails")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  allowedEmails            String[] @default([]) @map("allowed_emails")
+  /// How much each pilot may keep in storage — photos, post images and flight
+  /// logs — unless their own `storage_quota_bytes` says otherwise. 2 GiB.
+  defaultStorageQuotaBytes BigInt   @default(2147483648) @map("default_storage_quota_bytes")
+  updatedAt                DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")
 }
