@@ -38,13 +38,21 @@ describe('exchange rates', () => {
     const amounts = [{ amount: 100, currency: 'USD', day }];
 
     // Twice at once: the day is queued once.
-    await Promise.all([facade().totals(amounts, ['UAH']), facade().totals(amounts, ['UAH'])]);
+    await Promise.all([
+      facade().totals(amounts, ['UAH']),
+      facade().totals(amounts, ['UAH']),
+    ]);
 
-    await vi.waitFor(async () => {
-      expect(await storedFor(day)).toBe(3);
-    }, { timeout: 15_000, interval: 200 });
+    await vi.waitFor(
+      async () => {
+        expect(await storedFor(day)).toBe(3);
+      },
+      { timeout: 15_000, interval: 200 },
+    );
 
-    expect(StubRateSource.asked.slice(asked).filter((entry) => entry === day)).toHaveLength(1);
+    expect(
+      StubRateSource.asked.slice(asked).filter((entry) => entry === day),
+    ).toHaveLength(1);
 
     const [total] = await facade().totals(amounts, ['UAH']);
     expect(total).toEqual({
@@ -57,18 +65,30 @@ describe('exchange rates', () => {
 
   it('converts a day not fetched yet with the nearest one stored, and says it is approximate', async () => {
     const [stored, later] = DAYS;
-    const [total] = await facade().totals([{ amount: 10, currency: 'USD', day: later }], ['UAH']);
+    const [total] = await facade().totals(
+      [{ amount: 10, currency: 'USD', day: later }],
+      ['UAH'],
+    );
 
     // 2026-03-01 is stored by now; 2026-03-05 is not, until its job runs.
     expect(total.exact).toBe(false);
     expect(total.amount).toBe(10 * StubRateSource.usdOn(stored));
 
-    await vi.waitFor(async () => {
-      expect(await storedFor(later)).toBe(3);
-    }, { timeout: 15_000, interval: 200 });
+    await vi.waitFor(
+      async () => {
+        expect(await storedFor(later)).toBe(3);
+      },
+      { timeout: 15_000, interval: 200 },
+    );
 
-    const [exact] = await facade().totals([{ amount: 10, currency: 'USD', day: later }], ['UAH']);
-    expect(exact).toMatchObject({ amount: 10 * StubRateSource.usdOn(later), exact: true });
+    const [exact] = await facade().totals(
+      [{ amount: 10, currency: 'USD', day: later }],
+      ['UAH'],
+    );
+    expect(exact).toMatchObject({
+      amount: 10 * StubRateSource.usdOn(later),
+      exact: true,
+    });
   });
 
   it('adds up several currencies into several, through the hryvnia', async () => {
@@ -84,7 +104,9 @@ describe('exchange rates', () => {
 
     const usd = StubRateSource.usdOn(day);
     expect(totals[0].amount).toBe(50 * usd + 1000 + 20 * 10);
-    expect(totals[1].amount).toBe(Math.round(((50 * usd + 1000 + 200) / usd) * 100) / 100);
+    expect(totals[1].amount).toBe(
+      Math.round(((50 * usd + 1000 + 200) / usd) * 100) / 100,
+    );
     expect(totals.every((total) => total.exact)).toBe(true);
   });
 });

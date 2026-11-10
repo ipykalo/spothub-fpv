@@ -103,7 +103,9 @@ describe('markdownBlocks', () => {
     });
 
     it('makes a link say where it goes, open in a new tab, and lend the site nothing', () => {
-      const out = html(markdownBlocks('Bought from [this **shop**](https://www.getfpv.com/motor).'));
+      const out = html(
+        markdownBlocks('Bought from [this **shop**](https://www.getfpv.com/motor).'),
+      );
 
       expect(out).toContain('href="https://www.getfpv.com/motor"');
       expect(out).toContain('target="_blank"');

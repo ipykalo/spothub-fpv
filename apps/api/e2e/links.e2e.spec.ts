@@ -44,7 +44,11 @@ describe('links', () => {
   const as = (): string => `Bearer ${pilot.accessToken}`;
 
   it('stores only web addresses as shop links', async () => {
-    for (const purchaseUrl of ['javascript:alert(1)', 'data:text/html,hi', 'file:///etc/passwd']) {
+    for (const purchaseUrl of [
+      'javascript:alert(1)',
+      'data:text/html,hi',
+      'file:///etc/passwd',
+    ]) {
       const response = await request(testApp.server)
         .post('/api/builds')
         .set('Authorization', as())
@@ -99,7 +103,9 @@ describe('links', () => {
     const preview = testApp.app.get(UrlPreviewService);
 
     // A name that resolves to loopback, and loopback written inside IPv6.
-    const byName = await preview.fetchPreview(`http://localhost.:${String(internalPort)}/`);
+    const byName = await preview.fetchPreview(
+      `http://localhost.:${String(internalPort)}/`,
+    );
     expect(byName.title).toBeNull();
 
     await expect(

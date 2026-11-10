@@ -26,7 +26,9 @@ describe('build videos', () => {
       name: 'Filmed five-inch',
       visibility: 'PUBLIC',
     });
-    secret = await send<BuildDto>(owner, 'post', '/api/builds', { name: 'Unfilmed prototype' });
+    secret = await send<BuildDto>(owner, 'post', '/api/builds', {
+      name: 'Unfilmed prototype',
+    });
   });
 
   afterAll(async () => {
@@ -91,26 +93,43 @@ describe('build videos', () => {
     const list = await send<BuildVideoDto[]>(stranger, 'get', videos(shared.id));
     expect(list.map((video) => video.title)).toContain('First pack');
 
-    await send(stranger, 'post', videos(shared.id), { link: 'https://youtu.be/dQw4w9WgXcQ' }, 404);
+    await send(
+      stranger,
+      'post',
+      videos(shared.id),
+      { link: 'https://youtu.be/dQw4w9WgXcQ' },
+      404,
+    );
     await send(stranger, 'delete', `${videos(shared.id)}/${list[0].id}`, undefined, 404);
     expect(await send<BuildVideoDto[]>(owner, 'get', videos(shared.id))).toHaveLength(1);
   });
 
   it('answers 404 for a build the reader may not open, and 401 to a visitor', async () => {
-    await send(owner, 'post', videos(secret.id), { link: 'https://youtu.be/dQw4w9WgXcQ' });
+    await send(owner, 'post', videos(secret.id), {
+      link: 'https://youtu.be/dQw4w9WgXcQ',
+    });
 
     await send(stranger, 'get', videos(secret.id), undefined, 404);
     await send(null, 'get', videos(shared.id), undefined, 401);
   });
 
   it('holds a build to its limit', async () => {
-    const existing = (await send<BuildVideoDto[]>(owner, 'get', videos(secret.id))).length;
+    const existing = (await send<BuildVideoDto[]>(owner, 'get', videos(secret.id)))
+      .length;
 
     for (let i = existing; i < MAX_BUILD_VIDEOS; i += 1) {
-      await send(owner, 'post', videos(secret.id), { link: 'https://youtu.be/dQw4w9WgXcQ' });
+      await send(owner, 'post', videos(secret.id), {
+        link: 'https://youtu.be/dQw4w9WgXcQ',
+      });
     }
 
-    await send(owner, 'post', videos(secret.id), { link: 'https://youtu.be/dQw4w9WgXcQ' }, 409);
+    await send(
+      owner,
+      'post',
+      videos(secret.id),
+      { link: 'https://youtu.be/dQw4w9WgXcQ' },
+      409,
+    );
   });
 
   it('removes a video for its owner', async () => {

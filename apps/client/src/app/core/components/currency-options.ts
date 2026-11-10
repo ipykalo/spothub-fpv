@@ -7,8 +7,10 @@ import type { ChoiceOption } from './choice-option';
  * label and its name as the hint, so typing "dollar" or "zł" finds it as
  * readily as "USD". Built once; every currency field shares it.
  */
-export const CURRENCY_OPTIONS: readonly ChoiceOption<Currency>[] = CURRENCIES.map((code) => ({
-  value: code,
-  label: code,
-  hint: CURRENCY_NAMES[code],
-}));
+export const CURRENCY_OPTIONS: readonly ChoiceOption<Currency>[] = CURRENCIES.map(
+  (code) => ({
+    value: code,
+    label: code,
+    hint: CURRENCY_NAMES[code],
+  }),
+);

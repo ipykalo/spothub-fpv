@@ -1,4 +1,8 @@
-import { type CreateBuildVideoDto, type YouTubeVideo, createBuildVideoSchema } from '@spothub/shared';
+import {
+  type CreateBuildVideoDto,
+  type YouTubeVideo,
+  createBuildVideoSchema,
+} from '@spothub/shared';
 
 /** The add-a-video form, read against the schema the API applies. */
 export interface VideoDraft {

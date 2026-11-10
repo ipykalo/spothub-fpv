@@ -17,7 +17,13 @@ export class RepairsFacadeImpl extends RepairsFacade {
     const amounts = repairs.flatMap((repair) =>
       repair.cost === null || repair.currency === null
         ? []
-        : [{ amount: repair.cost, currency: repair.currency, day: toDateOnly(repair.occurredOn) }],
+        : [
+            {
+              amount: repair.cost,
+              currency: repair.currency,
+              day: toDateOnly(repair.occurredOn),
+            },
+          ],
     );
 
     return { totals: rollUpRepairs(repairs), count: repairs.length, amounts };

@@ -84,9 +84,9 @@ describe('pilot names', () => {
     });
     expect(saved).toEqual({ pilotName: 'Sky Ninja', publicName: 'Sky Ninja' });
 
-    expect((await send<BuildDto>(reader, 'get', `/api/builds/${build.id}`)).ownerName).toBe(
-      'Sky Ninja',
-    );
+    expect(
+      (await send<BuildDto>(reader, 'get', `/api/builds/${build.id}`)).ownerName,
+    ).toBe('Sky Ninja');
     expect((await send<PostDto>(null, 'get', `/api/posts/${post.id}`)).authorName).toBe(
       'Sky Ninja',
     );

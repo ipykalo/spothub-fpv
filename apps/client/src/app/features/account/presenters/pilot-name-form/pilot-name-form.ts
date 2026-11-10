@@ -44,7 +44,9 @@ export class PilotNameForm {
 
   constructor() {
     // Starts from, and follows, what is saved.
-    effect(() => { this.typed.set(this.user().pilotName ?? ''); });
+    effect(() => {
+      this.typed.set(this.user().pilotName ?? '');
+    });
   }
 
   protected onTyped(event: Event): void {

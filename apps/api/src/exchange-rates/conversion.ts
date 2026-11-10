@@ -29,7 +29,10 @@ export interface ConvertedTotal {
 
 const HRYVNIA = 'UAH';
 
-function uahPerUnit(rates: ReadonlyMap<string, number> | undefined, currency: string): number | null {
+function uahPerUnit(
+  rates: ReadonlyMap<string, number> | undefined,
+  currency: string,
+): number | null {
   if (currency === HRYVNIA) {
     return 1;
   }

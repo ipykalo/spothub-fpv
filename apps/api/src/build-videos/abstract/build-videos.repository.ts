@@ -17,7 +17,10 @@ export abstract class BuildVideosRepository {
   ): Promise<string | null>;
 
   /** Newest first. */
-  abstract findManyForOwner(ownerId: string, buildId: string): Promise<BuildVideoEntity[]>;
+  abstract findManyForOwner(
+    ownerId: string,
+    buildId: string,
+  ): Promise<BuildVideoEntity[]>;
 
   /**
    * Adds a video to the owner's build. Null when the build is not theirs;
@@ -29,5 +32,9 @@ export abstract class BuildVideosRepository {
     limit: number,
   ): Promise<BuildVideoEntity | 'full' | null>;
 
-  abstract deleteForOwner(ownerId: string, buildId: string, videoId: string): Promise<boolean>;
+  abstract deleteForOwner(
+    ownerId: string,
+    buildId: string,
+    videoId: string,
+  ): Promise<boolean>;
 }

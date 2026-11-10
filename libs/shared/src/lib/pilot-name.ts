@@ -10,7 +10,7 @@ export const pilotNameSchema = z
   .trim()
   .min(2, 'At least 2 characters')
   .max(32, 'At most 32 characters')
-  .regex(/^[\p{L}\p{N}][\p{L}\p{N} ._'-]*$/u, 'Letters, digits, spaces and . _ \' - only');
+  .regex(/^[\p{L}\p{N}][\p{L}\p{N} ._'-]*$/u, "Letters, digits, spaces and . _ ' - only");
 
 /** Setting it, or clearing it with null to go back to the short form of the Google name. */
 export const updatePilotNameSchema = z.object({
@@ -30,7 +30,10 @@ export interface PilotNameDto {
  * cut to the first name and the last name's initial — "Ivan P.", never the
  * full name a stranger never agreed to publish. Null when there is neither.
  */
-export function publicName(pilotName: string | null, fullName: string | null): string | null {
+export function publicName(
+  pilotName: string | null,
+  fullName: string | null,
+): string | null {
   const chosen = pilotName?.trim();
 
   if (chosen) {

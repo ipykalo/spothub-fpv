@@ -39,7 +39,10 @@ export class UsersService {
   }
 
   /** The pilot's own currency for totals, for themselves only. */
-  async setHomeCurrency(userId: string, input: UpdateHomeCurrencyDto): Promise<UpdateHomeCurrencyDto> {
+  async setHomeCurrency(
+    userId: string,
+    input: UpdateHomeCurrencyDto,
+  ): Promise<UpdateHomeCurrencyDto> {
     const updated = await this.users.setHomeCurrency(userId, input.homeCurrency);
 
     if (!updated) {

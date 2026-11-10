@@ -116,7 +116,9 @@ export class UrlPreviewService {
           continue;
         }
 
-        return page.status === 200 && page.contentType.includes('text/html') ? page.body : null;
+        return page.status === 200 && page.contentType.includes('text/html')
+          ? page.body
+          : null;
       }
 
       return null;
@@ -144,7 +146,11 @@ interface FetchedPage {
 const publicOnlyLookup = (
   hostname: string,
   options: LookupOptions,
-  callback: (error: Error | null, address: string | LookupAddress[], family?: number) => void,
+  callback: (
+    error: Error | null,
+    address: string | LookupAddress[],
+    family?: number,
+  ) => void,
 ): void => {
   dnsLookup(hostname, { ...options, all: true }, (error, addresses) => {
     if (error) {
@@ -152,7 +158,10 @@ const publicOnlyLookup = (
       return;
     }
 
-    if (addresses.length === 0 || addresses.some((entry) => !isPublicAddress(entry.address))) {
+    if (
+      addresses.length === 0 ||
+      addresses.some((entry) => !isPublicAddress(entry.address))
+    ) {
       callback(new Error(`${hostname} does not resolve to a public address`), '');
       return;
     }

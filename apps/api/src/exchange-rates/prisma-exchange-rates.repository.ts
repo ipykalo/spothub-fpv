@@ -35,7 +35,9 @@ export class PrismaExchangeRatesRepository extends ExchangeRatesRepository {
       }));
 
     const wanted = [...days.map(toDate), ...(fallback ? [fallback.day] : [])];
-    const rows = await this.prisma.exchangeRate.findMany({ where: { day: { in: wanted } } });
+    const rows = await this.prisma.exchangeRate.findMany({
+      where: { day: { in: wanted } },
+    });
 
     const byDay = new Map<string, Map<string, number>>();
 

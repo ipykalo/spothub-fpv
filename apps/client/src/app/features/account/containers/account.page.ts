@@ -35,9 +35,13 @@ export class AccountPage {
 
     if (saved) {
       this.auth.applyPilotName(saved);
-      this.snackBar.open(`Others now see you as ${saved.publicName ?? 'a pilot'}.`, undefined, {
-        duration: 4000,
-      });
+      this.snackBar.open(
+        `Others now see you as ${saved.publicName ?? 'a pilot'}.`,
+        undefined,
+        {
+          duration: 4000,
+        },
+      );
     }
   }
 

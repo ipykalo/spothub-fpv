@@ -29,7 +29,11 @@ export class BuildVideosService {
     return videos.map(toBuildVideoDto);
   }
 
-  async add(ownerId: string, buildId: string, input: CreateBuildVideoDto): Promise<BuildVideoDto> {
+  async add(
+    ownerId: string,
+    buildId: string,
+    input: CreateBuildVideoDto,
+  ): Promise<BuildVideoDto> {
     const created = await this.videos.create(
       ownerId,
       {

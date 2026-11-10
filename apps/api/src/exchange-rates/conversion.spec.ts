@@ -4,8 +4,22 @@ import { type RatesByDay, convertTotal, daysNeeded, ratesFor } from './conversio
 
 /** Hryvnias per unit, as the NBU publishes them. */
 const RATES: RatesByDay = new Map([
-  ['2025-01-01', new Map([['USD', 42.0295], ['EUR', 43.6855], ['PLN', 10.218]])],
-  ['2026-11-08', new Map([['USD', 45.4432], ['EUR', 51.0406], ['PLN', 11.6239]])],
+  [
+    '2025-01-01',
+    new Map([
+      ['USD', 42.0295],
+      ['EUR', 43.6855],
+      ['PLN', 10.218],
+    ]),
+  ],
+  [
+    '2026-11-08',
+    new Map([
+      ['USD', 45.4432],
+      ['EUR', 51.0406],
+      ['PLN', 11.6239],
+    ]),
+  ],
 ]);
 
 describe('convertTotal', () => {
@@ -19,11 +33,20 @@ describe('convertTotal', () => {
       RATES,
     );
 
-    expect(total).toEqual({ currency: 'UAH', amount: 8747.27, exact: true, ratesOn: '2026-11-08' });
+    expect(total).toEqual({
+      currency: 'UAH',
+      amount: 8747.27,
+      exact: true,
+      ratesOn: '2026-11-08',
+    });
   });
 
   it('goes from one foreign currency to another', () => {
-    const total = convertTotal([{ amount: 20, currency: 'EUR', day: '2026-11-08' }], 'USD', RATES);
+    const total = convertTotal(
+      [{ amount: 20, currency: 'EUR', day: '2026-11-08' }],
+      'USD',
+      RATES,
+    );
 
     // 20 × 51.0406 / 45.4432
     expect(total.amount).toBe(22.46);
@@ -45,16 +68,32 @@ describe('convertTotal', () => {
   });
 
   it('uses the nearest earlier day for a day not fetched yet, and says it is approximate', () => {
-    const total = convertTotal([{ amount: 10, currency: 'USD', day: '2026-11-10' }], 'UAH', RATES);
+    const total = convertTotal(
+      [{ amount: 10, currency: 'USD', day: '2026-11-10' }],
+      'UAH',
+      RATES,
+    );
 
-    expect(total).toEqual({ currency: 'UAH', amount: 454.43, exact: false, ratesOn: '2026-11-08' });
+    expect(total).toEqual({
+      currency: 'UAH',
+      amount: 454.43,
+      exact: false,
+      ratesOn: '2026-11-08',
+    });
   });
 
   it('has no total when a currency has no rate at all', () => {
-    const total = convertTotal([{ amount: 5, currency: 'INR', day: '2026-11-08' }], 'UAH', RATES);
+    const total = convertTotal(
+      [{ amount: 5, currency: 'INR', day: '2026-11-08' }],
+      'UAH',
+      RATES,
+    );
 
     expect(total.amount).toBeNull();
-    expect(convertTotal([{ amount: 5, currency: 'USD', day: '2026-11-08' }], 'UAH', new Map()).amount).toBeNull();
+    expect(
+      convertTotal([{ amount: 5, currency: 'USD', day: '2026-11-08' }], 'UAH', new Map())
+        .amount,
+    ).toBeNull();
   });
 
   it('is zero for nothing to add', () => {
@@ -89,6 +128,8 @@ describe('daysNeeded', () => {
       ),
     ).toEqual(['2025-01-01', '2026-11-08']);
 
-    expect(daysNeeded([{ amount: 1, currency: 'USD', day: '2026-11-08' }], ['USD'])).toEqual([]);
+    expect(
+      daysNeeded([{ amount: 1, currency: 'USD', day: '2026-11-08' }], ['USD']),
+    ).toEqual([]);
   });
 });

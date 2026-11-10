@@ -64,7 +64,9 @@ export function isPublicAddress(address: string): boolean {
 
   if (family === 6) {
     // The rest of ::ffff:0:0/96, written in hex, is not public either.
-    return !address.toLowerCase().startsWith('::ffff:') && !BLOCKED.check(address, 'ipv6');
+    return (
+      !address.toLowerCase().startsWith('::ffff:') && !BLOCKED.check(address, 'ipv6')
+    );
   }
 
   return false;

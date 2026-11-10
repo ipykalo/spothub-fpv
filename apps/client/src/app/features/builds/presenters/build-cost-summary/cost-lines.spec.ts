@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { costLines, formatMoney } from './cost-lines';
 
-const total = (currency: string, amount: number | null, exact = true): ConvertedTotalDto => ({
+const total = (
+  currency: string,
+  amount: number | null,
+  exact = true,
+): ConvertedTotalDto => ({
   currency,
   amount,
   exact,
@@ -34,20 +38,29 @@ describe('costLines', () => {
   });
 
   it('needs no "≈" and no second line when everything was paid in a currency already shown', () => {
-    const lines = costLines([{ currency: 'USD', amount: 120 }], [total('UAH', 5000), total('USD', 120)]);
+    const lines = costLines(
+      [{ currency: 'USD', amount: 120 }],
+      [total('UAH', 5000), total('USD', 120)],
+    );
 
     expect(lines.headline).toEqual(['≈ ₴5,000', '$120']);
     expect(lines.paidAs).toEqual([]);
   });
 
   it('says when some rates are still being fetched', () => {
-    const lines = costLines([{ currency: 'EUR', amount: 10 }], [total('UAH', 510, false), total('USD', 11.2, false)]);
+    const lines = costLines(
+      [{ currency: 'EUR', amount: 10 }],
+      [total('UAH', 510, false), total('USD', 11.2, false)],
+    );
 
     expect(lines.note).toContain('still being fetched');
   });
 
   it('falls back to what was paid when nothing could be converted yet', () => {
-    const lines = costLines([{ currency: 'EUR', amount: 10 }], [total('UAH', null), total('USD', null)]);
+    const lines = costLines(
+      [{ currency: 'EUR', amount: 10 }],
+      [total('UAH', null), total('USD', null)],
+    );
 
     expect(lines.headline).toEqual(['€10']);
     expect(lines.paidAs).toEqual([]);
@@ -55,6 +68,10 @@ describe('costLines', () => {
   });
 
   it('shows nothing for nothing paid', () => {
-    expect(costLines([], [total('UAH', 0)])).toEqual({ headline: [], paidAs: [], note: null });
+    expect(costLines([], [total('UAH', 0)])).toEqual({
+      headline: [],
+      paidAs: [],
+      note: null,
+    });
   });
 });

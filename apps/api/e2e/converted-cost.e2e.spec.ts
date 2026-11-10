@@ -20,10 +20,18 @@ describe('converted cost totals', () => {
   const BOUGHT_ON = '2026-04-01';
   const PART_ON = '2026-04-10';
   const REPAIR_ON = '2026-04-20';
-  const days = [BOUGHT_ON, PART_ON, REPAIR_ON].map((day) => new Date(`${day}T00:00:00.000Z`));
+  const days = [BOUGHT_ON, PART_ON, REPAIR_ON].map(
+    (day) => new Date(`${day}T00:00:00.000Z`),
+  );
 
-  const send = async <T>(method: 'get' | 'post' | 'patch', path: string, body?: object): Promise<T> => {
-    const call = request(testApp.server)[method](path).set('Authorization', `Bearer ${owner.accessToken}`);
+  const send = async <T>(
+    method: 'get' | 'post' | 'patch',
+    path: string,
+    body?: object,
+  ): Promise<T> => {
+    const call = request(testApp.server)
+      [method](path)
+      .set('Authorization', `Bearer ${owner.accessToken}`);
     const response = await (body ? call.send(body) : call);
     expect(response.status, `${method.toUpperCase()} ${path}`).toBeLessThan(300);
     return response.body as T;
@@ -32,7 +40,9 @@ describe('converted cost totals', () => {
   beforeAll(async () => {
     testApp = await createTestApp();
     owner = await createTestUser(testApp.app, 'converted-owner');
-    await testApp.app.get(PrismaService).exchangeRate.deleteMany({ where: { day: { in: days } } });
+    await testApp.app
+      .get(PrismaService)
+      .exchangeRate.deleteMany({ where: { day: { in: days } } });
 
     await send('patch', '/api/users/me/currency', { homeCurrency: 'UAH' });
 
@@ -45,7 +55,10 @@ describe('converted cost totals', () => {
       builtOn: BOUGHT_ON,
     });
 
-    const part = await send<PartDto>('post', '/api/parts', { name: 'Upgrade motor', category: 'MOTOR' });
+    const part = await send<PartDto>('post', '/api/parts', {
+      name: 'Upgrade motor',
+      category: 'MOTOR',
+    });
     await send('post', `/api/parts/${part.id}/sources`, {
       price: 50,
       currency: 'USD',
@@ -68,20 +81,26 @@ describe('converted cost totals', () => {
 
   afterAll(async () => {
     await deleteTestUser(testApp.app, owner.id);
-    await testApp.app.get(PrismaService).exchangeRate.deleteMany({ where: { day: { in: days } } });
+    await testApp.app
+      .get(PrismaService)
+      .exchangeRate.deleteMany({ where: { day: { in: days } } });
     await testApp.close();
   });
 
-  const cost = (): Promise<BuildCostDto> => send<BuildCostDto>('get', `/api/builds/${build.id}/parts/cost`);
+  const cost = (): Promise<BuildCostDto> =>
+    send<BuildCostDto>('get', `/api/builds/${build.id}/parts/cost`);
 
   it('adds every price up at its own day’s rate, in the viewer’s currency and USD', async () => {
     // The first look queues the three days; once fetched, the totals are exact.
     await cost();
-    await vi.waitFor(async () => {
-      const latest = await cost();
-      expect(latest.converted.totals.every((total) => total.exact)).toBe(true);
-      expect(latest.converted.repairTotals.every((total) => total.exact)).toBe(true);
-    }, { timeout: 20_000, interval: 300 });
+    await vi.waitFor(
+      async () => {
+        const latest = await cost();
+        expect(latest.converted.totals.every((total) => total.exact)).toBe(true);
+        expect(latest.converted.repairTotals.every((total) => total.exact)).toBe(true);
+      },
+      { timeout: 20_000, interval: 300 },
+    );
 
     const result = await cost();
 
@@ -98,7 +117,10 @@ describe('converted cost totals', () => {
     const expectedUah = 8000 + 50 * usdOnPart;
     const expectedUsd = 8000 / usdOnBuy + 50;
 
-    expect(result.converted.totals.map((total) => total.currency)).toEqual(['UAH', 'USD']);
+    expect(result.converted.totals.map((total) => total.currency)).toEqual([
+      'UAH',
+      'USD',
+    ]);
     expect(result.converted.totals[0].amount).toBe(Math.round(expectedUah * 100) / 100);
     expect(result.converted.totals[1].amount).toBe(Math.round(expectedUsd * 100) / 100);
 

@@ -42,7 +42,14 @@ interface SpecEntry {
 @Component({
   selector: 'sh-part-details',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Autocomplete, LinkHostPipe, MatButtonModule, MatCardModule, MatIconModule, Section],
+  imports: [
+    Autocomplete,
+    LinkHostPipe,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    Section,
+  ],
   templateUrl: './part-details.html',
   styleUrl: './part-details.scss',
 })

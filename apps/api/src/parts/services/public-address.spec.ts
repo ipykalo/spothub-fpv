@@ -4,7 +4,12 @@ import { isPublicAddress } from './public-address';
 
 describe('isPublicAddress', () => {
   it('lets public addresses through', () => {
-    for (const address of ['8.8.8.8', '1.1.1.1', '46.224.2.250', '2606:4700:4700::1111']) {
+    for (const address of [
+      '8.8.8.8',
+      '1.1.1.1',
+      '46.224.2.250',
+      '2606:4700:4700::1111',
+    ]) {
       expect(isPublicAddress(address), address).toBe(true);
     }
   });

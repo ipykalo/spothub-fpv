@@ -4,7 +4,11 @@ import { readVideoDraft } from './video-draft';
 
 describe('readVideoDraft', () => {
   it('says nothing while the link is empty, and offers nothing to save', () => {
-    expect(readVideoDraft('  ', 'A title')).toEqual({ value: null, error: null, video: null });
+    expect(readVideoDraft('  ', 'A title')).toEqual({
+      value: null,
+      error: null,
+      video: null,
+    });
   });
 
   it('takes any form of YouTube link, start time included', () => {
@@ -18,13 +22,15 @@ describe('readVideoDraft', () => {
     expect(readVideoDraft('https://youtu.be/dQw4w9WgXcQ', '').video?.youtubeId).toBe(
       'dQw4w9WgXcQ',
     );
-    expect(readVideoDraft('https://www.youtube.com/shorts/dQw4w9WgXcQ', '').error).toBeNull();
+    expect(
+      readVideoDraft('https://www.youtube.com/shorts/dQw4w9WgXcQ', '').error,
+    ).toBeNull();
   });
 
   it('keeps a title, trimmed', () => {
-    expect(readVideoDraft('https://youtu.be/dQw4w9WgXcQ', '  First flight ').value?.title).toBe(
-      'First flight',
-    );
+    expect(
+      readVideoDraft('https://youtu.be/dQw4w9WgXcQ', '  First flight ').value?.title,
+    ).toBe('First flight');
   });
 
   it('refuses every address that is not a YouTube video', () => {

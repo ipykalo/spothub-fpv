@@ -49,7 +49,9 @@ export class AccountStore {
     try {
       return await firstValueFrom(this.api.setPilotName({ pilotName }));
     } catch (error) {
-      this.nameFailure.set(apiMessage(error, 'Your pilot name could not be saved. Try again.'));
+      this.nameFailure.set(
+        apiMessage(error, 'Your pilot name could not be saved. Try again.'),
+      );
       return null;
     } finally {
       this.naming.set(false);

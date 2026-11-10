@@ -53,7 +53,9 @@ export function costLines(
     return {
       headline: paidText,
       paidAs: [],
-      note: converted.length ? 'Exchange rates are being fetched — reload in a moment for a total.' : null,
+      note: converted.length
+        ? 'Exchange rates are being fetched — reload in a moment for a total.'
+        : null,
     };
   }
 
@@ -63,7 +65,8 @@ export function costLines(
       ? formatMoney(total.amount, total.currency)
       : `≈ ${formatMoney(total.amount, total.currency)}`,
   );
-  const alreadyShown = single !== null && usable.some((total) => total.currency === single.currency);
+  const alreadyShown =
+    single !== null && usable.some((total) => total.currency === single.currency);
   const exact = usable.every((total) => total.exact);
   const ratesOn = usable
     .map((total) => total.ratesOn)

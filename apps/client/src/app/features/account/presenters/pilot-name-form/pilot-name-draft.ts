@@ -15,7 +15,10 @@ export interface PilotNameDraft {
  * what is wrong before anything is sent. An empty field is not an error: it
  * means "go back to the short form".
  */
-export function readPilotNameDraft(typed: string, fullName: string | null): PilotNameDraft {
+export function readPilotNameDraft(
+  typed: string,
+  fullName: string | null,
+): PilotNameDraft {
   if (typed.trim() === '') {
     return { value: null, error: null, preview: publicName(null, fullName) };
   }

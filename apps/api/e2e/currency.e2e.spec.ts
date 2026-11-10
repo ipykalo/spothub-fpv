@@ -33,7 +33,10 @@ describe('currencies', () => {
     const part = await post('/api/parts', { name: 'Priced motor', category: 'MOTOR' });
     const partId = (part.body as PartDto).id;
 
-    const priced = await post(`/api/parts/${partId}/sources`, { price: 12.5, currency: 'pln' });
+    const priced = await post(`/api/parts/${partId}/sources`, {
+      price: 12.5,
+      currency: 'pln',
+    });
     expect(priced.status).toBe(201);
 
     for (const currency of ['EUE', 'XAU', 'BRL', 'DOLLARS']) {
@@ -44,7 +47,9 @@ describe('currencies', () => {
     const parts = await request(testApp.server)
       .get(`/api/parts/${partId}`)
       .set('Authorization', `Bearer ${pilot.accessToken}`);
-    expect((parts.body as PartDto).sources.map((source) => source.currency)).toEqual(['PLN']);
+    expect((parts.body as PartDto).sources.map((source) => source.currency)).toEqual([
+      'PLN',
+    ]);
   });
 
   it('holds a repair and a bought quad to the same list', async () => {

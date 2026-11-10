@@ -52,7 +52,9 @@ describe('BuildVideosStore', () => {
 
   beforeEach(() => {
     api = new FakeApi();
-    const injector = Injector.create({ providers: [{ provide: BuildVideosApi, useValue: api }] });
+    const injector = Injector.create({
+      providers: [{ provide: BuildVideosApi, useValue: api }],
+    });
     store = runInInjectionContext(injector, () => new BuildVideosStore());
   });
 
@@ -81,7 +83,9 @@ describe('BuildVideosStore', () => {
     });
 
     expect(await store.add('b1', input)).toBe(false);
-    expect(store.addError()).toBe('A build holds up to 20 videos. Remove one to add another.');
+    expect(store.addError()).toBe(
+      'A build holds up to 20 videos. Remove one to add another.',
+    );
   });
 
   it('removes at once, and puts it back if the call fails', async () => {

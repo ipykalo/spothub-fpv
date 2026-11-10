@@ -81,7 +81,10 @@ describe('AccountStore', () => {
       pilotName: 'Sky Ninja',
       publicName: 'Sky Ninja',
     });
-    expect(await store.setPilotName(null)).toEqual({ pilotName: null, publicName: 'Ivan P.' });
+    expect(await store.setPilotName(null)).toEqual({
+      pilotName: null,
+      publicName: 'Ivan P.',
+    });
     expect(api.namesSent).toEqual([{ pilotName: 'Sky Ninja' }, { pilotName: null }]);
     expect(store.savingName()).toBe(false);
     expect(store.nameError()).toBeNull();
@@ -103,7 +106,9 @@ describe('AccountStore', () => {
 
     api.currencyFails = true;
     expect(await store.setHomeCurrency('EUR')).toBeNull();
-    expect(store.currencyError()).toBe('Your home currency could not be saved. Try again.');
+    expect(store.currencyError()).toBe(
+      'Your home currency could not be saved. Try again.',
+    );
   });
 
   it('deletes the account', async () => {

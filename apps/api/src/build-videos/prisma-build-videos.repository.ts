@@ -61,7 +61,11 @@ export class PrismaBuildVideosRepository extends BuildVideosRepository {
     });
   }
 
-  async deleteForOwner(ownerId: string, buildId: string, videoId: string): Promise<boolean> {
+  async deleteForOwner(
+    ownerId: string,
+    buildId: string,
+    videoId: string,
+  ): Promise<boolean> {
     const { count } = await this.prisma.buildVideo.deleteMany({
       where: { id: videoId, buildId, build: { ownerId } },
     });

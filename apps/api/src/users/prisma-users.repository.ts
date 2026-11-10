@@ -169,12 +169,18 @@ export class PrismaUsersRepository extends UsersRepository {
   }
 
   async setPilotName(id: string, pilotName: string | null): Promise<UserEntity | null> {
-    const { count } = await this.prisma.user.updateMany({ where: { id }, data: { pilotName } });
+    const { count } = await this.prisma.user.updateMany({
+      where: { id },
+      data: { pilotName },
+    });
     return count > 0 ? this.findById(id) : null;
   }
 
   async setHomeCurrency(id: string, homeCurrency: string): Promise<UserEntity | null> {
-    const { count } = await this.prisma.user.updateMany({ where: { id }, data: { homeCurrency } });
+    const { count } = await this.prisma.user.updateMany({
+      where: { id },
+      data: { homeCurrency },
+    });
     return count > 0 ? this.findById(id) : null;
   }
 

@@ -154,5 +154,8 @@ export function rollUpCost(
  */
 function paidOn(fitted: FittedUnitDto): string {
   const purchase = fitted.part.sources.find((source) => source.isPurchase);
-  return (purchase?.purchasedOn ?? purchase?.capturedAt ?? fitted.part.createdAt).slice(0, 10);
+  return (purchase?.purchasedOn ?? purchase?.capturedAt ?? fitted.part.createdAt).slice(
+    0,
+    10,
+  );
 }

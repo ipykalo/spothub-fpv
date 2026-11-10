@@ -3,7 +3,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { JobQueue } from '../jobs';
 import { ExchangeRatesFacade } from './abstract/exchange-rates.facade';
 import { ExchangeRatesRepository } from './abstract/exchange-rates.repository';
-import { type ConvertedTotal, type DatedAmount, convertTotal, daysNeeded } from './conversion';
+import {
+  type ConvertedTotal,
+  type DatedAmount,
+  convertTotal,
+  daysNeeded,
+} from './conversion';
 import { RATES_FETCH_JOB } from './rates-fetch.job';
 
 /** How long a day asked for stays asked for, so a busy page does not queue it again. */
