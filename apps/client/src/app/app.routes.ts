@@ -179,6 +179,13 @@ export const appRoutes: Route[] = [
     ],
   },
   {
+    // The pilot's own account: storage used, and deleting it.
+    path: 'account',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/account/containers/account.page').then((m) => m.AccountPage),
+  },
+  {
     // Who may sign in, changed without SSH or a restart. Admins only.
     path: 'admin',
     canActivate: [adminGuard],

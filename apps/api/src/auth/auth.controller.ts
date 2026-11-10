@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   HttpCode,
@@ -16,7 +17,12 @@ import { AuthGuard } from '@nestjs/passport';
 import type { AccessTokenDto, CurrentUserDto } from '@spothub/shared';
 import type { CookieOptions, Request, Response } from 'express';
 
-import { type AuthenticatedUser, CurrentUser, Public } from '../common';
+import {
+  AllowedWhenReadOnly,
+  type AuthenticatedUser,
+  CurrentUser,
+  Public,
+} from '../common';
 import type { Env } from '../config';
 import { AuthService } from './services/auth.service';
 import type { GoogleProfile } from './auth.types';
@@ -104,6 +110,23 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.auth.signOut(this.readRefreshCookie(request));
+    response.clearCookie(REFRESH_COOKIE, this.cookieOptions(0));
+  }
+
+  /**
+   * Deletes the signed-in pilot's account for good, and signs them out. Open
+   * to a read-only account too: no restriction stands between someone and
+   * leaving. Lives here rather than in `users` because the session cookie is
+   * this controller's to clear.
+   */
+  @Delete('me')
+  @AllowedWhenReadOnly()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    await this.auth.deleteAccount(user.id);
     response.clearCookie(REFRESH_COOKIE, this.cookieOptions(0));
   }
 

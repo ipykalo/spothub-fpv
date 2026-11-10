@@ -2,6 +2,7 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -139,6 +140,44 @@ export class S3StorageGateway extends StorageGateway {
       // correctness, and must not fail the user's delete.
       this.logger.warn(`Could not delete ${keys.length} object(s) from storage`, error);
     }
+  }
+
+  /** A page of up to 1000 keys at a time — S3's own limit for both calls. */
+  async deletePrefix(prefix: string): Promise<number> {
+    let deleted = 0;
+    let token: string | undefined;
+
+    do {
+      const page = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: token,
+        }),
+      );
+
+      const keys = (page.Contents ?? []).flatMap((object) =>
+        object.Key === undefined ? [] : [{ Key: object.Key }],
+      );
+
+      if (keys.length > 0) {
+        const result = await this.client.send(
+          new DeleteObjectsCommand({ Bucket: this.bucket, Delete: { Objects: keys } }),
+        );
+
+        if (result.Errors?.length) {
+          throw new Error(
+            `Storage refused to delete ${String(result.Errors.length)} object(s)`,
+          );
+        }
+
+        deleted += keys.length;
+      }
+
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token !== undefined);
+
+    return deleted;
   }
 
   async head(key: string): Promise<{ sizeBytes: number } | null> {

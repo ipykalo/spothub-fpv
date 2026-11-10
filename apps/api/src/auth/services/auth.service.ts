@@ -53,6 +53,11 @@ export class AuthService {
     });
   }
 
+  /** Every row and file the account owns goes with it, its sessions included. */
+  deleteAccount(userId: string): Promise<void> {
+    return this.users.deleteAccount(userId);
+  }
+
   signOut(refreshToken: string | undefined): Promise<void> {
     return refreshToken ? this.tokens.revokeFamilyOf(refreshToken) : Promise.resolve();
   }

@@ -46,4 +46,13 @@ export abstract class UsersRepository {
    * nothing stored is absent from the map.
    */
   abstract storageUsedBy(ids: readonly string[]): Promise<ReadonlyMap<string, number>>;
+
+  abstract countAdmins(): Promise<number>;
+
+  /**
+   * Deletes the account. Every row it owns — builds, parts, flights, logs,
+   * spots, posts, comments, likes, sessions — cascades from it in the
+   * database. False when there was no such user.
+   */
+  abstract delete(id: string): Promise<boolean>;
 }

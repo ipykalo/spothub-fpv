@@ -40,7 +40,18 @@
       }
     </nav>
     <span class="flex-1"></span>
-    <span class="max-[40rem]:hidden">{{ auth.displayName() }}</span>
+    <a
+      class="text-inherit no-underline hover:underline max-[40rem]:hidden"
+      routerLink="/account"
+      title="Your account"
+      >{{ auth.displayName() }}</a
+    >
+    <!-- A display utility on a Material host loses to Material's own rule; the wrapper takes it. -->
+    <span class="min-[40rem]:hidden">
+      <a matIconButton routerLink="/account" aria-label="Your account">
+        <mat-icon>account_circle</mat-icon>
+      </a>
+    </span>
     <button
       matIconButton
       type="button"

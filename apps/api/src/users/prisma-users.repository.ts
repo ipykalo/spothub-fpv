@@ -168,6 +168,15 @@ export class PrismaUsersRepository extends UsersRepository {
     return used;
   }
 
+  countAdmins(): Promise<number> {
+    return this.prisma.user.count({ where: { role: 'ADMIN' } });
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const { count } = await this.prisma.user.deleteMany({ where: { id } });
+    return count > 0;
+  }
+
   private static toEntity(user: User): UserEntity {
     return {
       id: user.id,

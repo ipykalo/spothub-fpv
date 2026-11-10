@@ -338,6 +338,18 @@ The rules that keep Tailwind and Angular Material from fighting:
   is (`core/api/api-error.ts`). Spot covers are not counted — a few KB each,
   made by the server. `GET /users/me/storage` is a pilot's own
   (`apps/api/e2e/storage-limit.e2e.spec.ts`).
+- **A pilot deletes their own account** at `/account` (their name in the
+  toolbar), typing DELETE to confirm. `DELETE /auth/me` lives in `auth`
+  because the session cookie is its to clear, and is
+  `@AllowedWhenReadOnly()`. `UsersFacade.deleteAccount` deletes **files
+  first, then rows**: every key a pilot's uploads were stored under starts
+  with their id — photos, thumbnails, logs, spot covers — so
+  `StorageGateway.deletePrefix('<id>/')` finds them all, and a storage
+  failure leaves the account intact to try again rather than files nobody
+  can reach. The row delete cascades to everything owned. The only admin is
+  refused with 409 (`apps/api/e2e/delete-account.e2e.spec.ts`). **Any new
+  stored file must keep its key under `<owner>/`**, or it survives its
+  owner's deletion.
 - Google identities key on the `sub` claim, never the email.
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed

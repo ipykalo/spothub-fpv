@@ -5,6 +5,7 @@ import { UsersRepository } from './abstract/users.repository';
 import { UsersFacadeImpl } from './users.facade.impl';
 import { PrismaUsersRepository } from './prisma-users.repository';
 import { SettingsModule } from '../settings';
+import { StorageModule } from '../storage';
 import { AccountController } from './controllers/account.controller';
 import { UsersAdminController } from './controllers/users-admin.controller';
 import { UsersService } from './users.service';
@@ -17,7 +18,7 @@ import { UsersService } from './users.service';
  * so auth cannot reach past the narrow surface it is meant to use.
  */
 @Module({
-  imports: [SettingsModule],
+  imports: [SettingsModule, StorageModule],
   controllers: [AccountController, UsersAdminController],
   providers: [
     UsersService,

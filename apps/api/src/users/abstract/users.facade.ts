@@ -29,4 +29,10 @@ export abstract class UsersFacade {
    * before they sign an upload.
    */
   abstract assertCanStore(userId: string, bytes: number): Promise<void>;
+
+  /**
+   * Deletes the account, every row it owns and every file it stored. The
+   * only admin is refused, so the site cannot be left without one.
+   */
+  abstract deleteAccount(userId: string): Promise<void>;
 }
