@@ -168,6 +168,11 @@ export class PrismaUsersRepository extends UsersRepository {
     return used;
   }
 
+  async setPilotName(id: string, pilotName: string | null): Promise<UserEntity | null> {
+    const { count } = await this.prisma.user.updateMany({ where: { id }, data: { pilotName } });
+    return count > 0 ? this.findById(id) : null;
+  }
+
   countAdmins(): Promise<number> {
     return this.prisma.user.count({ where: { role: 'ADMIN' } });
   }
@@ -182,6 +187,7 @@ export class PrismaUsersRepository extends UsersRepository {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
+      pilotName: user.pilotName,
       avatarUrl: user.avatarUrl,
       role: user.role,
       status: user.status,

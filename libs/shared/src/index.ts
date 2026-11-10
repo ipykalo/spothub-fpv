@@ -14,3 +14,4 @@ export * from './lib/comment.contract';
 export * from './lib/post.contract';
 export * from './lib/like.contract';
 export * from './lib/settings.contract';
+export * from './lib/pilot-name';

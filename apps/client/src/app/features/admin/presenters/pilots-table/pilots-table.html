@@ -41,7 +41,12 @@
               <span class="font-normal text-muted">(you)</span>
             }
           </span>
-          <span class="truncate text-xs text-muted">{{ user.email }}</span>
+          <span class="truncate text-xs text-muted">
+            @if (user.pilotName) {
+              Goes by <strong class="font-semibold">{{ user.pilotName }}</strong> ·
+            }
+            {{ user.email }}
+          </span>
         </span>
 
         <span class="col-start-2 flex flex-col text-xs text-muted min-[64rem]:col-auto">

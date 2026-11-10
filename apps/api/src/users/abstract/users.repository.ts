@@ -47,6 +47,9 @@ export abstract class UsersRepository {
    */
   abstract storageUsedBy(ids: readonly string[]): Promise<ReadonlyMap<string, number>>;
 
+  /** The pilot's own name for the site; null clears it. Null when there is no such user. */
+  abstract setPilotName(id: string, pilotName: string | null): Promise<UserEntity | null>;
+
   abstract countAdmins(): Promise<number>;
 
   /**

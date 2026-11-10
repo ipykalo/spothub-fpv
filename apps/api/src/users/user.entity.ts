@@ -10,7 +10,10 @@ import type { Role, UserStatus } from '@spothub/shared';
 export interface UserEntity {
   readonly id: string;
   readonly email: string;
+  /** The full name from Google. Only the pilot and an admin ever see it. */
   readonly displayName: string | null;
+  /** The name they chose to go by; null goes by the short form of `displayName`. */
+  readonly pilotName: string | null;
   readonly avatarUrl: string | null;
   readonly role: Role;
   readonly status: UserStatus;

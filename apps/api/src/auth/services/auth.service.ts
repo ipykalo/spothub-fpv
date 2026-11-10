@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { type CurrentUserDto, UserStatus } from '@spothub/shared';
+import { type CurrentUserDto, publicName, UserStatus } from '@spothub/shared';
 
 import { SettingsFacade } from '../../settings';
 import { AuthProviderKind, type UserEntity, UsersFacade } from '../../users';
@@ -72,6 +72,8 @@ export class AuthService {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
+      pilotName: user.pilotName,
+      publicName: publicName(user.pilotName, user.displayName),
       avatarUrl: user.avatarUrl,
       role: user.role,
       status: user.status,

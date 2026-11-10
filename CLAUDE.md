@@ -351,6 +351,14 @@ The rules that keep Tailwind and Angular Material from fighting:
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
 - Google identities key on the `sub` claim, never the email.
+- **Nobody else ever sees a pilot's full Google name.** `users.display_name`
+  is shown to the pilot (account page) and an admin (Pilots table) only.
+  Every owner and author name the API hands out — shared builds and spots,
+  comments, post authors and the post's structured data — goes through
+  `publicName()` (`libs/shared/src/lib/pilot-name.ts`): the `pilot_name` they
+  set on `/account` (`PATCH /users/me/name`), else "First L.". A repository
+  that selects `displayName` for someone else's eyes must select `pilotName`
+  beside it and call `publicName` (`apps/api/e2e/pilot-name.e2e.spec.ts`).
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed
   3000 too and nothing bound 4200 — and on Windows the second bind _succeeds_

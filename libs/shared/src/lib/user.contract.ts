@@ -7,7 +7,12 @@ import { storageQuotaSchema } from './settings.contract';
 export const currentUserSchema = z.object({
   id: z.uuid(),
   email: z.email(),
+  /** The full name from Google: shown to the pilot themselves and to an admin, nobody else. */
   displayName: z.string().nullable(),
+  /** The name they chose, or null to go by `publicName`'s short form. */
+  pilotName: z.string().nullable(),
+  /** What every other pilot and visitor sees (`publicName()`). */
+  publicName: z.string().nullable(),
   avatarUrl: z.url().nullable(),
   role: z.enum(Role),
   /** Read-only accounts see a banner saying so; the API refuses their writes. */
@@ -30,6 +35,8 @@ export const adminUserSchema = z.object({
   id: z.uuid(),
   email: z.string(),
   displayName: z.string().nullable(),
+  /** The name they go by on the site, when they chose one. */
+  pilotName: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   role: z.enum(Role),
   status: z.enum(UserStatus),

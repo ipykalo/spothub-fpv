@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injector, runInInjectionContext } from '@angular/core';
-import type { StorageUsageDto } from '@spothub/shared';
+import type { PilotNameDto, StorageUsageDto, UpdatePilotNameDto } from '@spothub/shared';
 import { type Observable, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -18,6 +18,16 @@ describe('AccountStore', () => {
       return this.storageFails
         ? throwError(() => new Error('offline'))
         : of({ usedBytes: 50, limitBytes: 200 });
+    }
+
+    nameFails: HttpErrorResponse | null = null;
+    namesSent: UpdatePilotNameDto[] = [];
+
+    setPilotName(body: UpdatePilotNameDto): Observable<PilotNameDto> {
+      this.namesSent.push(body);
+      return this.nameFails
+        ? throwError(() => this.nameFails)
+        : of({ pilotName: body.pilotName, publicName: body.pilotName ?? 'Ivan P.' });
     }
 
     deleteAccount(): Observable<void> {
@@ -53,6 +63,27 @@ describe('AccountStore', () => {
     await store.load();
 
     expect(store.storage()).toBeNull();
+  });
+
+  it('saves a pilot name, and clears it with null', async () => {
+    expect(await store.setPilotName('Sky Ninja')).toEqual({
+      pilotName: 'Sky Ninja',
+      publicName: 'Sky Ninja',
+    });
+    expect(await store.setPilotName(null)).toEqual({ pilotName: null, publicName: 'Ivan P.' });
+    expect(api.namesSent).toEqual([{ pilotName: 'Sky Ninja' }, { pilotName: null }]);
+    expect(store.savingName()).toBe(false);
+    expect(store.nameError()).toBeNull();
+  });
+
+  it('says why a pilot name was refused', async () => {
+    api.nameFails = new HttpErrorResponse({
+      status: 400,
+      error: { message: 'At most 32 characters' },
+    });
+
+    expect(await store.setPilotName('x'.repeat(40))).toBeNull();
+    expect(store.nameError()).toBe('At most 32 characters');
   });
 
   it('deletes the account', async () => {

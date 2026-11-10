@@ -27,7 +27,12 @@ type PilotSortKey = 'joined' | 'seen' | 'name';
 const pilotName = (user: AdminUserDto): string => user.displayName ?? user.email;
 
 const PILOT_GRID: GridSpec<AdminUserDto, PilotSortKey> = {
-  text: (user) => [user.displayName, user.email, USER_STATUS_LABELS[user.status]],
+  text: (user) => [
+    user.displayName,
+    user.pilotName,
+    user.email,
+    USER_STATUS_LABELS[user.status],
+  ],
   sortBy: {
     joined: (user) => user.createdAt,
     seen: (user) => user.lastSignInAt,

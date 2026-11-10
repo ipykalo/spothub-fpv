@@ -3,6 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   type AccessTokenDto,
   type CurrentUserDto,
+  type PilotNameDto,
   Role,
   UserStatus,
 } from '@spothub/shared';
@@ -38,9 +39,16 @@ export class AuthStore {
   readonly isReadOnly = computed(
     () => this.currentUser()?.status === UserStatus.Restricted,
   );
-  readonly displayName = computed(
-    () => this.currentUser()?.displayName ?? this.currentUser()?.email ?? '',
-  );
+  /** The name the toolbar shows: the same one every other pilot sees. */
+  readonly displayName = computed(() => {
+    const user = this.currentUser();
+    return user?.publicName ?? user?.displayName ?? user?.email ?? '';
+  });
+
+  /** Takes a changed pilot name, so the toolbar shows it at once. */
+  applyPilotName(name: PilotNameDto): void {
+    this.currentUser.update((user) => (user ? { ...user, ...name } : user));
+  }
 
   token(): string | null {
     return this.accessToken();

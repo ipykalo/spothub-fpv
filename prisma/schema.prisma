@@ -36,8 +36,12 @@ enum UserStatus {
 model User {
   id                String     @id @default(uuid()) @db.Uuid
   email             String     @unique
+  /// The full name Google gives. Shown to the pilot and an admin only; everyone
+  /// else sees `pilotName`, or this cut to "First L." (`publicName()`).
   displayName       String?    @map("display_name")
-  avatarUrl         String?    @map("avatar_url")
+  /// The name the pilot chose to go by on the site. Null: the short form.
+  pilotName         String?    @map("pilot_name")
+  avatarUrl        String?    @map("avatar_url")
   role              Role       @default(USER)
   status            UserStatus @default(ACTIVE)
   /// Stamped by a Google sign-in, not by a token refresh: when the person last

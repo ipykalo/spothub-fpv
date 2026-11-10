@@ -3,11 +3,20 @@
 </header>
 
 @if (auth.user(); as user) {
-  <sh-account-details
-    [user]="user"
-    [storage]="store.storage()"
-    [deleting]="store.deleting()"
-    [error]="store.error()"
-    (deleteConfirmed)="delete()"
-  />
+  <div class="grid max-w-176 gap-8">
+    <sh-pilot-name-form
+      [user]="user"
+      [saving]="store.savingName()"
+      [error]="store.nameError()"
+      (save)="savePilotName($event)"
+    />
+
+    <sh-account-details
+      [user]="user"
+      [storage]="store.storage()"
+      [deleting]="store.deleting()"
+      [error]="store.error()"
+      (deleteConfirmed)="delete()"
+    />
+  </div>
 }

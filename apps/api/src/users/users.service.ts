@@ -1,5 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { type AdminUserDto, Role, type UpdateAdminUserDto } from '@spothub/shared';
+import {
+  type AdminUserDto,
+  type PilotNameDto,
+  publicName,
+  Role,
+  type UpdateAdminUserDto,
+  type UpdatePilotNameDto,
+} from '@spothub/shared';
 
 import { type AuthenticatedUser, assertAdmin } from '../common';
 import { SettingsFacade } from '../settings';
@@ -15,6 +22,20 @@ export class UsersService {
     private readonly users: UsersRepository,
     private readonly settings: SettingsFacade,
   ) {}
+
+  /** The pilot's own choice, for themselves only: there is no id to name anyone else. */
+  async setPilotName(userId: string, input: UpdatePilotNameDto): Promise<PilotNameDto> {
+    const updated = await this.users.setPilotName(userId, input.pilotName);
+
+    if (!updated) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      pilotName: updated.pilotName,
+      publicName: publicName(updated.pilotName, updated.displayName),
+    };
+  }
 
   async list(viewer: AuthenticatedUser): Promise<AdminUserDto[]> {
     assertAdmin(viewer);
