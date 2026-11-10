@@ -50,6 +50,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_CALLBACK_URL: https://${SITE_DOMAIN}/api/auth/google/callback
       ALLOWED_EMAILS: ${ALLOWED_EMAILS}
+      OPEN_REGISTRATION: ${OPEN_REGISTRATION:-false}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       # The API's own reads and writes go straight at the service, inside the

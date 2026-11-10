@@ -300,8 +300,10 @@ The rules that keep Tailwind and Angular Material from fighting:
 - The Alpine runtime needs the musl binary target — already set in
   `schema.prisma`, do not remove it.
 - Migrations run at container startup, never in a Dockerfile layer.
-- `ALLOWED_EMAILS` gates registration. Empty means nobody can sign in; that is
-  the intended default, not a bug.
+- **`OPEN_REGISTRATION` opens sign-up; `ALLOWED_EMAILS` is the list while
+  it is off** (the default). Off with an empty list means nobody can sign in;
+  that is the intended default, not a bug. `*` in the list used to open
+  sign-up and no longer does — the API logs a warning if it finds one.
 - Google identities key on the `sub` claim, never the email.
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed

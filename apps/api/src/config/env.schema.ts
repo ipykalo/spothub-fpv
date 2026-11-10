@@ -36,6 +36,14 @@ export const envSchema = z.object({
    * a comma-separated list restricts it; empty admits nobody.
    */
   ALLOWED_EMAILS: csvEmails,
+  /**
+   * The one switch on sign-up. On, any Google account may sign in; off — the
+   * default — only the addresses in `ALLOWED_EMAILS`.
+   */
+  OPEN_REGISTRATION: z
+    .union([z.boolean(), z.enum(['true', 'false'])])
+    .transform((value) => value === true || value === 'true')
+    .default(false),
 
   JWT_ACCESS_SECRET: z
     .string()
