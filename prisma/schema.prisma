@@ -41,6 +41,9 @@ model User {
   displayName       String?    @map("display_name")
   /// The name the pilot chose to go by on the site. Null: the short form.
   pilotName         String?    @map("pilot_name")
+  /// The currency this pilot's cost totals are shown in, besides USD. One of
+  /// `CURRENCIES` in libs/shared.
+  homeCurrency      String     @default("USD") @map("home_currency") @db.VarChar(3)
   avatarUrl        String?    @map("avatar_url")
   role              Role       @default(USER)
   status            UserStatus @default(ACTIVE)

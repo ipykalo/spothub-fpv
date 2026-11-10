@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { PartCategory, PartCondition } from './enums';
+import { optionalCurrencySchema } from './currency';
 import { optionalWebLinkSchema, webLinkSchema } from './web-link';
 
 /**
@@ -89,9 +90,7 @@ export const partSourceFields = z.object({
     z.literal('').transform(() => null),
     z.coerce.number().nonnegative('Price cannot be negative').max(1_000_000),
   ]),
-  currency: z
-    .union([z.string().trim().length(3, 'Use a three-letter code, e.g. EUR'), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value.toUpperCase())),
+  currency: optionalCurrencySchema,
   isPurchase: z.boolean(),
   purchasedOn: optionalDate,
   quantity: z.coerce.number().int().min(1).max(9_999),

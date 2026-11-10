@@ -36,6 +36,7 @@ import {
 
 import { Markdown } from '../../../core/components/markdown/markdown';
 import { LinkHostPipe } from '../../../core/format/link-host.pipe';
+import { AuthStore } from '../../../core/auth/auth.store';
 import { Section } from '../../../core/components/section/section';
 import { CollapseAll } from '../../../core/components/section/collapse-all';
 import { SectionGroup } from '../../../core/components/section/section-group';
@@ -114,6 +115,7 @@ export class BuildDetailPage {
   protected readonly parts = inject(PartsStore);
   protected readonly photos = inject(PhotosStore);
   protected readonly videos = inject(BuildVideosStore);
+  protected readonly auth = inject(AuthStore);
   protected readonly flights = inject(FlightsStore);
   private readonly builds = inject(BuildsStore);
   private readonly api = inject(BuildsApi);

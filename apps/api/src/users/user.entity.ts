@@ -14,6 +14,8 @@ export interface UserEntity {
   readonly displayName: string | null;
   /** The name they chose to go by; null goes by the short form of `displayName`. */
   readonly pilotName: string | null;
+  /** One of `CURRENCIES`: what their totals are shown in, besides USD. */
+  readonly homeCurrency: string;
   readonly avatarUrl: string | null;
   readonly role: Role;
   readonly status: UserStatus;

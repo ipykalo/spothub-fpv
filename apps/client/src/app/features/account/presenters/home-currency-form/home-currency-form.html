@@ -1,0 +1,20 @@
+<section>
+  <h2 class="mt-0 mb-1 text-lg">Home currency</h2>
+  <p class="mt-0 mb-3 text-sm text-muted">
+    New prices start in it, and what a build cost is added up in it as well as in US dollars. Prices you entered stay
+    in the currency you paid in.
+  </p>
+
+  <sh-autocomplete
+    class="block w-64"
+    label="Home currency"
+    subscriptSizing="dynamic"
+    [options]="options"
+    [value]="currency()"
+    (valueChange)="pick($event)"
+  />
+
+  @if (error(); as message) {
+    <p class="mt-2 mb-0 text-sm text-danger" role="alert">{{ message }}</p>
+  }
+</section>

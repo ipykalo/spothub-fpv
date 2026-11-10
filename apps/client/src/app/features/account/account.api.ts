@@ -1,6 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import type { PilotNameDto, StorageUsageDto, UpdatePilotNameDto } from '@spothub/shared';
+import type {
+  PilotNameDto,
+  StorageUsageDto,
+  UpdateHomeCurrencyDto,
+  UpdatePilotNameDto,
+} from '@spothub/shared';
 import type { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../../core/api/api.tokens';
@@ -17,6 +22,10 @@ export class AccountApi {
 
   setPilotName(body: UpdatePilotNameDto): Observable<PilotNameDto> {
     return this.http.patch<PilotNameDto>(`${this.base}/users/me/name`, body);
+  }
+
+  setHomeCurrency(body: UpdateHomeCurrencyDto): Observable<UpdateHomeCurrencyDto> {
+    return this.http.patch<UpdateHomeCurrencyDto>(`${this.base}/users/me/currency`, body);
   }
 
   /** Deletes the account for good; the API also clears the session cookie. */

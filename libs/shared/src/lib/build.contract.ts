@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { BuildClass, BuildStatus, Visibility } from './enums';
 import { likesSchema } from './like.contract';
+import { optionalCurrencySchema } from './currency';
 import { optionalWebLinkSchema } from './web-link';
 
 /**
@@ -23,13 +24,8 @@ const price = z.union([
   z.coerce.number().nonnegative('Price cannot be negative').max(1_000_000),
 ]);
 
-const currency = z
-  .union([
-    z.literal(''),
-    z.string().trim().length(3, 'Use a three-letter code, e.g. EUR'),
-    z.null(),
-  ])
-  .transform((value) => (value === null || value === '' ? null : value.toUpperCase()));
+/** One of the currencies the site can convert (`currency.ts`), or none. */
+const currency = optionalCurrencySchema;
 
 const vendor = z
   .union([z.string().trim().max(80), z.null()])

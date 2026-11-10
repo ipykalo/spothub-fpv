@@ -1,6 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injector, runInInjectionContext } from '@angular/core';
-import type { PilotNameDto, StorageUsageDto, UpdatePilotNameDto } from '@spothub/shared';
+import type {
+  PilotNameDto,
+  StorageUsageDto,
+  UpdateHomeCurrencyDto,
+  UpdatePilotNameDto,
+} from '@spothub/shared';
 import { type Observable, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -28,6 +33,12 @@ describe('AccountStore', () => {
       return this.nameFails
         ? throwError(() => this.nameFails)
         : of({ pilotName: body.pilotName, publicName: body.pilotName ?? 'Ivan P.' });
+    }
+
+    currencyFails = false;
+
+    setHomeCurrency(body: UpdateHomeCurrencyDto): Observable<UpdateHomeCurrencyDto> {
+      return this.currencyFails ? throwError(() => new Error('offline')) : of(body);
     }
 
     deleteAccount(): Observable<void> {
@@ -84,6 +95,15 @@ describe('AccountStore', () => {
 
     expect(await store.setPilotName('x'.repeat(40))).toBeNull();
     expect(store.nameError()).toBe('At most 32 characters');
+  });
+
+  it('saves a home currency, and says so when it could not', async () => {
+    expect(await store.setHomeCurrency('UAH')).toBe('UAH');
+    expect(store.currencyError()).toBeNull();
+
+    api.currencyFails = true;
+    expect(await store.setHomeCurrency('EUR')).toBeNull();
+    expect(store.currencyError()).toBe('Your home currency could not be saved. Try again.');
   });
 
   it('deletes the account', async () => {

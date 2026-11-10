@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { optionalCurrencySchema } from './currency';
 import { RepairCause } from './enums';
 
 /**
@@ -34,9 +35,7 @@ export const repairFields = z.object({
     z.literal('').transform(() => null),
     z.coerce.number().nonnegative('Cost cannot be negative').max(1_000_000),
   ]),
-  currency: z
-    .union([z.string().trim().length(3, 'Use a three-letter code, e.g. EUR'), z.null()])
-    .transform((value) => (value === null || value === '' ? null : value.toUpperCase())),
+  currency: optionalCurrencySchema,
 });
 
 export const createRepairSchema = repairFields

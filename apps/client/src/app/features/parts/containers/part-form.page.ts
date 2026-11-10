@@ -15,6 +15,7 @@ import type { PartDto, PartSourceDto, UrlPreviewDto } from '@spothub/shared';
 
 import { PartForm, type PartSubmission } from '../presenters/part-form/part-form';
 import { PartsApi } from '../parts.api';
+import { AuthStore } from '../../../core/auth/auth.store';
 import { PartsStore } from '../parts.store';
 
 /**
@@ -31,6 +32,7 @@ export class PartFormPage {
   /** Route param; absent when creating. Bound via `withComponentInputBinding`. */
   readonly id = input<string | undefined>(undefined);
 
+  protected readonly auth = inject(AuthStore);
   private readonly store = inject(PartsStore);
   private readonly api = inject(PartsApi);
   private readonly router = inject(Router);

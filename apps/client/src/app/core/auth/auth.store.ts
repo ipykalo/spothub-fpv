@@ -3,6 +3,9 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   type AccessTokenDto,
   type CurrentUserDto,
+  type Currency,
+  DEFAULT_HOME_CURRENCY,
+  isCurrency,
   type PilotNameDto,
   Role,
   UserStatus,
@@ -44,6 +47,17 @@ export class AuthStore {
     const user = this.currentUser();
     return user?.publicName ?? user?.displayName ?? user?.email ?? '';
   });
+
+  /** What new prices start in, and what totals are shown in besides USD. */
+  readonly homeCurrency = computed<Currency>(() => {
+    const saved = this.currentUser()?.homeCurrency;
+    return isCurrency(saved) ? saved : DEFAULT_HOME_CURRENCY;
+  });
+
+  /** Takes a changed home currency, so every form starts on it at once. */
+  applyHomeCurrency(homeCurrency: string): void {
+    this.currentUser.update((user) => (user ? { ...user, homeCurrency } : user));
+  }
 
   /** Takes a changed pilot name, so the toolbar shows it at once. */
   applyPilotName(name: PilotNameDto): void {

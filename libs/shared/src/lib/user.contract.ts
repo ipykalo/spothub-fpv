@@ -13,6 +13,8 @@ export const currentUserSchema = z.object({
   pilotName: z.string().nullable(),
   /** What every other pilot and visitor sees (`publicName()`). */
   publicName: z.string().nullable(),
+  /** The currency their totals are shown in, besides USD; new prices start in it. */
+  homeCurrency: z.string(),
   avatarUrl: z.url().nullable(),
   role: z.enum(Role),
   /** Read-only accounts see a banner saying so; the API refuses their writes. */

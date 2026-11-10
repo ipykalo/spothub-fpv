@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import type { PilotNameDto, StorageUsageDto } from '@spothub/shared';
+import type { Currency, PilotNameDto, StorageUsageDto } from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
 import { apiMessage } from '../../core/api/api-error';
@@ -22,6 +22,24 @@ export class AccountStore {
   readonly error = this.failure.asReadonly();
   readonly savingName = this.naming.asReadonly();
   readonly nameError = this.nameFailure.asReadonly();
+
+  private readonly currencyFailure = signal<string | null>(null);
+  readonly currencyError = this.currencyFailure.asReadonly();
+
+  /** The saved currency on success; null on failure, with the reason in `currencyError`. */
+  async setHomeCurrency(homeCurrency: Currency): Promise<Currency | null> {
+    this.currencyFailure.set(null);
+
+    try {
+      const saved = await firstValueFrom(this.api.setHomeCurrency({ homeCurrency }));
+      return saved.homeCurrency;
+    } catch (error) {
+      this.currencyFailure.set(
+        apiMessage(error, 'Your home currency could not be saved. Try again.'),
+      );
+      return null;
+    }
+  }
 
   /** The saved name on success; null on failure, with the reason in `nameError`. */
   async setPilotName(pilotName: string | null): Promise<PilotNameDto | null> {

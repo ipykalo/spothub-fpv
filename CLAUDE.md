@@ -352,6 +352,16 @@ The rules that keep Tailwind and Angular Material from fighting:
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
 - Google identities key on the `sub` claim, never the email.
+- **A price's currency is one from a list** — `CURRENCIES` in
+  `libs/shared/src/lib/currency.ts`: the hryvnia and the 40 currencies the
+  National Bank of Ukraine publishes a rate for, so every price can be
+  converted into a total. Part prices, repairs and a bought quad's price all
+  go through `optionalCurrencySchema`; the client's fields are
+  `sh-autocomplete`s over `CURRENCY_OPTIONS` that start on the pilot's
+  `users.home_currency` (`PATCH /users/me/currency`, USD until chosen). A
+  currency read off a shop page is taken only if `isCurrency`. Adding one to
+  the list means adding a rate source that covers it
+  (`currency.e2e.spec.ts`).
 - **A link a pilot pastes is a web address and nothing else.** Shop links
   (a part source's `url`, a bought build's `purchaseUrl`) and the preview's
   input go through `webLinkSchema` (`libs/shared/src/lib/web-link.ts`):

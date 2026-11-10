@@ -50,6 +50,9 @@ export abstract class UsersRepository {
   /** The pilot's own name for the site; null clears it. Null when there is no such user. */
   abstract setPilotName(id: string, pilotName: string | null): Promise<UserEntity | null>;
 
+  /** The currency their totals are shown in. Null when there is no such user. */
+  abstract setHomeCurrency(id: string, homeCurrency: string): Promise<UserEntity | null>;
+
   abstract countAdmins(): Promise<number>;
 
   /**

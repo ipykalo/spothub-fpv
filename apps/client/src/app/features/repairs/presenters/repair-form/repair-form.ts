@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import {
+  DEFAULT_HOME_CURRENCY,
   REPAIR_CAUSE_LABELS,
   RepairCause,
   createRepairSchema,
@@ -14,6 +15,7 @@ import {
 import { DateField } from '../../../../core/components/date-field/date-field';
 import { localToday } from '../../../../core/components/date-field/iso-date';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import { CURRENCY_OPTIONS } from '../../../../core/components/currency-options';
 import { REPAIR_CAUSE_STYLES } from '../../repair-cause';
 
 /** Presenter: log a repair. Validates, then hands the value up. */
@@ -34,8 +36,12 @@ import { REPAIR_CAUSE_STYLES } from '../../repair-cause';
 })
 export class RepairForm {
   readonly saving = input(false);
+  /** What the cost field starts on: the pilot's home currency. */
+  readonly defaultCurrency = input<string>(DEFAULT_HOME_CURRENCY);
 
   readonly logged = output<CreateRepairDto>();
+
+  protected readonly currencyOptions = CURRENCY_OPTIONS;
 
   private readonly fb = inject(FormBuilder).nonNullable;
 
@@ -53,8 +59,15 @@ export class RepairForm {
     cause: [RepairCause.Crash as RepairCause],
     descriptionMd: [''],
     cost: [null as number | null],
-    currency: ['EUR'],
+    currency: [DEFAULT_HOME_CURRENCY as string],
   });
+
+  constructor() {
+    // Starts on, and follows, the pilot's own currency.
+    effect(() => {
+      this.form.controls.currency.setValue(this.defaultCurrency());
+    });
+  }
 
   protected submit(): void {
     this.error = null;

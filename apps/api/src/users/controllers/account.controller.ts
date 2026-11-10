@@ -2,7 +2,9 @@ import { Body, Controller, Get, Patch } from '@nestjs/common';
 import {
   type PilotNameDto,
   type StorageUsageDto,
+  type UpdateHomeCurrencyDto,
   type UpdatePilotNameDto,
+  updateHomeCurrencySchema,
   updatePilotNameSchema,
 } from '@spothub/shared';
 
@@ -31,5 +33,14 @@ export class AccountController {
     @Body(new ZodValidationPipe(updatePilotNameSchema)) body: UpdatePilotNameDto,
   ): Promise<PilotNameDto> {
     return this.service.setPilotName(user.id, body);
+  }
+
+  /** The currency their totals are shown in, besides USD. */
+  @Patch('currency')
+  setHomeCurrency(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(updateHomeCurrencySchema)) body: UpdateHomeCurrencyDto,
+  ): Promise<UpdateHomeCurrencyDto> {
+    return this.service.setHomeCurrency(user.id, body);
   }
 }

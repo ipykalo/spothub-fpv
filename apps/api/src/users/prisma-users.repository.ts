@@ -173,6 +173,11 @@ export class PrismaUsersRepository extends UsersRepository {
     return count > 0 ? this.findById(id) : null;
   }
 
+  async setHomeCurrency(id: string, homeCurrency: string): Promise<UserEntity | null> {
+    const { count } = await this.prisma.user.updateMany({ where: { id }, data: { homeCurrency } });
+    return count > 0 ? this.findById(id) : null;
+  }
+
   countAdmins(): Promise<number> {
     return this.prisma.user.count({ where: { role: 'ADMIN' } });
   }
@@ -188,6 +193,7 @@ export class PrismaUsersRepository extends UsersRepository {
       email: user.email,
       displayName: user.displayName,
       pilotName: user.pilotName,
+      homeCurrency: user.homeCurrency,
       avatarUrl: user.avatarUrl,
       role: user.role,
       status: user.status,

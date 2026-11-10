@@ -74,6 +74,7 @@ export class AuthService {
       displayName: user.displayName,
       pilotName: user.pilotName,
       publicName: publicName(user.pilotName, user.displayName),
+      homeCurrency: user.homeCurrency,
       avatarUrl: user.avatarUrl,
       role: user.role,
       status: user.status,

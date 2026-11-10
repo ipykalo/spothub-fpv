@@ -275,7 +275,11 @@
   >
     @if (addingRepair()) {
       <div class="mb-4">
-        <sh-repair-form [saving]="loggingRepair()" (logged)="logRepair($event)" />
+        <sh-repair-form
+          [saving]="loggingRepair()"
+          [defaultCurrency]="auth.homeCurrency()"
+          (logged)="logRepair($event)"
+        />
       </div>
     }
 

@@ -15,6 +15,7 @@ import type { BuildDto, CreateBuildDto } from '@spothub/shared';
 
 import { BuildForm } from '../presenters/build-form/build-form';
 import { BuildsApi } from '../builds.api';
+import { AuthStore } from '../../../core/auth/auth.store';
 import { BuildsStore } from '../builds.store';
 
 /**
@@ -31,6 +32,7 @@ export class BuildFormPage {
   /** Route param; absent when creating. Bound via `withComponentInputBinding`. */
   readonly id = input<string | undefined>(undefined);
 
+  protected readonly auth = inject(AuthStore);
   private readonly store = inject(BuildsStore);
   private readonly api = inject(BuildsApi);
   private readonly router = inject(Router);

@@ -11,6 +11,12 @@
       (save)="savePilotName($event)"
     />
 
+    <sh-home-currency-form
+      [currency]="auth.homeCurrency()"
+      [error]="store.currencyError()"
+      (chosen)="saveHomeCurrency($event)"
+    />
+
     <sh-account-details
       [user]="user"
       [storage]="store.storage()"

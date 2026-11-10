@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -20,6 +21,7 @@ import {
   BUILD_STATUS_LABELS,
   BuildClass,
   BuildStatus,
+  DEFAULT_HOME_CURRENCY,
   VISIBILITY_LABELS,
   Visibility,
   createBuildSchema,
@@ -30,6 +32,7 @@ import {
 import { DateField } from '../../../../core/components/date-field/date-field';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { choicesFrom } from '../../../../core/components/choice-option';
+import { CURRENCY_OPTIONS } from '../../../../core/components/currency-options';
 import { BUILD_STATUS_STYLES } from '../../build-status';
 
 /**
@@ -58,8 +61,12 @@ export class BuildForm {
   readonly isEdit = input(false);
   readonly saving = input(false);
   readonly errorMessage = input<string | null>(null);
+  /** What the price field starts on: the pilot's home currency. */
+  readonly defaultCurrency = input<string>(DEFAULT_HOME_CURRENCY);
 
   readonly saved = output<CreateBuildDto>();
+
+  protected readonly currencyOptions = CURRENCY_OPTIONS;
   readonly cancelled = output();
 
   private readonly fb = inject(FormBuilder).nonNullable;
@@ -116,6 +123,16 @@ export class BuildForm {
   });
 
   constructor() {
+    // An empty price field starts on the pilot's own currency.
+    effect(() => {
+      const fallback = this.defaultCurrency();
+      const control = this.form.controls.purchaseCurrency;
+
+      if (!control.value) {
+        control.setValue(fallback);
+      }
+    });
+
     effect(() => {
       const build = this.build();
 
@@ -137,7 +154,7 @@ export class BuildForm {
         retiredOn: build.retiredOn ?? '',
         boughtComplete: build.boughtComplete,
         purchasePrice: build.purchasePrice,
-        purchaseCurrency: build.purchaseCurrency ?? '',
+        purchaseCurrency: build.purchaseCurrency ?? untracked(this.defaultCurrency),
         purchaseVendor: build.purchaseVendor ?? '',
         purchaseUrl: build.purchaseUrl ?? '',
       });

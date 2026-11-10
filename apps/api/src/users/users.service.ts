@@ -5,6 +5,7 @@ import {
   publicName,
   Role,
   type UpdateAdminUserDto,
+  type UpdateHomeCurrencyDto,
   type UpdatePilotNameDto,
 } from '@spothub/shared';
 
@@ -35,6 +36,17 @@ export class UsersService {
       pilotName: updated.pilotName,
       publicName: publicName(updated.pilotName, updated.displayName),
     };
+  }
+
+  /** The pilot's own currency for totals, for themselves only. */
+  async setHomeCurrency(userId: string, input: UpdateHomeCurrencyDto): Promise<UpdateHomeCurrencyDto> {
+    const updated = await this.users.setHomeCurrency(userId, input.homeCurrency);
+
+    if (!updated) {
+      throw new NotFoundException('User not found');
+    }
+
+    return { homeCurrency: input.homeCurrency };
   }
 
   async list(viewer: AuthenticatedUser): Promise<AdminUserDto[]> {
