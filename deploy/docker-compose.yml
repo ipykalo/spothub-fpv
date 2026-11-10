@@ -66,6 +66,10 @@ services:
       S3_FORCE_PATH_STYLE: "true"
       # Built into the API image; no Docker fallback needed here.
       BLACKBOX_DECODE_PATH: blackbox_decode
+      # Official exchange rates. The defaults are the NBU's own address and
+      # ten seconds; .env changes either without a new image.
+      NBU_RATES_URL: ${NBU_RATES_URL:-https://bank.gov.ua/NBUStatService/v1/statdirectory/exchangenew}
+      NBU_RATES_TIMEOUT_MS: ${NBU_RATES_TIMEOUT_MS:-10000}
     depends_on:
       postgres:
         condition: service_healthy

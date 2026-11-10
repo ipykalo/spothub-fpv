@@ -1,27 +1,35 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { isCurrency } from '@spothub/shared';
 
+import type { Env } from '../config';
 import { RateSource } from './abstract/rate-source';
-
-/**
- * The National Bank of Ukraine's official rates: one request gives every
- * currency it publishes for a day, as hryvnias per unit. Free, with no key
- * and no account; all that is sent is the date.
- */
-const NBU_RATES = 'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchangenew';
-const TIMEOUT_MS = 10_000;
 
 interface NbuRate {
   readonly cc?: unknown;
   readonly rate?: unknown;
 }
 
+/**
+ * The National Bank of Ukraine's official rates: one request gives every
+ * currency it publishes for a day, as hryvnias per unit. Free, with no key
+ * and no account; all that is sent is the date. Where it is asked and how
+ * long it is waited for are `NBU_RATES_URL` and `NBU_RATES_TIMEOUT_MS`.
+ */
 @Injectable()
 export class NbuRateSource extends RateSource {
+  private readonly url: string;
+  private readonly timeoutMs: number;
+
+  constructor(config: ConfigService<Env, true>) {
+    super();
+    this.url = config.get('NBU_RATES_URL', { infer: true });
+    this.timeoutMs = config.get('NBU_RATES_TIMEOUT_MS', { infer: true });
+  }
+
   async ratesFor(day: string): Promise<ReadonlyMap<string, number>> {
-    const url = `${NBU_RATES}?json&date=${day.replaceAll('-', '')}`;
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+    const response = await fetch(`${this.url}?json&date=${day.replaceAll('-', '')}`, {
+      signal: AbortSignal.timeout(this.timeoutMs),
       headers: { accept: 'application/json' },
     });
 

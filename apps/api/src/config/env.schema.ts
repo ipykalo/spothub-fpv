@@ -98,6 +98,17 @@ export const envSchema = z.object({
    */
   BLACKBOX_DECODE_PATH: z.string().min(1).default('blackbox_decode'),
   BLACKBOX_DECODE_DOCKER_IMAGE: z.string().default(''),
+
+  /**
+   * The National Bank of Ukraine's official exchange rates: every currency it
+   * publishes for one day, as hryvnias per unit, asked for with
+   * `?json&date=YYYYMMDD`. Free, with no key. And how long to wait for an
+   * answer before the job gives up and tries again later.
+   */
+  NBU_RATES_URL: z
+    .url()
+    .default('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchangenew'),
+  NBU_RATES_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
 });
 
 export type Env = z.output<typeof envSchema>;

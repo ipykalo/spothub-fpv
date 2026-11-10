@@ -372,6 +372,9 @@ The rules that keep Tailwind and Angular Material from fighting:
   past rate never changes, so each day is fetched once, and no request ever
   waits on the bank. `RateSource` is the seam: `NbuRateSource` in
   production, `StubRateSource` in the e2e suite (`exchange-rates.e2e.spec.ts`).
+  The NBU's address and how long to wait for it are config, not code:
+  `NBU_RATES_URL` and `NBU_RATES_TIMEOUT_MS` in `env.schema.ts`, read through
+  `ConfigService`, with the bank's own address and ten seconds as defaults.
   **The cost rollup leads with converted totals**: `BuildCostDto.converted`
   holds the parts and the repairs each added up in the viewer's home currency
   and USD (`totalCurrencies`) — a fitted part at its purchase source's date,
