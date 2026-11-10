@@ -947,8 +947,8 @@ model AppSettings {
   /// Lower-cased. Who may sign in while registration is closed.
   allowedEmails            String[] @default([]) @map("allowed_emails")
   /// How much each pilot may keep in storage — photos, post images and flight
-  /// logs — unless their own `storage_quota_bytes` says otherwise. 2 GiB.
-  defaultStorageQuotaBytes BigInt   @default(2147483648) @map("default_storage_quota_bytes")
+  /// logs — unless their own `storage_quota_bytes` says otherwise. 512 MiB.
+  defaultStorageQuotaBytes BigInt   @default(536870912) @map("default_storage_quota_bytes")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")

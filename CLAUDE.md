@@ -329,7 +329,7 @@ The rules that keep Tailwind and Angular Material from fighting:
   JSON 403 (`apps/api/e2e/admin-users.e2e.spec.ts`). Avatars are not shown on
   the Admin page: they are Google URLs, and this site never calls Google.
 - **Each pilot has a storage limit**: `app_settings.default_storage_quota_bytes`
-  (2 GiB, set on the Admin page) unless `users.storage_quota_bytes` gives them
+  (512 MiB to start, set on the Admin page) unless `users.storage_quota_bytes` gives them
   their own. Usage is photos, post images and flight logs, summed in SQL in
   the users repository (`storageUsedBy`); an upload signed but never finished
   counts for a day, then stops. `media` and `flight-logs` ask
