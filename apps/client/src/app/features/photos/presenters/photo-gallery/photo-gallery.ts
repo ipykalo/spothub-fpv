@@ -20,6 +20,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ALLOWED_IMAGE_MIME, type AssetDto } from '@spothub/shared';
 
 import type { PendingUpload } from '../../photos.store';
+import { neighbourPhotoUrls } from './neighbour-photos';
 
 /**
  * Presenter: one photo shown large, the rest as a strip beneath it.
@@ -82,6 +83,11 @@ export class PhotoGallery {
   );
 
   protected readonly hasMany = computed(() => this.photos().length > 1);
+
+  /** The photos either side of the one showing, fetched ahead so next and previous are instant. */
+  protected readonly neighbourUrls = computed(() =>
+    neighbourPhotoUrls(this.photos(), this.activeIndex()),
+  );
 
   protected readonly isEmpty = computed(
     () => this.photos().length === 0 && this.pending().length === 0,

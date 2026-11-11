@@ -60,6 +60,15 @@
         />
       </button>
 
+      <!--
+        The photos either side, fetched now so next and previous show at once
+        rather than when they are asked for. Never shown; the browser keeps
+        them, and the viewer below uses the same addresses.
+      -->
+      @for (url of neighbourUrls(); track url) {
+        <img class="preload" [src]="url" alt="" aria-hidden="true" fetchpriority="low" />
+      }
+
       @if (photo.id === coverAssetId()) {
         <span
           class="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-primary py-0.5 pr-2 pl-1 text-xs font-semibold text-on-primary"

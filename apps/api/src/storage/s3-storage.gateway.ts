@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 
 import type { Env } from '../config';
 import { StorageGateway, type StoredObject } from './abstract/storage.gateway';
+import { stableSigning } from './stable-signing';
 
 /**
  * The only place in this feature that knows the AWS SDK exists.
@@ -79,11 +80,29 @@ export class S3StorageGateway extends StorageGateway {
     );
   }
 
+  /**
+   * A download address that stays the same for half its lifetime, so the
+   * browser can keep the image.
+   *
+   * Signed at "now", every list load handed out a different URL for the same
+   * photo — the signature covers the second it was made — and the browser,
+   * seeing a new address, downloaded every cover again on every visit. Signed
+   * at the start of the current half-lifetime window instead, one photo has one
+   * address for that window, and storage says it may be cached for as long as
+   * it still has to live. Any address handed out is good for at least half the
+   * lifetime.
+   */
   presignGet(key: string, expiresInSeconds: number): Promise<string> {
+    const { signedAt, cacheSeconds } = stableSigning(Date.now(), expiresInSeconds);
+
     return getSignedUrl(
       this.signer,
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-      { expiresIn: expiresInSeconds },
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ResponseCacheControl: `private, max-age=${String(cacheSeconds)}`,
+      }),
+      { expiresIn: expiresInSeconds, signingDate: signedAt },
     );
   }
 
