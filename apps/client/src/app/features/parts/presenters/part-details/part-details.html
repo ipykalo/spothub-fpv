@@ -84,7 +84,9 @@
         >
           <span class="font-semibold tabular-nums">{{ name(unit) }}</span>
 
+          <!-- min-w-0: a grid item will not shrink below its content otherwise, and pushed the row past a phone's edge. -->
           <sh-autocomplete
+            class="min-w-0"
             compact
             subscriptSizing="dynamic"
             [options]="conditionOptions"
