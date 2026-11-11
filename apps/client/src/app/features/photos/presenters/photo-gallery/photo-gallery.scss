@@ -45,3 +45,17 @@
 .cdk-drop-list-dragging .thumb:not(.cdk-drag-placeholder) {
   transition: transform 160ms cubic-bezier(0, 0, 0.2, 1);
 }
+
+/*
+ * The neighbours fetched ahead: present, so the browser downloads them, but
+ * taking no room and never seen. Not display: none, which some browsers take
+ * as a reason to put the download off.
+ */
+.preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}

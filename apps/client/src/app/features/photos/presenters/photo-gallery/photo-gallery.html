@@ -32,11 +32,17 @@
       under the heading. Left-aligned against a wider column, the viewer read
       as though it had failed to load rather than as a deliberate size.
     -->
+    <!--
+      Swipe left or right to change the photo. touch-action: pan-y hands the
+      browser the vertical scroll and keeps the sideways gesture for us.
+    -->
     <div
-      class="group relative mx-auto aspect-4/3 w-full max-w-184 overflow-hidden rounded-lg bg-surface-high"
+      class="group relative mx-auto aspect-4/3 w-full max-w-184 touch-pan-y overflow-hidden rounded-lg bg-surface-high"
       role="group"
       aria-roledescription="carousel"
       [attr.aria-label]="'Photo ' + (activeIndex() + 1) + ' of ' + photos().length"
+      (touchstart)="onTouchStart($event)"
+      (touchend)="onTouchEnd($event)"
     >
       <!--
         A button, not a bare image: it opens the full-size view on click, and
@@ -48,7 +54,7 @@
         type="button"
         class="block h-full w-full cursor-zoom-in border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
         [attr.aria-label]="'View ' + (photo.fileName ?? 'this photo') + ' full size'"
-        (click)="openViewer()"
+        (click)="onPhotoClick()"
         (keydown.arrowleft)="step(-1)"
         (keydown.arrowright)="step(1)"
       >
@@ -59,6 +65,15 @@
           [alt]="photo.fileName ?? 'Build photo'"
         />
       </button>
+
+      <!--
+        The photos either side, fetched now so next and previous show at once
+        rather than when they are asked for. Never shown; the browser keeps
+        them, and the viewer below uses the same addresses.
+      -->
+      @for (url of neighbourUrls(); track url) {
+        <img class="preload" [src]="url" alt="" aria-hidden="true" fetchpriority="low" />
+      }
 
       @if (photo.id === coverAssetId()) {
         <span
@@ -190,6 +205,8 @@
   (click)="onBackdropClick($event)"
   (keydown.arrowleft)="step(-1)"
   (keydown.arrowright)="step(1)"
+  (touchstart)="onTouchStart($event)"
+  (touchend)="onTouchEnd($event)"
 >
   @if (viewerOpen()) {
     @if (active(); as photo) {
@@ -203,11 +220,14 @@
       </button>
 
       @if (hasMany()) {
-        <!-- On a phone the arrows would sit on the photo, so they drop to the
-             bottom corners and the image takes the full width. -->
+        <!--
+          Mid-height at both edges on every screen. On a phone they sit over
+          the photo, so they are dark discs with a white glyph, visible on any
+          picture, and above it in the stacking order; a swipe works too.
+        -->
         <button
           type="button"
-          class="absolute grid cursor-pointer place-items-center rounded-full border-0 bg-white/12 p-0 text-white transition-colors hover:bg-white/24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white top-1/2 size-12 -translate-y-1/2 max-[32rem]:top-auto max-[32rem]:bottom-12 max-[32rem]:translate-y-0 left-3"
+          class="absolute top-1/2 left-2 z-10 grid size-12 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-black/55 p-0 text-white shadow-md transition-colors hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white min-[32rem]:left-3 min-[32rem]:bg-white/12 min-[32rem]:hover:bg-white/24"
           aria-label="Previous photo"
           (click)="step(-1)"
         >
@@ -215,7 +235,7 @@
         </button>
         <button
           type="button"
-          class="absolute grid cursor-pointer place-items-center rounded-full border-0 bg-white/12 p-0 text-white transition-colors hover:bg-white/24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white top-1/2 size-12 -translate-y-1/2 max-[32rem]:top-auto max-[32rem]:bottom-12 max-[32rem]:translate-y-0 right-3"
+          class="absolute top-1/2 right-2 z-10 grid size-12 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-black/55 p-0 text-white shadow-md transition-colors hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white min-[32rem]:right-3 min-[32rem]:bg-white/12 min-[32rem]:hover:bg-white/24"
           aria-label="Next photo"
           (click)="step(1)"
         >
@@ -224,7 +244,7 @@
       }
 
       <img
-        class="absolute inset-x-18 top-14 bottom-12 m-auto h-[calc(100%-6.5rem)] w-[calc(100%-9rem)] object-contain max-[32rem]:inset-x-2 max-[32rem]:bottom-18 max-[32rem]:h-[calc(100%-8rem)] max-[32rem]:w-[calc(100%-1rem)]"
+        class="absolute inset-x-18 top-14 bottom-12 m-auto h-[calc(100%-6.5rem)] w-[calc(100%-9rem)] touch-pan-y object-contain max-[32rem]:inset-x-0 max-[32rem]:h-[calc(100%-6.5rem)] max-[32rem]:w-full"
         [src]="photo.url ?? photo.thumbUrl"
         [alt]="photo.fileName ?? 'Build photo'"
       />
