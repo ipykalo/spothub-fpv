@@ -25,6 +25,7 @@ import {
   SpotTerrain,
 } from '@spothub/shared';
 
+import { refreshSignedLinks } from '../../../core/api/signed-links';
 import { choicesFrom } from '../../../core/components/choice-option';
 import { FilterChips } from '../../../core/components/filter-chips/filter-chips';
 import { GridToolbar } from '../../../core/components/grid-toolbar/grid-toolbar';
@@ -107,6 +108,14 @@ export class SpotsPage {
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly location = inject(DeviceLocation);
+  /** Fresh cover addresses for a page left open past their signature. */
+  protected readonly coverFailed = refreshSignedLinks(() => {
+    void this.store.load();
+
+    if (this.isShared()) {
+      void this.store.loadShared();
+    }
+  });
 
   private readonly map = viewChild.required(SpotMap, { read: ElementRef<HTMLElement> });
 

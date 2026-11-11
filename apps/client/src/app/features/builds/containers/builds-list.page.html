@@ -67,6 +67,7 @@
         [deleting]="pendingDelete() === build.id"
         [unread]="build.ownedByViewer ? comments.unreadFor(commentSubject, build.id) : 0"
         (delete)="remove($event)"
+        (coverFailed)="coverFailed()"
       />
     }
   </div>

@@ -34,6 +34,7 @@ import {
   type RepairDto,
 } from '@spothub/shared';
 
+import { refreshSignedLinks } from '../../../core/api/signed-links';
 import { Markdown } from '../../../core/components/markdown/markdown';
 import { LinkHostPipe } from '../../../core/format/link-host.pipe';
 import { AuthStore } from '../../../core/auth/auth.store';
@@ -118,6 +119,10 @@ export class BuildDetailPage {
   protected readonly auth = inject(AuthStore);
   protected readonly flights = inject(FlightsStore);
   private readonly builds = inject(BuildsStore);
+  /** Fresh photo addresses for a page left open past their signature. */
+  protected readonly photoFailed = refreshSignedLinks(
+    () => void this.photos.refresh(this.id()),
+  );
   private readonly api = inject(BuildsApi);
   private readonly configsApi = inject(ConfigsApi);
   private readonly document = inject(DOCUMENT);

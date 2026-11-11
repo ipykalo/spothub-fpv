@@ -36,6 +36,8 @@ export class BuildCard {
   readonly actions = input(true);
 
   readonly delete = output<BuildDto>();
+  /** The cover would not load: its signed address may have run out (`core/api/signed-links.ts`). */
+  readonly coverFailed = output();
 
   protected readonly statusLabels = BUILD_STATUS_LABELS;
   protected readonly classLabels = BUILD_CLASS_LABELS;

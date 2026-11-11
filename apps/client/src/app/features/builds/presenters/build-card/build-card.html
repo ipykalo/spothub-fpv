@@ -36,6 +36,7 @@
       [src]="build().coverUrl"
       [alt]="'Photo of ' + build().name"
       loading="lazy"
+      (error)="coverFailed.emit()"
     />
   } @else {
     <!-- No photo yet. The slot stays, so a row of cards lines up either way, and

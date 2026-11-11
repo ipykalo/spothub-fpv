@@ -1076,6 +1076,15 @@ and what it cost to undo it are worth remembering before opening anything else.
   broke after a reload. `MediaFacade.postImages(…, signed)` and the summaries'
   `signedDraftCovers` sign exactly when the post is Private; published, it is
   back to lasting addresses (`post-images.e2e.spec.ts`).
+- **A presigned image address runs out, so a page left open asks again.**
+  Download addresses last `S3_DOWNLOAD_URL_TTL` (an hour) and are signed at
+  the start of a quarter-hour window (`storage/stable-signing.ts`), so the
+  browser can cache them and every one handed out has 45 minutes left. A
+  page holding them calls `refreshSignedLinks` (`core/api/signed-links.ts`)
+  with how to reload its list: it reloads when the tab comes back after ten
+  minutes hidden, and when an image's `(error)` fires — at most once per
+  30 s. The gallery's `imageFailed` and the cards' `coverFailed` outputs
+  carry that error up. A new list of signed images needs both.
 - **A server-rendered page renders from data resolved before it exists.** The
   browser's first render must match the server's HTML, and anything fetched
   after a component is created lands too late for that. So the public pages

@@ -31,6 +31,8 @@ export class PostCard {
   readonly deleting = input(false);
 
   readonly delete = output<PostSummaryDto>();
+  /** The cover would not load: its signed address may have run out (`core/api/signed-links.ts`). */
+  readonly coverFailed = output();
 
   protected readonly visibilityLabels = VISIBILITY_LABELS;
 

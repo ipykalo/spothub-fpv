@@ -6,6 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import type { PostSummaryDto } from '@spothub/shared';
 
+import { refreshSignedLinks } from '../../../core/api/signed-links';
 import { PostCard } from '../presenters/post-card/post-card';
 import { PostsStore } from '../posts.store';
 
@@ -20,6 +21,8 @@ import { PostsStore } from '../posts.store';
 export class MyPostsPage {
   protected readonly store = inject(PostsStore);
   private readonly snackBar = inject(MatSnackBar);
+  /** Fresh cover addresses for a draft's page left open past their signature. */
+  protected readonly coverFailed = refreshSignedLinks(() => void this.store.loadMine());
 
   protected readonly pendingDelete = signal<string | null>(null);
 

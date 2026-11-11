@@ -63,6 +63,7 @@
           class="block h-full w-full object-contain"
           [src]="photo.url ?? photo.thumbUrl"
           [alt]="photo.fileName ?? 'Build photo'"
+          (error)="imageFailed.emit()"
         />
       </button>
 
@@ -72,7 +73,7 @@
         them, and the viewer below uses the same addresses.
       -->
       @for (url of neighbourUrls(); track url) {
-        <img class="preload" [src]="url" alt="" aria-hidden="true" fetchpriority="low" />
+        <img class="preload" [src]="url" alt="" aria-hidden="true" fetchpriority="low" (error)="imageFailed.emit()" />
       }
 
       @if (photo.id === coverAssetId()) {
@@ -165,6 +166,7 @@
           [src]="photo.thumbUrl ?? photo.url"
           [alt]="photo.fileName ?? 'Build photo'"
           loading="lazy"
+          (error)="imageFailed.emit()"
         />
       </button>
     }
@@ -247,6 +249,7 @@
         class="absolute inset-x-18 top-14 bottom-12 m-auto h-[calc(100%-6.5rem)] w-[calc(100%-9rem)] touch-pan-y object-contain max-[32rem]:inset-x-0 max-[32rem]:h-[calc(100%-6.5rem)] max-[32rem]:w-full"
         [src]="photo.url ?? photo.thumbUrl"
         [alt]="photo.fileName ?? 'Build photo'"
+        (error)="imageFailed.emit()"
       />
 
       <p
