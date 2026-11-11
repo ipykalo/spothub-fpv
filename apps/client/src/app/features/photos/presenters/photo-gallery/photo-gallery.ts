@@ -21,6 +21,7 @@ import { ALLOWED_IMAGE_MIME, type AssetDto } from '@spothub/shared';
 
 import type { PendingUpload } from '../../photos.store';
 import { neighbourPhotoUrls } from './neighbour-photos';
+import { swipeStep } from './swipe';
 
 /**
  * Presenter: one photo shown large, the rest as a strip beneath it.
@@ -140,6 +141,57 @@ export class PhotoGallery {
     if (count > 0) {
       this.index.set((this.activeIndex() + delta + count) % count);
     }
+  }
+
+  /** Where and when the finger went down, until it lifts. */
+  private touchStart: { x: number; y: number; at: number } | null = null;
+
+  /**
+   * When the last swipe ended. Some browsers follow a swipe with a tap, which
+   * must not also open the viewer; most do not, and a flag left standing
+   * would swallow the reader's next real tap. So only a tap this close after
+   * a swipe is ignored.
+   */
+  private swipedAt = Number.NEGATIVE_INFINITY;
+
+  protected onTouchStart(event: TouchEvent): void {
+    const touch = event.touches.item(0);
+    this.touchStart =
+      event.touches.length === 1 && touch
+        ? { x: touch.clientX, y: touch.clientY, at: event.timeStamp }
+        : null;
+  }
+
+  protected onTouchEnd(event: TouchEvent): void {
+    const start = this.touchStart;
+    const touch = event.changedTouches.item(0);
+    this.touchStart = null;
+
+    if (!start || !touch) {
+      return;
+    }
+
+    const step = swipeStep(
+      touch.clientX - start.x,
+      touch.clientY - start.y,
+      event.timeStamp - start.at,
+    );
+
+    if (step !== 0 && this.hasMany()) {
+      // The page's own clock, not the events': a touch's and a click's
+      // timeStamp need not count from the same moment.
+      this.swipedAt = performance.now();
+      this.step(step);
+    }
+  }
+
+  /** The photo was tapped: open it full size, unless the tap was the end of a swipe. */
+  protected onPhotoClick(): void {
+    if (performance.now() - this.swipedAt < 500) {
+      return;
+    }
+
+    this.openViewer();
   }
 
   protected onDrop(event: CdkDragDrop<readonly AssetDto[]>): void {
