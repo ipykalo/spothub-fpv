@@ -64,6 +64,11 @@ export class PhotoGallery {
   readonly removeRequested = output<AssetDto>();
   readonly coverChosen = output<AssetDto>();
   readonly reordered = output<readonly string[]>();
+  /**
+   * A photo would not load — most likely its signed address ran out on a page
+   * left open. The container fetches the list again (`core/api/signed-links.ts`).
+   */
+  readonly imageFailed = output();
 
   protected readonly accept = ALLOWED_IMAGE_MIME.join(',');
   protected dragging = false;

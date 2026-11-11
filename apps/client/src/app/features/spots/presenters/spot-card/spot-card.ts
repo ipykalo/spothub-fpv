@@ -38,6 +38,8 @@ export class SpotCard {
 
   readonly showOnMap = output<SpotDto>();
   readonly delete = output<SpotDto>();
+  /** The cover would not load: its signed address may have run out (`core/api/signed-links.ts`). */
+  readonly coverFailed = output();
 
   protected readonly access = computed(() => SPOT_ACCESS_STYLES[this.spot().access]);
   protected readonly accessLabel = computed(() => SPOT_ACCESS_LABELS[this.spot().access]);

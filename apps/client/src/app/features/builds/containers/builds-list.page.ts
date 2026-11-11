@@ -22,6 +22,7 @@ import {
   type BuildDto,
 } from '@spothub/shared';
 
+import { refreshSignedLinks } from '../../../core/api/signed-links';
 import type { ChoiceOption } from '../../../core/components/choice-option';
 import { FilterChips } from '../../../core/components/filter-chips/filter-chips';
 import { GridToolbar } from '../../../core/components/grid-toolbar/grid-toolbar';
@@ -106,6 +107,10 @@ export class BuildsListPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
+  /** Fresh cover addresses for a page left open past their signature. */
+  protected readonly coverFailed = refreshSignedLinks(
+    () => void (this.isShared() ? this.store.loadShared() : this.store.load()),
+  );
 
   protected readonly commentSubject = CommentSubject.Build;
   protected readonly sorts = SORTS;

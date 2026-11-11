@@ -158,6 +158,27 @@ describe('PhotosStore', () => {
     });
   });
 
+  describe('refreshing expired addresses', () => {
+    it('takes the list again with its new addresses', async () => {
+      await store.load('b1');
+      api.photos = [photo('1', { url: 'https://storage.invalid/fresh' })];
+
+      await store.refresh('b1');
+
+      expect(store.photos().map((p) => p.url)).toEqual(['https://storage.invalid/fresh']);
+    });
+
+    it('keeps the photos on screen and says nothing when it fails', async () => {
+      await store.load('b1');
+      api.listFails = true;
+
+      await store.refresh('b1');
+
+      expect(store.photos()).toHaveLength(3);
+      expect(store.error()).toBeNull();
+    });
+  });
+
   describe('uploading', () => {
     it('walks the three steps in order and adds the committed photo', async () => {
       await store.upload('b1', [jpeg('dji.jpg')]);

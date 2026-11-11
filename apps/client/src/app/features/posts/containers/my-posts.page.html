@@ -26,7 +26,13 @@
 @if (store.mine().length) {
   <div class="grid gap-4">
     @for (post of store.mine(); track post.id) {
-      <sh-post-card [post]="post" [manage]="true" [deleting]="pendingDelete() === post.id" (delete)="remove($event)" />
+      <sh-post-card
+        [post]="post"
+        [manage]="true"
+        [deleting]="pendingDelete() === post.id"
+        (delete)="remove($event)"
+        (coverFailed)="coverFailed()"
+      />
     }
   </div>
 } @else if (store.loaded() && !store.error()) {

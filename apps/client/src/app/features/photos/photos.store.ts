@@ -58,6 +58,20 @@ export class PhotosStore {
     }
   }
 
+  /**
+   * The same list again, for fresh signed addresses (`core/api/signed-links.ts`).
+   * Quiet: no progress bar and no error, since the photos on screen are still
+   * the right ones — only their addresses have run out. A failure leaves them
+   * as they were.
+   */
+  async refresh(buildId: string): Promise<void> {
+    try {
+      this.items.set(await firstValueFrom(this.api.list(buildId)));
+    } catch {
+      // Nothing to tell the reader: the next failed image asks again.
+    }
+  }
+
   /** Uploads in sequence: a phone dump of twenty photos should not open twenty sockets. */
   async upload(buildId: string, files: readonly File[]): Promise<void> {
     for (const file of files) {

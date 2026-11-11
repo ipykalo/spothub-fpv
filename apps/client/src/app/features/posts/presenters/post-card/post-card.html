@@ -12,7 +12,13 @@
 >
   @if (post().coverUrl; as cover) {
     <div class="relative aspect-video shrink-0 min-[40rem]:aspect-auto min-[40rem]:min-h-44 min-[40rem]:w-64 lg:w-72">
-      <img class="absolute inset-0 size-full object-cover" [src]="cover" alt="" loading="lazy" />
+      <img
+        class="absolute inset-0 size-full object-cover"
+        [src]="cover"
+        alt=""
+        loading="lazy"
+        (error)="coverFailed.emit()"
+      />
     </div>
   }
 

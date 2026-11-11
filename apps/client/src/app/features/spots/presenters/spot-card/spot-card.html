@@ -5,7 +5,7 @@
 >
   @if (spot().coverUrl; as cover) {
     <!-- Decorative: the name below says what it is. Served from our storage, never YouTube. -->
-    <img class="cover" [src]="cover" alt="" loading="lazy" decoding="async" />
+    <img class="cover" [src]="cover" alt="" loading="lazy" decoding="async" (error)="coverFailed.emit()" />
   } @else {
     <!--
       The same 16:9 as a real cover, so a row of cards lines up whether or not a

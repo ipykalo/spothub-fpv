@@ -114,6 +114,7 @@
                 [unread]="spot.ownedByViewer ? comments.unreadFor(commentSubject, spot.id) : 0"
                 (showOnMap)="showOnMap($event)"
                 (delete)="remove($event)"
+                (coverFailed)="coverFailed()"
               />
             </li>
           }
