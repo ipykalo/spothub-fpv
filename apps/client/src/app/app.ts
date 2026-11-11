@@ -6,6 +6,7 @@ import {
   computed,
   effect,
   inject,
+  signal,
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -22,12 +23,19 @@ import { CommentsStore } from './features/comments/comments.store';
 /** The pages anyone may open, signed in or not: the blog feed at the root, a post, and the about page. */
 const PUBLIC_PAGE = /^\/(?:$|[?#]|(?:blog|about)(?:[/?#]|$))/;
 
+/** The toolbar's two dropdowns: the folded links, and the pilot's own menu. */
+type ToolbarMenu = 'nav' | 'profile';
+
 @Component({
   selector: 'sh-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule, MatIconModule],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  host: {
+    '(document:click)': 'closeMenuOutside($event)',
+    '(document:keydown.escape)': 'closeMenu()',
+  },
 })
 export class App {
   protected readonly auth = inject(AuthStore);
@@ -48,6 +56,19 @@ export class App {
     ),
     { initialValue: inject(PlatformLocation).pathname },
   );
+
+  /**
+   * Which dropdown is open, if either. Two small panels of links rather than
+   * Material's menu, whose overlay would add 66 kB to every first page load
+   * for two lists that never need positioning cleverer than "under the button".
+   */
+  protected readonly openMenu = signal<ToolbarMenu | null>(null);
+
+  /** Unread comments anywhere, so the folded menu can say there is something new inside. */
+  protected readonly unreadTotal = computed(() => {
+    const unread = this.comments.unread();
+    return unread.builds.total + unread.spots.total;
+  });
 
   /** A visitor on a public page gets the public header instead of the app's toolbar. */
   protected readonly isPublicPage = computed(() => PUBLIC_PAGE.test(this.url()));
@@ -79,13 +100,37 @@ export class App {
         takeUntilDestroyed(),
       )
       .subscribe(() => {
+        // Following a link out of a menu closes it.
+        this.openMenu.set(null);
+
         if (this.auth.isAuthenticated()) {
           void this.comments.loadUnread();
         }
       });
   }
 
+  protected toggleMenu(menu: ToolbarMenu): void {
+    this.openMenu.update((open) => (open === menu ? null : menu));
+  }
+
+  protected closeMenu(): void {
+    this.openMenu.set(null);
+  }
+
+  /** A click anywhere but a menu or its button closes it, as a menu should. */
+  protected closeMenuOutside(event: MouseEvent): void {
+    const target = event.target;
+
+    if (
+      this.openMenu() !== null &&
+      !(target instanceof Element && target.closest('[data-menu]'))
+    ) {
+      this.openMenu.set(null);
+    }
+  }
+
   protected async signOut(): Promise<void> {
+    this.openMenu.set(null);
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
   }

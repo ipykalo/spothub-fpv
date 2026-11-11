@@ -1,1 +1,82 @@
-/* The shell is laid out with Tailwind utilities in app.html. */
+/* The shell is laid out with Tailwind utilities in app.html; this holds what they cannot do. */
+
+/* The folded menu's "something new inside" dot, over the corner of its button. */
+.nav-dot {
+  position: absolute;
+  translate: -14px 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mat-sys-primary);
+  pointer-events: none;
+}
+
+/*
+ * The profile button: the person icon, the name and a caret, close together.
+ * Material spaces a button's icon for one icon at the start; this one has two.
+ */
+.profile-button {
+  --mat-button-text-horizontal-padding: 8px;
+  --mat-button-text-icon-spacing: 6px;
+
+  max-width: 18rem;
+}
+
+.profile-caret {
+  margin-inline: -4px 0;
+}
+
+/* A dropdown hanging under the toolbar: the folded links, or the pilot's own menu. */
+.menu-panel {
+  position: absolute;
+  top: calc(100% - 4px);
+  min-width: 14rem;
+  max-width: calc(100vw - 1rem);
+  padding: 4px 0;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container);
+  box-shadow: var(--mat-sys-level2);
+  color: var(--mat-sys-on-surface);
+}
+
+/* One row of a dropdown: a link or a button, the same height a thumb can hit. */
+.menu-item {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+
+  mat-icon {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    background: var(--mat-sys-surface-container-highest);
+  }
+}
+
+/* An unread count at the end of a menu row, in the same amber as the toolbar's badges. */
+.menu-count {
+  margin-left: 12px;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}

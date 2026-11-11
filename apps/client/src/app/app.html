@@ -1,91 +1,194 @@
 @if (auth.isAuthenticated()) {
-  <mat-toolbar>
-    <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/hangar">SpotHub FPV</a>
-    <!--
-      On a phone the links scroll sideways rather than pushing the page wider than the screen,
-      with no scrollbar drawn: overflow-x alone turns overflow-y to auto too, and Windows then
-      paints both bars inside the toolbar. On wider screens nothing overflows at all.
-    -->
-    <nav
-      class="ml-2 flex min-w-0 gap-1 min-[40rem]:ml-6 max-[40rem]:overflow-x-auto max-[40rem]:overflow-y-hidden max-[40rem]:[scrollbar-width:none]"
-    >
-      <a matButton routerLink="/hangar">
-        Hangar
-        @if (comments.unread().builds.total; as unread) {
-          <span
-            class="ml-1 inline-grid min-w-5 place-items-center rounded-full bg-(--mat-sys-primary) px-1.5 text-xs leading-5 font-bold text-(--mat-sys-on-primary)"
-            [attr.aria-label]="unread + (unread === 1 ? ' unread comment' : ' unread comments')"
-          >
-            {{ unread }}
-          </span>
+  <!-- Positioned, so the two dropdowns can hang from it. -->
+  <header class="relative z-20">
+    <mat-toolbar>
+      <!--
+        Below 60rem the links do not fit beside the name and the buttons, so they
+        fold into one menu. A display utility on a Material host loses to
+        Material's own rule, so the wrapper carries it.
+      -->
+      <span class="relative -ml-2 mr-1 min-[60rem]:hidden" data-menu>
+        <button
+          matIconButton
+          type="button"
+          aria-label="Menu"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="openMenu() === 'nav'"
+          (click)="toggleMenu('nav')"
+        >
+          <mat-icon>{{ openMenu() === 'nav' ? 'close' : 'menu' }}</mat-icon>
+        </button>
+        @if (unreadTotal()) {
+          <span class="nav-dot" aria-hidden="true"></span>
         }
-      </a>
-      <a matButton routerLink="/parts">Parts</a>
-      <a matButton routerLink="/flights">Flights</a>
-      <a matButton routerLink="/spots">
-        Spots
-        @if (comments.unread().spots.total; as unread) {
-          <span
-            class="ml-1 inline-grid min-w-5 place-items-center rounded-full bg-(--mat-sys-primary) px-1.5 text-xs leading-5 font-bold text-(--mat-sys-on-primary)"
-            [attr.aria-label]="unread + (unread === 1 ? ' unread comment' : ' unread comments')"
-          >
-            {{ unread }}
-          </span>
+      </span>
+      <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/hangar">SpotHub FPV</a>
+
+      <nav class="ml-6 flex min-w-0 gap-1 max-[60rem]:hidden">
+        <a matButton routerLink="/hangar">
+          Hangar
+          @if (comments.unread().builds.total; as unread) {
+            <span
+              class="ml-1 inline-grid min-w-5 place-items-center rounded-full bg-(--mat-sys-primary) px-1.5 text-xs leading-5 font-bold text-(--mat-sys-on-primary)"
+              [attr.aria-label]="unread + (unread === 1 ? ' unread comment' : ' unread comments')"
+            >
+              {{ unread }}
+            </span>
+          }
+        </a>
+        <a matButton routerLink="/parts">Parts</a>
+        <a matButton routerLink="/flights">Flights</a>
+        <a matButton routerLink="/spots">
+          Spots
+          @if (comments.unread().spots.total; as unread) {
+            <span
+              class="ml-1 inline-grid min-w-5 place-items-center rounded-full bg-(--mat-sys-primary) px-1.5 text-xs leading-5 font-bold text-(--mat-sys-on-primary)"
+              [attr.aria-label]="unread + (unread === 1 ? ' unread comment' : ' unread comments')"
+            >
+              {{ unread }}
+            </span>
+          }
+        </a>
+        <a matButton routerLink="/">Blog</a>
+        <a matButton routerLink="/about">About</a>
+        @if (auth.isAdmin()) {
+          <a matButton routerLink="/admin">Admin</a>
         }
-      </a>
-      <a matButton routerLink="/">Blog</a>
-      <a matButton routerLink="/about">About</a>
-      @if (auth.isAdmin()) {
-        <a matButton routerLink="/admin">Admin</a>
-      }
-    </nav>
-    <span class="flex-1"></span>
-    <a
-      class="text-inherit no-underline hover:underline max-[40rem]:hidden"
-      routerLink="/account"
-      title="Your account"
-      >{{ auth.displayName() }}</a
-    >
-    <!-- A display utility on a Material host loses to Material's own rule; the wrapper takes it. -->
-    <span class="min-[40rem]:hidden">
-      <a matIconButton routerLink="/account" aria-label="Your account">
-        <mat-icon>account_circle</mat-icon>
-      </a>
-    </span>
-    <button
-      matIconButton
-      type="button"
-      [attr.aria-label]="theme.isDark() ? 'Switch to light theme' : 'Switch to dark theme'"
-      (click)="theme.toggle()"
-    >
-      <mat-icon>{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-    </button>
-    <button matIconButton type="button" aria-label="Sign out" (click)="signOut()">
-      <mat-icon>logout</mat-icon>
-    </button>
-  </mat-toolbar>
+      </nav>
+
+      <span class="flex-1"></span>
+
+      <button
+        matIconButton
+        type="button"
+        [attr.aria-label]="theme.isDark() ? 'Switch to light theme' : 'Switch to dark theme'"
+        (click)="theme.toggle()"
+      >
+        <mat-icon>{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+
+      <!-- The pilot's own menu: plainly a button, with the name beside the icon where it fits. -->
+      <span data-menu>
+        <button
+          matButton
+          type="button"
+          class="profile-button"
+          aria-label="Your profile"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="openMenu() === 'profile'"
+          (click)="toggleMenu('profile')"
+        >
+          <mat-icon>account_circle</mat-icon>
+          <span class="max-w-40 truncate max-[30rem]:hidden">{{ auth.displayName() }}</span>
+          <mat-icon class="profile-caret" iconPositionEnd>arrow_drop_down</mat-icon>
+        </button>
+      </span>
+    </mat-toolbar>
+
+    @if (openMenu() === 'nav') {
+      <div class="menu-panel left-2" role="menu" data-menu>
+        <a class="menu-item" role="menuitem" routerLink="/hangar">
+          <mat-icon>flight</mat-icon>
+          <span class="flex-1">Hangar</span>
+          @if (comments.unread().builds.total; as unread) {
+            <span class="menu-count">{{ unread }}</span>
+          }
+        </a>
+        <a class="menu-item" role="menuitem" routerLink="/parts">
+          <mat-icon>inventory_2</mat-icon>
+          <span class="flex-1">Parts</span>
+        </a>
+        <a class="menu-item" role="menuitem" routerLink="/flights">
+          <mat-icon>timeline</mat-icon>
+          <span class="flex-1">Flights</span>
+        </a>
+        <a class="menu-item" role="menuitem" routerLink="/spots">
+          <mat-icon>place</mat-icon>
+          <span class="flex-1">Spots</span>
+          @if (comments.unread().spots.total; as unread) {
+            <span class="menu-count">{{ unread }}</span>
+          }
+        </a>
+        <a class="menu-item" role="menuitem" routerLink="/">
+          <mat-icon>article</mat-icon>
+          <span class="flex-1">Blog</span>
+        </a>
+        <a class="menu-item" role="menuitem" routerLink="/about">
+          <mat-icon>info</mat-icon>
+          <span class="flex-1">About</span>
+        </a>
+        @if (auth.isAdmin()) {
+          <a class="menu-item" role="menuitem" routerLink="/admin">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span class="flex-1">Admin</span>
+          </a>
+        }
+      </div>
+    }
+
+    @if (openMenu() === 'profile') {
+      <div class="menu-panel right-2" role="menu" data-menu>
+        <div class="border-b border-outline-variant px-4 pt-1 pb-2.5">
+          <div class="truncate font-semibold">{{ auth.displayName() }}</div>
+          <div class="truncate text-xs text-muted">{{ auth.user()?.email }}</div>
+        </div>
+        <a class="menu-item" role="menuitem" routerLink="/account">
+          <mat-icon>manage_accounts</mat-icon>
+          <span class="flex-1">Your account</span>
+        </a>
+        <button class="menu-item" role="menuitem" type="button" (click)="signOut()">
+          <mat-icon>logout</mat-icon>
+          <span class="flex-1">Sign out</span>
+        </button>
+      </div>
+    }
+  </header>
 } @else if (isPublicPage()) {
   <!-- What a visitor sees on the blog: the way back to it, and a way in. -->
-  <mat-toolbar>
-    <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/">SpotHub FPV</a>
-    <!-- Two links and Sign in overflow a 390px phone; scroll sideways as the app's own nav does. -->
-    <nav
-      class="ml-2 flex min-w-0 gap-1 min-[40rem]:ml-6 max-[40rem]:overflow-x-auto max-[40rem]:overflow-y-hidden max-[40rem]:[scrollbar-width:none]"
-    >
-      <a matButton routerLink="/">Blog</a>
-      <a matButton routerLink="/about">About</a>
-    </nav>
-    <span class="flex-1"></span>
-    <button
-      matIconButton
-      type="button"
-      [attr.aria-label]="theme.isDark() ? 'Switch to light theme' : 'Switch to dark theme'"
-      (click)="theme.toggle()"
-    >
-      <mat-icon>{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-    </button>
-    <a matButton="outlined" routerLink="/login" [queryParams]="{ returnUrl: url() }">Sign in</a>
-  </mat-toolbar>
+  <header class="relative z-20">
+    <mat-toolbar>
+      <span class="-ml-2 mr-1 min-[30rem]:hidden" data-menu>
+        <button
+          matIconButton
+          type="button"
+          aria-label="Menu"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="openMenu() === 'nav'"
+          (click)="toggleMenu('nav')"
+        >
+          <mat-icon>{{ openMenu() === 'nav' ? 'close' : 'menu' }}</mat-icon>
+        </button>
+      </span>
+      <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/">SpotHub FPV</a>
+      <nav class="ml-6 flex min-w-0 gap-1 max-[30rem]:hidden">
+        <a matButton routerLink="/">Blog</a>
+        <a matButton routerLink="/about">About</a>
+      </nav>
+      <span class="flex-1"></span>
+      <button
+        matIconButton
+        type="button"
+        [attr.aria-label]="theme.isDark() ? 'Switch to light theme' : 'Switch to dark theme'"
+        (click)="theme.toggle()"
+      >
+        <mat-icon>{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+      <a matButton="outlined" routerLink="/login" [queryParams]="{ returnUrl: url() }">Sign in</a>
+    </mat-toolbar>
+
+    @if (openMenu() === 'nav') {
+      <div class="menu-panel left-2" role="menu" data-menu>
+        <a class="menu-item" role="menuitem" routerLink="/">
+          <mat-icon>article</mat-icon>
+          <span class="flex-1">Blog</span>
+        </a>
+        <a class="menu-item" role="menuitem" routerLink="/about">
+          <mat-icon>info</mat-icon>
+          <span class="flex-1">About</span>
+        </a>
+      </div>
+    }
+  </header>
 }
 
 <main class="mx-auto max-w-6xl p-6">
