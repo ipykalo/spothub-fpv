@@ -1,0 +1,31 @@
+@if (videos().length) {
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-4">
+    @for (video of videos(); track video.id) {
+      <figure class="m-0 grid gap-2">
+        <sh-youtube-player [video]="video" />
+        <figcaption class="flex items-center gap-2">
+          <span class="min-w-0 flex-auto truncate text-sm">{{ video.title ?? 'Untitled video' }}</span>
+          @if (!readOnly()) {
+            <button
+              matIconButton
+              type="button"
+              [attr.aria-label]="'Remove ' + (video.title ?? 'this video')"
+              [disabled]="pendingRemoval() === video.id"
+              (click)="removeRequested.emit(video)"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+        </figcaption>
+      </figure>
+    }
+  </div>
+} @else {
+  <p class="m-0 py-4 text-sm text-muted">
+    @if (readOnly()) {
+      No videos of this build yet.
+    } @else {
+      No videos yet. Share your flights: add a YouTube link.
+    }
+  </p>
+}

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { toDateOnly } from '../common';
 import { type RepairCostSummary, RepairsFacade } from './abstract/repairs.facade';
 import { RepairsRepository } from './abstract/repairs.repository';
 import { rollUpRepairs } from './repairs.mapper';
@@ -13,7 +14,19 @@ export class RepairsFacadeImpl extends RepairsFacade {
 
   async costForBuild(ownerId: string, buildId: string): Promise<RepairCostSummary> {
     const repairs = await this.repairs.findManyForOwner(ownerId, buildId);
-    return { totals: rollUpRepairs(repairs), count: repairs.length };
+    const amounts = repairs.flatMap((repair) =>
+      repair.cost === null || repair.currency === null
+        ? []
+        : [
+            {
+              amount: repair.cost,
+              currency: repair.currency,
+              day: toDateOnly(repair.occurredOn),
+            },
+          ],
+    );
+
+    return { totals: rollUpRepairs(repairs), count: repairs.length, amounts };
   }
 
   existsForBuild(ownerId: string, buildId: string, repairId: string): Promise<boolean> {

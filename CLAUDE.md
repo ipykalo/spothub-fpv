@@ -26,7 +26,7 @@ whole public surface:
 apps/api/src/
   app/  common/  config/  prisma/  storage/  jobs/   infrastructure
   auth/  users/                              sign-in and accounts
-  builds/  build-parts/  repairs/  configs/  the hangar
+  builds/  build-parts/  repairs/  configs/  build-videos/  the hangar
   parts/                                     inventory (catalogue, units, sources)
   media/                                     build photos
   flights/                                   the logbook: flights, sessions
@@ -178,6 +178,7 @@ features/
   repairs/      repairs.api/store, repair-cause, repair-form + repair-timeline presenters
   configs/      configs.api/store, config-diff, config-compare.page container, config-list/-diff-view/-paste-form presenters
   photos/       photos.api/store, photo-gallery presenter
+  build-videos/ build-videos.api/store, build-video-form + build-video-list presenters
   parts/        catalogue, units, sources
   flights/      flights.api/store, chart-scale, flights.page container + flight-grid, session-flights/flight-bulk-bar/flight-trends/flight-map/flight-timeline presenters
   flight-logs/  flight-logs.api/store (the upload state machine), log-import-panel presenter
@@ -252,7 +253,7 @@ by `ThemeStore` (`core/theme/`). **No font comes from Google**: Material
 Icons, which `<mat-icon>` needs, is bundled from the `material-icons` package
 (filled set only) through `project.json`'s styles. It was a Google Fonts link
 until the site went public, which handed every visitor's address to Google
-on every page and contradicted what `/about` promises. The site icon is
+on every page. The site icon is
 `public/favicon.svg`, with `.ico` and `apple-touch-icon.png` rendered from it.
 
 The rules that keep Tailwind and Angular Material from fighting:
@@ -318,6 +319,20 @@ The rules that keep Tailwind and Angular Material from fighting:
   closes sign-up and takes their own address off the list can no longer sign
   in again — existing sessions keep working, and the row can be fixed in SQL
   (`apps/api/e2e/settings.e2e.spec.ts`).
+- **Nobody signs in from a restricted country** — Russia, Belarus, Iran,
+  North Korea, Syria and Cuba to start (`BLOCKED_COUNTRIES`, the starting
+  value of `app_settings.blocked_countries`, edited on the Admin page). Google
+  gives no country, so it is the country of the sign-in's IP, looked up in
+  DB-IP's "IP to Country Lite" file (`geo/`, `CountryLookup`) — local, nothing
+  sent anywhere; CC BY 4.0, credited on `/about`. The API image downloads it
+  at build time (`scripts/download-geoip.mjs`); in development run
+  `npm run geo:download`. Without the file nobody is refused, and the log says
+  so. Refused at every Google sign-in, new pilot or registered, before any
+  account is made; admins never. `users.last_sign_in_country` is kept even
+  for a refused attempt, and the Pilots table flags a restricted one. The
+  visitor's address is `request.ip` with `TRUST_PROXY_HOPS=1` (Caddy, which
+  replaces any X-Forwarded-For a visitor sends). A VPN gets around all of it
+  (`restricted-countries.e2e.spec.ts`).
 - **A pilot is ACTIVE, RESTRICTED (read-only) or BLOCKED** (`users.status`),
   set from the Admin page's Pilots table (`PATCH /admin/users/:id`; an
   admin's own status never changes there). Blocked is refused at sign-in, at
@@ -351,6 +366,56 @@ The rules that keep Tailwind and Angular Material from fighting:
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
 - Google identities key on the `sub` claim, never the email.
+- **A price's currency is one from a list** — `CURRENCIES` in
+  `libs/shared/src/lib/currency.ts`: the hryvnia and the 40 currencies the
+  National Bank of Ukraine publishes a rate for, so every price can be
+  converted into a total. Part prices, repairs and a bought quad's price all
+  go through `optionalCurrencySchema`; the client's fields are
+  `sh-autocomplete`s over `CURRENCY_OPTIONS` that start on the pilot's
+  `users.home_currency` (`PATCH /users/me/currency`, USD until chosen). A
+  currency read off a shop page is taken only if `isCurrency`. Adding one to
+  the list means adding a rate source that covers it
+  (`currency.e2e.spec.ts`).
+- **Exchange rates come from the National Bank of Ukraine**, in their own
+  `exchange-rates` module: `exchange_rates` holds hryvnias per unit, one row
+  per currency per day, and `conversion.ts` (pure, specced) goes from any
+  currency to any other through the hryvnia. Nothing is fetched on a
+  schedule: `ExchangeRatesFacade.totals` converts each price at its own day's
+  rate, and a day not stored yet is converted with the nearest stored day —
+  marked `exact: false` — while a `rates.fetch` job fetches and keeps it. A
+  past rate never changes, so each day is fetched once, and no request ever
+  waits on the bank. `RateSource` is the seam: `NbuRateSource` in
+  production, `StubRateSource` in the e2e suite (`exchange-rates.e2e.spec.ts`).
+  The NBU's address and how long to wait for it are config, not code:
+  `NBU_RATES_URL` and `NBU_RATES_TIMEOUT_MS` in `env.schema.ts`, read through
+  `ConfigService`, with the bank's own address and ten seconds as defaults.
+  **The cost rollup leads with converted totals**: `BuildCostDto.converted`
+  holds the parts and the repairs each added up in the viewer's home currency
+  and USD (`totalCurrencies`) — a fitted part at its purchase source's date,
+  a bought quad at its "built on" day, a repair at its own — and the build
+  page shows them as "≈ ₴… · ≈ $…" over what was actually paid, per currency
+  (`cost-lines.ts`). The viewer's currency rides on `AuthenticatedUser`, read
+  afresh on every request (`converted-cost.e2e.spec.ts`).
+- **A link a pilot pastes is a web address and nothing else.** Shop links
+  (a part source's `url`, a bought build's `purchaseUrl`) and the preview's
+  input go through `webLinkSchema` (`libs/shared/src/lib/web-link.ts`):
+  `http(s)` and a real domain, never `javascript:`, `data:`, `file:` or a bare
+  IP. Every outside link the client renders — those, and links in a post's
+  Markdown — opens in a new tab with `rel="noopener noreferrer nofollow ugc"`
+  and names its site (`linkHost`, the `linkHost` pipe); a Markdown link that
+  is not a web address stays its words. **The URL preview is the one place
+  the server opens an address someone else chose**: it connects through
+  `publicOnlyLookup`, which refuses a name unless every address it resolves
+  to is public (`public-address.ts`), follows at most three redirects by
+  hand re-checking each, and reads at most 512 KB (`links.e2e.spec.ts`).
+- **Nobody else ever sees a pilot's full Google name.** `users.display_name`
+  is shown to the pilot (account page) and an admin (Pilots table) only.
+  Every owner and author name the API hands out — shared builds and spots,
+  comments, post authors and the post's structured data — goes through
+  `publicName()` (`libs/shared/src/lib/pilot-name.ts`): the `pilot_name` they
+  set on `/account` (`PATCH /users/me/name`), else "First L.". A repository
+  that selects `displayName` for someone else's eyes must select `pilotName`
+  beside it and call `publicName` (`apps/api/e2e/pilot-name.e2e.spec.ts`).
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed
   3000 too and nothing bound 4200 — and on Windows the second bind _succeeds_
@@ -823,6 +888,14 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   youtube-nocookie player; `bypassSecurityTrustResourceUrl` is only ever given
   a URL built from an id re-checked against YouTube's alphabet. Uploaded,
   transcoded clips are a possible later extension.
+- **A build's videos are YouTube links too**, in their own `build-videos`
+  module (`build_videos`, up to `MAX_BUILD_VIDEOS` = 20 a build). The form
+  says "YouTube links only" before anything is typed and checks a pasted link
+  with `createBuildVideoSchema` as it is pasted; the API applies the same
+  schema, and a CHECK on `youtube_id` holds the column to YouTube's alphabet,
+  so no row can point anywhere else. Whoever may open the build sees them —
+  the join on `builds` as in repairs and photos, 404 for a build they cannot
+  open — and only its owner adds or removes (`build-videos.e2e.spec.ts`).
 - **A spot's cover is its video's thumbnail, stored, not linked.** Pointing a
   card at `i.ytimg.com` would tell Google who browsed which spots. Instead,
   setting a video queues `spot.cover`: the job asks the `YouTubeThumbnails`
@@ -874,8 +947,9 @@ signed-in pilots may open a build, never whether a signed-out visitor may** —
 every build read is guarded, whatever its visibility says.
 
 **The blog is the public face of the site, and nothing else is** — apart
-from `/about`, a static page saying what the site is, what each part does,
-how to start and what it never does with anyone's data, linked from the
+from `/about`, a static page saying what the site is, what each part does
+and how to start — it deliberately lists no privacy or tracking details, and
+carries only the DB-IP credit its licence requires — linked from the
 visitor's header and a footer on every page and listed in the sitemap. The
 blog is the home page (`/`, with `/blog` redirecting there so the feed has one
 address) and it renders on the server. The hangar, parts, flights and spots are behind

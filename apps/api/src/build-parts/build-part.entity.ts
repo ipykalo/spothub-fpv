@@ -21,6 +21,8 @@ export interface BuildAccess {
   readonly boughtComplete: boolean;
   /** A bought quad's own price, when one was recorded with its currency. */
   readonly boughtFor: CurrencyTotal | null;
+  /** `YYYY-MM-DD` the quad was bought, else the day the build was entered. */
+  readonly boughtOn: string;
 }
 
 /**
@@ -61,4 +63,13 @@ export interface BuildCost {
   /** Money spent on repairs, kept apart from what the fitted parts cost. */
   readonly repairTotals: readonly CurrencyTotal[];
   readonly repairCount: number;
+  /** Every priced amount in `totals`, dated the day it was paid, for converting. */
+  readonly spent: readonly DatedPrice[];
+}
+
+/** One amount paid, in its own currency, on a `YYYY-MM-DD` day. */
+export interface DatedPrice {
+  readonly amount: number;
+  readonly currency: string;
+  readonly day: string;
 }

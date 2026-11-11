@@ -2,15 +2,15 @@
   <mat-card-content>
     <h3 class="mt-0 mb-3 text-sm font-semibold tracking-wider text-muted uppercase">What is on it</h3>
 
-    @if (cost().totals.length) {
-      <ul class="mt-0 mb-2.5 flex list-none flex-wrap gap-x-6 gap-y-1 p-0">
-        @for (total of cost().totals; track total.currency) {
-          <li class="flex items-baseline gap-1.5">
-            <span class="text-2xl leading-[1.1] font-semibold tabular-nums">{{ total.amount }}</span>
-            <span class="text-sm text-muted">{{ total.currency }}</span>
-          </li>
+    @if (parts().headline.length) {
+      <ul class="mt-0 mb-1 flex list-none flex-wrap gap-x-6 gap-y-1 p-0">
+        @for (figure of parts().headline; track figure) {
+          <li class="text-2xl leading-[1.1] font-semibold tabular-nums">{{ figure }}</li>
         }
       </ul>
+      @if (parts().paidAs.length) {
+        <p class="mt-0 mb-2.5 text-sm text-muted tabular-nums">Paid as {{ parts().paidAs.join(' + ') }}</p>
+      }
     } @else {
       <p class="mt-2 mb-0 text-sm text-muted">Nothing priced yet.</p>
     }
@@ -34,10 +34,8 @@
       }
     </p>
 
-    @if (cost().totals.length > 1 || cost().repairTotals.length > 1) {
-      <p class="mt-2 mb-0 text-sm text-muted">
-        Listed per currency — these are not added together, and no rate was applied.
-      </p>
+    @if (parts().note; as note) {
+      <p class="mt-2 mb-0 text-xs text-muted">{{ note }}</p>
     }
   </mat-card-content>
 </mat-card>
@@ -46,15 +44,15 @@
   <mat-card-content>
     <h3 class="mt-0 mb-3 text-sm font-semibold tracking-wider text-muted uppercase">What it has cost to fix</h3>
 
-    @if (cost().repairTotals.length) {
-      <ul class="mt-0 mb-2.5 flex list-none flex-wrap gap-x-6 gap-y-1 p-0">
-        @for (total of cost().repairTotals; track total.currency) {
-          <li class="flex items-baseline gap-1.5">
-            <span class="text-2xl leading-[1.1] font-semibold tabular-nums">{{ total.amount }}</span>
-            <span class="text-sm text-muted">{{ total.currency }}</span>
-          </li>
+    @if (repairs().headline.length) {
+      <ul class="mt-0 mb-1 flex list-none flex-wrap gap-x-6 gap-y-1 p-0">
+        @for (figure of repairs().headline; track figure) {
+          <li class="text-2xl leading-[1.1] font-semibold tabular-nums">{{ figure }}</li>
         }
       </ul>
+      @if (repairs().paidAs.length) {
+        <p class="mt-0 mb-2.5 text-sm text-muted tabular-nums">Paid as {{ repairs().paidAs.join(' + ') }}</p>
+      }
     } @else {
       <p class="mt-2 mb-0 text-sm text-muted">Nothing spent on repairs yet.</p>
     }
@@ -62,5 +60,9 @@
     <p class="m-0 text-sm text-muted">
       {{ cost().repairCount }} repair{{ cost().repairCount === 1 ? '' : 's' }} logged
     </p>
+
+    @if (repairs().note; as note) {
+      <p class="mt-2 mb-0 text-xs text-muted">{{ note }}</p>
+    }
   </mat-card-content>
 </mat-card>

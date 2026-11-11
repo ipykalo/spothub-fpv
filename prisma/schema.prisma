@@ -36,8 +36,18 @@ enum UserStatus {
 model User {
   id                String     @id @default(uuid()) @db.Uuid
   email             String     @unique
+  /// The full name Google gives. Shown to the pilot and an admin only; everyone
+  /// else sees `pilotName`, or this cut to "First L." (`publicName()`).
   displayName       String?    @map("display_name")
-  avatarUrl         String?    @map("avatar_url")
+  /// The name the pilot chose to go by on the site. Null: the short form.
+  pilotName         String?    @map("pilot_name")
+  /// The currency this pilot's cost totals are shown in, besides USD. One of
+  /// `CURRENCIES` in libs/shared.
+  homeCurrency      String     @default("USD") @map("home_currency") @db.VarChar(3)
+  /// The country of the IP their last sign-in came from, refused or not — for
+  /// the Admin page. Null when it could not be placed.
+  lastSignInCountry String?    @map("last_sign_in_country") @db.VarChar(2)
+  avatarUrl        String?    @map("avatar_url")
   role              Role       @default(USER)
   status            UserStatus @default(ACTIVE)
   /// Stamped by a Google sign-in, not by a token refresh: when the person last
@@ -176,6 +186,7 @@ model Build {
   cover        Asset?        @relation("BuildCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
   parts        BuildPart[]
   repairs      Repair[]
+  videos       BuildVideo[]
   configs      Config[]
   flights      Flight[]
   comments     Comment[]
@@ -365,6 +376,36 @@ model Repair {
 
   @@index([buildId, occurredOn])
   @@map("repairs")
+}
+
+/// The NBU's official rate of one currency on one day, as hryvnias per unit.
+/// A past day's rate never changes, so a day is fetched once, when a price
+/// dated that day first needs converting, and kept.
+model ExchangeRate {
+  day        DateTime @db.Date
+  currency   String   @db.VarChar(3)
+  uahPerUnit Decimal  @map("uah_per_unit") @db.Decimal(18, 8)
+  fetchedAt  DateTime @default(now()) @map("fetched_at")
+
+  @@id([day, currency])
+  @@map("exchange_rates")
+}
+
+/// A YouTube video on a build -- its flights, its build-up. Only YouTube:
+/// what is stored is the video's id and start time, never a pasted address,
+/// so a row cannot point anywhere else.
+model BuildVideo {
+  id        String   @id @default(uuid()) @db.Uuid
+  buildId   String   @map("build_id") @db.Uuid
+  youtubeId String   @map("youtube_id") @db.VarChar(11)
+  startS    Int?     @map("start_s")
+  title     String?  @db.VarChar(80)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@index([buildId, createdAt])
+  @@map("build_videos")
 }
 
 // --------------------------------------------------------- firmware config
@@ -949,6 +990,9 @@ model AppSettings {
   /// How much each pilot may keep in storage — photos, post images and flight
   /// logs — unless their own `storage_quota_bytes` says otherwise. 512 MiB.
   defaultStorageQuotaBytes BigInt   @default(536870912) @map("default_storage_quota_bytes")
+  /// ISO country codes nobody may sign in from, by the country of their IP.
+  /// Admins are never refused.
+  blockedCountries         String[] @default(["RU", "BY", "IR", "KP", "SY", "CU"]) @map("blocked_countries")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")

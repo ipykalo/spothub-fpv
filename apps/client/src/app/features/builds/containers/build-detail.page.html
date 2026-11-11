@@ -101,13 +101,26 @@
               Bought complete
               @if (quad.purchaseVendor; as vendor) {
                 from
-                @if (quad.purchaseUrl; as link) {
-                  <a [href]="link" target="_blank" rel="noopener noreferrer">{{ vendor }}</a>
+                @if (quad.purchaseUrl | linkHost; as host) {
+                  <a
+                    [href]="quad.purchaseUrl"
+                    target="_blank"
+                    rel="noopener noreferrer nofollow ugc"
+                    [title]="'Opens ' + host + ' in a new tab'"
+                    >{{ vendor }}</a
+                  >
+                  <span class="text-xs text-muted">({{ host }})</span>
                 } @else {
                   {{ vendor }}
                 }
-              } @else if (quad.purchaseUrl; as link) {
-                (<a [href]="link" target="_blank" rel="noopener noreferrer">listing</a>)
+              } @else if (quad.purchaseUrl | linkHost; as host) {
+                (<a
+                  [href]="quad.purchaseUrl"
+                  target="_blank"
+                  rel="noopener noreferrer nofollow ugc"
+                  [title]="'Opens ' + host + ' in a new tab'"
+                  >listing on {{ host }}</a
+                >)
               }
             </dd>
           </div>
@@ -157,6 +170,31 @@
       (removeRequested)="removePhoto($event)"
       (coverChosen)="setCover($event)"
       (reordered)="reorderPhotos($event)"
+    />
+  </sh-section>
+
+  <sh-section
+    heading="Videos"
+    storageKey="build.videos"
+    [addLabel]="owned() ? 'Add video' : null"
+    [count]="videos.videos().length"
+    [(adding)]="addingVideo"
+  >
+    @if (addingVideo()) {
+      <div class="mb-4">
+        <sh-build-video-form [saving]="videos.saving()" [error]="videos.addError()" (added)="addVideo($event)" />
+      </div>
+    }
+
+    @if (videos.error(); as message) {
+      <p role="alert">{{ message }}</p>
+    }
+
+    <sh-build-video-list
+      [videos]="videos.videos()"
+      [readOnly]="!owned()"
+      [pendingRemoval]="removingVideoId()"
+      (removeRequested)="removeVideo($event)"
     />
   </sh-section>
 
@@ -237,7 +275,11 @@
   >
     @if (addingRepair()) {
       <div class="mb-4">
-        <sh-repair-form [saving]="loggingRepair()" (logged)="logRepair($event)" />
+        <sh-repair-form
+          [saving]="loggingRepair()"
+          [defaultCurrency]="auth.homeCurrency()"
+          (logged)="logRepair($event)"
+        />
       </div>
     }
 

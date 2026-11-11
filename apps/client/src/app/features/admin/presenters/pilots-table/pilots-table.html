@@ -41,7 +41,12 @@
               <span class="font-normal text-muted">(you)</span>
             }
           </span>
-          <span class="truncate text-xs text-muted">{{ user.email }}</span>
+          <span class="truncate text-xs text-muted">
+            @if (user.pilotName) {
+              Goes by <strong class="font-semibold">{{ user.pilotName }}</strong> ·
+            }
+            {{ user.email }}
+          </span>
         </span>
 
         <span class="col-start-2 flex flex-col text-xs text-muted min-[64rem]:col-auto">
@@ -53,6 +58,16 @@
               Not seen yet
             }
           </span>
+          @if (countryOf(user); as country) {
+            <span class="flex flex-wrap items-center gap-1">
+              From {{ country.name }}
+              @if (country.restricted) {
+                <span class="tone-stop rounded bg-(--tone-surface) px-1.5 font-semibold text-(--tone)">
+                  Restricted country
+                </span>
+              }
+            </span>
+          }
         </span>
 
         <span class="col-start-2 flex flex-col gap-1 text-xs min-[64rem]:col-auto">

@@ -3,6 +3,7 @@
   [isEdit]="isEdit()"
   [saving]="saving()"
   [errorMessage]="failure()"
+  [defaultCurrency]="auth.homeCurrency()"
   [previewLoading]="previewLoading()"
   [preview]="preview()"
   (saved)="save($event)"

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
+import { GeoModule } from '../geo';
 import { SettingsModule } from '../settings';
 import { UsersModule } from '../users';
 import { RefreshTokenRepository } from './abstract/refresh-token.repository';
@@ -22,7 +23,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
  * module's barrel.
  */
 @Module({
-  imports: [UsersModule, SettingsModule, PassportModule, JwtModule.register({})],
+  imports: [
+    UsersModule,
+    SettingsModule,
+    GeoModule,
+    PassportModule,
+    JwtModule.register({}),
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

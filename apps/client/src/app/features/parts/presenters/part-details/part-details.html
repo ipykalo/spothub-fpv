@@ -84,7 +84,9 @@
         >
           <span class="font-semibold tabular-nums">{{ name(unit) }}</span>
 
+          <!-- min-w-0: a grid item will not shrink below its content otherwise, and pushed the row past a phone's edge. -->
           <sh-autocomplete
+            class="min-w-0"
             compact
             subscriptSizing="dynamic"
             [options]="conditionOptions"
@@ -147,8 +149,14 @@
               }
             </span>
 
-            @if (source.url; as link) {
-              <a [href]="link" target="_blank" rel="noopener noreferrer">Open listing</a>
+            @if (source.url | linkHost; as host) {
+              <a
+                [href]="source.url"
+                target="_blank"
+                rel="noopener noreferrer nofollow ugc"
+                [title]="'Opens ' + host + ' in a new tab'"
+                >Open on {{ host }}</a
+              >
             } @else {
               <span class="text-muted italic">no link</span>
             }

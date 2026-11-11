@@ -47,8 +47,12 @@ function toColumns(data: UpdateAppSettingsData): {
   openRegistration?: boolean;
   allowedEmails?: string[];
   defaultStorageQuotaBytes?: bigint;
+  blockedCountries?: string[];
 } {
   return {
+    ...(data.blockedCountries === undefined
+      ? {}
+      : { blockedCountries: [...data.blockedCountries] }),
     ...(data.openRegistration === undefined
       ? {}
       : { openRegistration: data.openRegistration }),
@@ -67,6 +71,7 @@ function toEntity(row: AppSettings): AppSettingsEntity {
     allowedEmails: row.allowedEmails,
     // A terabyte is far inside a double's exact range.
     defaultStorageQuotaBytes: Number(row.defaultStorageQuotaBytes),
+    blockedCountries: row.blockedCountries,
     updatedAt: row.updatedAt,
   };
 }

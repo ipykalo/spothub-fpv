@@ -19,6 +19,9 @@ export class LoginPage {
 
   /** Set when Google sign-in worked but this site refused the account. */
   protected readonly denied = this.route.snapshot.queryParamMap.has('denied');
+  /** Refused for the country the sign-in came from, rather than for the account. */
+  protected readonly deniedForCountry =
+    this.route.snapshot.queryParamMap.get('denied') === 'country';
 
   /**
    * A full navigation rather than an XHR: the OAuth flow needs the browser to

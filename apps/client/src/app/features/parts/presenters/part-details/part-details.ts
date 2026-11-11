@@ -17,6 +17,7 @@ import {
 } from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import { LinkHostPipe } from '../../../../core/format/link-host.pipe';
 import { Section } from '../../../../core/components/section/section';
 import { PART_CATEGORY_ICONS } from '../../part-category';
 import {
@@ -41,7 +42,14 @@ interface SpecEntry {
 @Component({
   selector: 'sh-part-details',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Autocomplete, MatButtonModule, MatCardModule, MatIconModule, Section],
+  imports: [
+    Autocomplete,
+    LinkHostPipe,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    Section,
+  ],
   templateUrl: './part-details.html',
   styleUrl: './part-details.scss',
 })

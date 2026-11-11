@@ -22,9 +22,19 @@
     />
   </sh-section>
 
+  <sh-section heading="Restricted countries" icon="public_off" [count]="settings.blockedCountries.length">
+    <sh-restricted-countries
+      [countries]="settings.blockedCountries"
+      [saving]="store.saving()"
+      (countryAdded)="restrictCountry($event)"
+      (countryRemoved)="allowCountry($event)"
+    />
+  </sh-section>
+
   <sh-section heading="Pilots" icon="group" [count]="store.users().length">
     <sh-pilots-table
       [users]="store.users()"
+      [blockedCountries]="settings.blockedCountries"
       [defaultLimitBytes]="settings.defaultStorageQuotaBytes"
       [saving]="store.saving()"
       (statusChanged)="setStatus($event)"

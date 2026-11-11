@@ -65,6 +65,7 @@ export class PrismaUsersRepository extends UsersRepository {
             displayName: input.displayName ?? existing.user.displayName,
             avatarUrl: input.avatarUrl ?? existing.user.avatarUrl,
             lastSignInAt: new Date(),
+            lastSignInCountry: input.country,
           },
         });
       }
@@ -76,11 +77,13 @@ export class PrismaUsersRepository extends UsersRepository {
           displayName: input.displayName,
           avatarUrl: input.avatarUrl,
           lastSignInAt: new Date(),
+          lastSignInCountry: input.country,
         },
         update: {
           displayName: input.displayName ?? undefined,
           avatarUrl: input.avatarUrl ?? undefined,
           lastSignInAt: new Date(),
+          lastSignInCountry: input.country,
         },
       });
 
@@ -168,6 +171,36 @@ export class PrismaUsersRepository extends UsersRepository {
     return used;
   }
 
+  async findByEmail(email: string): Promise<UserEntity | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+    return user ? PrismaUsersRepository.toEntity(user) : null;
+  }
+
+  async recordSignInCountry(id: string, country: string | null): Promise<void> {
+    await this.prisma.user.updateMany({
+      where: { id },
+      data: { lastSignInCountry: country },
+    });
+  }
+
+  async setPilotName(id: string, pilotName: string | null): Promise<UserEntity | null> {
+    const { count } = await this.prisma.user.updateMany({
+      where: { id },
+      data: { pilotName },
+    });
+    return count > 0 ? this.findById(id) : null;
+  }
+
+  async setHomeCurrency(id: string, homeCurrency: string): Promise<UserEntity | null> {
+    const { count } = await this.prisma.user.updateMany({
+      where: { id },
+      data: { homeCurrency },
+    });
+    return count > 0 ? this.findById(id) : null;
+  }
+
   countAdmins(): Promise<number> {
     return this.prisma.user.count({ where: { role: 'ADMIN' } });
   }
@@ -182,6 +215,8 @@ export class PrismaUsersRepository extends UsersRepository {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
+      pilotName: user.pilotName,
+      homeCurrency: user.homeCurrency,
       avatarUrl: user.avatarUrl,
       role: user.role,
       status: user.status,
@@ -189,6 +224,7 @@ export class PrismaUsersRepository extends UsersRepository {
       lastSignInAt: user.lastSignInAt,
       storageQuotaBytes:
         user.storageQuotaBytes === null ? null : Number(user.storageQuotaBytes),
+      lastSignInCountry: user.lastSignInCountry,
     };
   }
 }

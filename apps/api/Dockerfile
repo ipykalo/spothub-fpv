@@ -8,6 +8,14 @@ RUN npm ci --ignore-scripts
 COPY . .
 RUN npx prisma generate && npx nx build api --configuration=production
 
+# Which country a sign-in comes from: DB-IP's "IP to Country Lite" (CC BY 4.0,
+# credited on /about), fresh with every image. Lookups are local; nothing about
+# a visitor is sent anywhere. If DB-IP cannot be reached the build goes on, and
+# the API says in its log that sign-ins are not being checked by country.
+RUN mkdir -p /app/data/geoip \
+  && (node scripts/download-geoip.mjs /app/data/geoip/dbip-country-lite.mmdb \
+      || echo "geoip: not downloaded; country checks off in this image")
+
 # Betaflight's blackbox_decode, which the worker runs to turn .bbl logs into
 # CSV. Built from source at a pinned commit: the project publishes no Linux
 # binaries. It is GPL-3.0, and runs as a separate program, never linked in.
@@ -47,6 +55,9 @@ COPY --from=build --chown=app:app /app/node_modules/.prisma ./node_modules/.pris
 COPY --from=build --chown=app:app /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
 COPY --from=build --chown=app:app /app/prisma ./prisma
+
+# GEOIP_COUNTRY_DB's default, relative to /app.
+COPY --from=build --chown=app:app /app/data/geoip ./data/geoip
 
 # musl-built, like this Alpine image, so it runs here as it did where it was built.
 COPY --from=blackbox-decode /usr/local/bin/blackbox_decode /usr/local/bin/blackbox_decode

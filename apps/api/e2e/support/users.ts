@@ -34,6 +34,7 @@ export async function createTestUser(
     email,
     displayName: null,
     avatarUrl: null,
+    country: null,
   });
 
   const issued = await tokens.issueForLogin(user);

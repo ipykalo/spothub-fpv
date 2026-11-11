@@ -16,6 +16,7 @@ export function toAdminUserDto(
     id: user.id,
     email: user.email,
     displayName: user.displayName,
+    pilotName: user.pilotName,
     avatarUrl: user.avatarUrl,
     role: user.role,
     status: user.status,
@@ -25,5 +26,6 @@ export function toAdminUserDto(
     storageUsedBytes: storage.usedBytes,
     storageLimitBytes: storage.limitBytes,
     storageQuotaBytes: user.storageQuotaBytes,
+    lastSignInCountry: user.lastSignInCountry,
   };
 }

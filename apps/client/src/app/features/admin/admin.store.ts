@@ -1,9 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
-import type {
-  AdminUserDto,
-  AppSettingsDto,
-  UpdateAdminUserDto,
-  UpdateAppSettingsDto,
+import {
+  type AdminUserDto,
+  type AppSettingsDto,
+  type CountryCode,
+  type UpdateAdminUserDto,
+  type UpdateAppSettingsDto,
+  isCountryCode,
 } from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
@@ -68,6 +70,27 @@ export class AdminStore {
   removeEmail(email: string): Promise<boolean> {
     const list = this.current()?.allowedEmails ?? [];
     return this.save({ allowedEmails: list.filter((entry) => entry !== email) });
+  }
+
+  /** Adds a country nobody but an admin may sign in from. */
+  addBlockedCountry(code: string): Promise<boolean> {
+    const list = this.blocked();
+
+    if (!isCountryCode(code) || list.includes(code)) {
+      return Promise.resolve(isCountryCode(code));
+    }
+
+    return this.save({ blockedCountries: [...list, code] });
+  }
+
+  removeBlockedCountry(code: string): Promise<boolean> {
+    return this.save({
+      blockedCountries: this.blocked().filter((entry) => entry !== code),
+    });
+  }
+
+  private blocked(): CountryCode[] {
+    return (this.current()?.blockedCountries ?? []).filter(isCountryCode);
   }
 
   /** What each pilot may keep unless given their own limit. */

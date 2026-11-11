@@ -18,10 +18,7 @@
     <mat-hint>Beyond the parts themselves</mat-hint>
   </mat-form-field>
 
-  <mat-form-field>
-    <mat-label>Currency</mat-label>
-    <input matInput formControlName="currency" maxlength="3" />
-  </mat-form-field>
+  <sh-autocomplete formControlName="currency" label="Currency" [options]="currencyOptions" />
 
   <button
     matButton="filled"

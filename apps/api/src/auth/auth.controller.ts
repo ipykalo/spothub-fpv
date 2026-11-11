@@ -26,6 +26,7 @@ import {
 import type { Env } from '../config';
 import { AuthService } from './services/auth.service';
 import type { GoogleProfile } from './auth.types';
+import { RestrictedCountryError } from './restricted-country.error';
 import type { IssuedTokens } from './services/token.service';
 
 const REFRESH_COOKIE = 'spothub_rt';
@@ -62,10 +63,15 @@ export class AuthController {
     let tokens: IssuedTokens;
 
     try {
-      tokens = await this.auth.signInWithGoogle(profile);
+      tokens = await this.auth.signInWithGoogle(profile, request.ip);
     } catch (error) {
       // A browser arrives here from Google, so a refusal is a page to land on,
       // not a JSON body: back to sign-in, saying why in general terms.
+      if (error instanceof RestrictedCountryError) {
+        response.redirect(`${this.clientUrl}/login?denied=country`);
+        return;
+      }
+
       if (error instanceof ForbiddenException) {
         response.redirect(`${this.clientUrl}/login?denied=1`);
         return;

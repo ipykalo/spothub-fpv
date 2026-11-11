@@ -20,7 +20,14 @@
         class="grid grid-cols-[1fr_auto] items-center gap-3 rounded bg-surface-container px-3 py-2 text-sm min-[40rem]:grid-cols-[minmax(5rem,8rem)_1fr_auto_auto]"
         [class.opacity-70]="history()"
       >
-        <span class="font-semibold">
+        <!--
+          On a phone: the part and its Remove on the first line, where and when
+          beneath — the name is what a reader scans for. Placed explicitly, so
+          the second line holds whether or not there is a Remove button.
+        -->
+        <span
+          class="font-semibold max-[40rem]:col-start-1 max-[40rem]:row-start-2 max-[40rem]:text-xs max-[40rem]:font-normal max-[40rem]:text-muted"
+        >
           @if (install.position) {
             {{ install.position }}
           } @else {
@@ -28,7 +35,7 @@
           }
         </span>
 
-        <span class="flex min-w-0 flex-col">
+        <span class="flex min-w-0 flex-col max-[40rem]:col-start-1 max-[40rem]:row-start-1">
           @if (readOnly()) {
             <span class="truncate">{{ name(install) }}</span>
           } @else {
@@ -42,7 +49,9 @@
           </span>
         </span>
 
-        <span class="flex flex-col items-start text-sm whitespace-nowrap text-muted tabular-nums min-[40rem]:items-end">
+        <span
+          class="flex flex-col items-end text-sm whitespace-nowrap text-muted tabular-nums max-[40rem]:col-start-2 max-[40rem]:row-start-2 max-[40rem]:text-xs"
+        >
           {{ install.installedOn }}
           @if (install.removedOn; as off) {
             → {{ off }}
@@ -54,6 +63,7 @@
           <button
             matButton
             type="button"
+            class="max-[40rem]:col-start-2 max-[40rem]:row-start-1"
             [disabled]="pendingRemoval() === install.id"
             (click)="removeRequested.emit(install)"
           >

@@ -1,3 +1,4 @@
+import { publicName } from '@spothub/shared';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
@@ -16,7 +17,7 @@ import type {
  * viewer may open each build is the builds module's answer to give.
  */
 const WITH_AUTHOR_AND_BUILDS = {
-  author: { select: { displayName: true } },
+  author: { select: { displayName: true, pilotName: true } },
   builds: { select: { buildId: true }, orderBy: { sortOrder: 'asc' } },
   // What is left of a deleted question is not a comment anyone can read.
   _count: { select: { comments: { where: { deletedAt: null } } } },
@@ -160,7 +161,7 @@ function toEntity(row: PostRow): PostEntity {
   return {
     id: row.id,
     authorId: row.authorId,
-    authorName: row.author.displayName,
+    authorName: publicName(row.author.pilotName, row.author.displayName),
     title: row.title,
     slug: row.slug,
     summary: row.summary,

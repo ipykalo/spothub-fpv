@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import {
   type FormArray,
@@ -23,8 +24,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
+  DEFAULT_HOME_CURRENCY,
   PART_CATEGORY_LABELS,
   PartCategory,
+  isCurrency,
   createPartSchema,
   createPartSourceSchema,
   type CreatePartDto,
@@ -35,8 +38,10 @@ import {
 } from '@spothub/shared';
 
 import { DateField } from '../../../../core/components/date-field/date-field';
+import { LinkHostPipe } from '../../../../core/format/link-host.pipe';
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { choicesFrom } from '../../../../core/components/choice-option';
+import { CURRENCY_OPTIONS } from '../../../../core/components/currency-options';
 import { PART_CATEGORY_ICONS } from '../../part-category';
 
 /**
@@ -99,6 +104,7 @@ const SPEC_SUGGESTIONS: Readonly<Record<PartCategory, readonly string[]>> = {
   imports: [
     DateField,
     Autocomplete,
+    LinkHostPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
@@ -118,6 +124,10 @@ export class PartForm {
   readonly errorMessage = input<string | null>(null);
   readonly previewLoading = input(false);
   readonly preview = input<UrlPreviewDto | null>(null);
+  /** What the price field starts on: the pilot's home currency. */
+  readonly defaultCurrency = input<string>(DEFAULT_HOME_CURRENCY);
+
+  protected readonly currencyOptions = CURRENCY_OPTIONS;
 
   readonly saved = output<PartSubmission>();
   readonly cancelled = output();
@@ -180,7 +190,7 @@ export class PartForm {
       vendor: [''],
       url: [''],
       price: [null as number | null],
-      currency: ['EUR'],
+      currency: [''],
       isPurchase: [true],
       purchasedOn: [''],
     }),
@@ -193,6 +203,16 @@ export class PartForm {
   constructor() {
     this.specRows.clear();
     this.syncSpecKeys();
+
+    // An empty price field starts on the pilot's own currency.
+    effect(() => {
+      const fallback = this.defaultCurrency();
+      const control = this.form.controls.source.controls.currency;
+
+      if (!control.value) {
+        control.setValue(fallback);
+      }
+    });
 
     this.form.controls.category.valueChanges.subscribe((category) => {
       this.selectedCategory.set(category);
@@ -234,7 +254,7 @@ export class PartForm {
           vendor: existing.vendor ?? '',
           url: existing.url ?? '',
           price: existing.price,
-          currency: existing.currency ?? '',
+          currency: existing.currency ?? untracked(this.defaultCurrency),
           isPurchase: existing.isPurchase,
           purchasedOn: existing.purchasedOn ?? '',
         });
@@ -286,8 +306,13 @@ export class PartForm {
         applied.push('price');
       }
 
-      if (preview.currency && !current.source.currency) {
-        source.controls.currency.setValue(preview.currency);
+      // A listing's price is in the listing's currency, so the two go together —
+      // but only a currency the site can convert is taken.
+      if (
+        isCurrency(preview.currency) &&
+        (applied.includes('price') || !current.source.currency)
+      ) {
+        source.controls.currency.setValue(preview.currency.toUpperCase());
         applied.push('currency');
       }
 

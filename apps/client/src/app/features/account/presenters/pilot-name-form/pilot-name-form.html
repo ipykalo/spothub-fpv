@@ -1,0 +1,31 @@
+<section>
+  <h2 class="mt-0 mb-1 text-lg">Pilot name</h2>
+  <p class="mt-0 mb-3 text-sm text-muted">
+    The name other pilots and visitors see on your shared builds and spots, your posts and your comments. A callsign is
+    fine. Your full Google name is never shown to anyone else.
+  </p>
+
+  <form class="flex flex-wrap items-start gap-3" (submit)="$event.preventDefault(); submit()">
+    <mat-form-field class="w-64" subscriptSizing="dynamic">
+      <mat-label>Pilot name</mat-label>
+      <input matInput maxlength="32" autocomplete="nickname" [value]="typed()" (input)="onTyped($event)" />
+      @if (draft().error; as message) {
+        <mat-hint class="text-danger">{{ message }}</mat-hint>
+      } @else {
+        <mat-hint>Empty: your first name and last initial.</mat-hint>
+      }
+    </mat-form-field>
+    <button matButton="filled" type="submit" class="mt-2" [disabled]="!!draft().error || unchanged() || saving()">
+      {{ saving() ? 'Saving…' : 'Save' }}
+    </button>
+  </form>
+
+  <p class="mt-3 mb-0 text-sm">
+    Others will see:
+    <strong>{{ draft().preview ?? '—' }}</strong>
+  </p>
+
+  @if (error(); as message) {
+    <p class="mt-2 mb-0 text-sm text-danger" role="alert">{{ message }}</p>
+  }
+</section>

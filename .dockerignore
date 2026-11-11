@@ -41,3 +41,6 @@ docker-compose.yml
 # blackbox fixture folder can hold hundreds of MB of local logs that are never
 # committed.
 **/__fixtures__
+
+# The IP-to-country database: the image downloads its own, fresh.
+data

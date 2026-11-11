@@ -89,6 +89,7 @@
           <mat-form-field>
             <mat-label>Product link</mat-label>
             <input matInput formControlName="url" placeholder="https://…" (blur)="onUrlBlur()" />
+            <mat-hint>A shop's web address, starting with https://</mat-hint>
           </mat-form-field>
 
           <button matButton="outlined" type="button" class="mt-2" [disabled]="previewLoading()" (click)="lookUpUrl()">
@@ -128,10 +129,7 @@
             <input matInput type="number" formControlName="price" min="0" step="0.01" />
           </mat-form-field>
 
-          <mat-form-field>
-            <mat-label>Currency</mat-label>
-            <input matInput formControlName="currency" maxlength="3" />
-          </mat-form-field>
+          <sh-autocomplete formControlName="currency" label="Currency" [options]="currencyOptions" />
 
           <sh-date-field formControlName="purchasedOn" label="Purchased on" />
         </div>
@@ -157,8 +155,14 @@
                     }
                   </span>
 
-                  @if (source.url; as link) {
-                    <a [href]="link" target="_blank" rel="noopener noreferrer">Open</a>
+                  @if (source.url | linkHost; as host) {
+                    <a
+                      [href]="source.url"
+                      target="_blank"
+                      rel="noopener noreferrer nofollow ugc"
+                      [title]="'Opens ' + host + ' in a new tab'"
+                      >Open on {{ host }}</a
+                    >
                   }
 
                   <button

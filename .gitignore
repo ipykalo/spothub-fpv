@@ -70,3 +70,6 @@ node_modules/.prisma
 # Editor
 .idea
 *.swp
+
+# The IP-to-country database, downloaded by `npm run geo:download` (CC BY 4.0, DB-IP).
+/data/

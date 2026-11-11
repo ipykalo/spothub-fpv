@@ -23,6 +23,7 @@ describe('AdminStore', () => {
       openRegistration: false,
       allowedEmails: ['pilot@example.com'],
       defaultStorageQuotaBytes: 2048,
+      blockedCountries: ['RU'],
       updatedAt: '2026-11-10T00:00:00.000Z',
     };
     sent: UpdateAppSettingsDto[] = [];
@@ -40,6 +41,7 @@ describe('AdminStore', () => {
         storageUsedBytes: 0,
         storageLimitBytes: 2048,
         storageQuotaBytes: null,
+        lastSignInCountry: null,
       },
     ];
     fails = false;
@@ -142,6 +144,21 @@ describe('AdminStore', () => {
 
     expect(api.sent).toEqual([{ defaultStorageQuotaBytes: 8192 }]);
     expect(store.settings()?.defaultStorageQuotaBytes).toBe(8192);
+  });
+
+  it('restricts a country, never twice, and allows it again', async () => {
+    expect(await store.addBlockedCountry('IR')).toBe(true);
+    expect(await store.addBlockedCountry('IR')).toBe(true);
+    expect(await store.addBlockedCountry('XX')).toBe(false);
+    expect(store.settings()?.blockedCountries).toEqual(['RU', 'IR']);
+
+    await store.removeBlockedCountry('RU');
+
+    expect(api.sent).toEqual([
+      { blockedCountries: ['RU', 'IR'] },
+      { blockedCountries: ['IR'] },
+    ]);
+    expect(store.settings()?.blockedCountries).toEqual(['IR']);
   });
 
   it('leaves a pilot’s status alone when the change fails', async () => {

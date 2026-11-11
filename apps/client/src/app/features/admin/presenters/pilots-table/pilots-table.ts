@@ -7,11 +7,18 @@ import {
   output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { type AdminUserDto, Role, USER_STATUS_LABELS, UserStatus } from '@spothub/shared';
+import {
+  type AdminUserDto,
+  Role,
+  USER_STATUS_LABELS,
+  UserStatus,
+  countryName,
+} from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
 import { formatBytes, percentUsed } from '../../../../core/format/bytes';
 import { storageLimitChoices } from '../../storage-limits';
+import { countryOf } from '../../country-options';
 import { type ChoiceOption } from '../../../../core/components/choice-option';
 import { FilterChips } from '../../../../core/components/filter-chips/filter-chips';
 import { GridToolbar } from '../../../../core/components/grid-toolbar/grid-toolbar';
@@ -27,7 +34,13 @@ type PilotSortKey = 'joined' | 'seen' | 'name';
 const pilotName = (user: AdminUserDto): string => user.displayName ?? user.email;
 
 const PILOT_GRID: GridSpec<AdminUserDto, PilotSortKey> = {
-  text: (user) => [user.displayName, user.email, USER_STATUS_LABELS[user.status]],
+  text: (user) => [
+    user.lastSignInCountry ? countryName(user.lastSignInCountry) : null,
+    user.displayName,
+    user.pilotName,
+    user.email,
+    USER_STATUS_LABELS[user.status],
+  ],
   sortBy: {
     joined: (user) => user.createdAt,
     seen: (user) => user.lastSignInAt,
@@ -62,8 +75,15 @@ const STATUS_HINTS: Readonly<Record<UserStatus, string>> = {
 })
 export class PilotsTable {
   readonly users = input.required<readonly AdminUserDto[]>();
+  /** The restricted countries, to flag a pilot whose last sign-in came from one. */
+  readonly blockedCountries = input<readonly string[]>([]);
   /** What a pilot without a limit of their own may keep. */
   readonly defaultLimitBytes = input.required<number>();
+
+  /** Where a pilot last signed in from, and whether that country is restricted. */
+  protected countryOf(user: AdminUserDto): ReturnType<typeof countryOf> {
+    return countryOf(user.lastSignInCountry, this.blockedCountries());
+  }
   readonly saving = input(false);
 
   readonly statusChanged = output<{ id: string; status: UserStatus }>();

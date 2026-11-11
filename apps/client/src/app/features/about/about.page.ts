@@ -86,7 +86,7 @@ const FORMATS: readonly {
 ];
 
 const DESCRIPTION =
-  'SpotHub FPV keeps an FPV pilot’s quads, parts, Betaflight configs, flight logs, battery packs and flying spots in one place. What it does, how to start, and what it never does with your data.';
+  'SpotHub FPV keeps an FPV pilot’s quads, parts, Betaflight configs, flight logs, battery packs and flying spots in one place. What it does and how to start.';
 
 /**
  * Container: what the site is, what each part of it does and how to begin —

@@ -8,7 +8,11 @@
         Your builds, parts, flight logs, battery packs and flying spots, in one place. Signing in is by invitation for
         now.
       </p>
-      @if (denied) {
+      @if (deniedForCountry) {
+        <p class="tone-stop mb-4 rounded bg-(--tone-surface) px-3 py-2 text-sm" role="alert">
+          Signing in to SpotHub FPV isn't available from your country.
+        </p>
+      } @else if (denied) {
         <p class="tone-stop mb-4 rounded bg-(--tone-surface) px-3 py-2 text-sm" role="alert">
           That Google account can't sign in here. Sign-up may be invite-only for now — ask to be added — or the account
           may have been blocked.
