@@ -34,7 +34,7 @@ describe('costLines', () => {
 
     expect(lines.headline).toEqual(['≈ ₴20,235.32', '≈ $445.28']);
     expect(lines.paidAs).toEqual(['$388.50', '₴2,580']);
-    expect(lines.note).toBe('At the NBU’s official rate on each purchase date.');
+    expect(lines.note).toBe('≈ converted at the exchange rate on each purchase date.');
   });
 
   it('needs no "≈" and no second line when everything was paid in a currency already shown', () => {
@@ -47,13 +47,23 @@ describe('costLines', () => {
     expect(lines.paidAs).toEqual([]);
   });
 
-  it('says when some rates are still being fetched', () => {
+  it('says no more than that it was converted, without naming a bank or a day', () => {
     const lines = costLines(
       [{ currency: 'EUR', amount: 10 }],
       [total('UAH', 510, false), total('USD', 11.2, false)],
     );
 
-    expect(lines.note).toContain('still being fetched');
+    expect(lines.note).toBe('≈ converted at the exchange rate on each purchase date.');
+    expect(lines.note).not.toMatch(/NBU|fetched|\d{4}-\d{2}-\d{2}/);
+  });
+
+  it('says nothing about converting when nothing was', () => {
+    const lines = costLines(
+      [{ currency: 'USD', amount: 120 }],
+      [{ currency: 'USD', amount: 120, exact: true, ratesOn: null }],
+    );
+
+    expect(lines.note).toBeNull();
   });
 
   it('falls back to what was paid when nothing could be converted yet', () => {
@@ -64,7 +74,7 @@ describe('costLines', () => {
 
     expect(lines.headline).toEqual(['€10']);
     expect(lines.paidAs).toEqual([]);
-    expect(lines.note).toContain('being fetched');
+    expect(lines.note).toBeNull();
   });
 
   it('shows nothing for nothing paid', () => {

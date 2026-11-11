@@ -53,9 +53,7 @@ export function costLines(
     return {
       headline: paidText,
       paidAs: [],
-      note: converted.length
-        ? 'Exchange rates are being fetched — reload in a moment for a total.'
-        : null,
+      note: null,
     };
   }
 
@@ -67,21 +65,14 @@ export function costLines(
   );
   const alreadyShown =
     single !== null && usable.some((total) => total.currency === single.currency);
-  const exact = usable.every((total) => total.exact);
-  const ratesOn = usable
-    .map((total) => total.ratesOn)
-    .filter((day): day is string => day !== null)
-    .sort()
-    .at(-1);
+  // Only a figure that went through a rate needs saying so. Which bank, and
+  // that a day's rate may still be on its way, mean nothing to most readers:
+  // the "≈" already says it is not exact.
+  const anyConverted = usable.some((total) => total.ratesOn !== null);
 
   return {
     headline,
     paidAs: alreadyShown ? [] : paidText,
-    note:
-      ratesOn === undefined
-        ? null
-        : exact
-          ? 'At the NBU’s official rate on each purchase date.'
-          : `At NBU rates up to ${ratesOn}; some purchase dates are still being fetched, so this is rough until the next reload.`,
+    note: anyConverted ? '≈ converted at the exchange rate on each purchase date.' : null,
   };
 }
