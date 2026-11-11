@@ -9,7 +9,7 @@
       <!-- Two lines then an ellipsis, with both lines reserved so one- and
            two-line titles align their badges. The whole name is on the detail page. -->
       <h3 class="m-0 line-clamp-2 min-h-10.5 flex-auto text-base leading-[1.3] font-semibold" [title]="title()">
-        {{ title() }}
+        <a class="card-link" [routerLink]="['/parts', part().id]">{{ title() }}</a>
       </h3>
     </div>
 
@@ -51,24 +51,40 @@
 
   <!-- The border sits above the price only, so the card reads as name → detail → cost. -->
   <div class="flex flex-col gap-0.5 border-t border-outline-variant pt-2">
-    <p class="m-0 flex min-h-6 items-baseline gap-1 tabular-nums">
-      @if (part().purchasePrice !== null) {
-        <span class="text-lg leading-[1.3] font-semibold">{{ part().purchasePrice }}</span>
-        <span class="text-xs text-muted">{{ part().purchaseCurrency }}</span>
-        @if (unitTotal() > 1) {
-          <span class="text-xs text-muted">each</span>
+    <div class="flex items-center gap-1">
+      <p class="m-0 flex min-h-6 flex-auto items-baseline gap-1 tabular-nums">
+        @if (part().purchasePrice !== null) {
+          <span class="text-lg leading-[1.3] font-semibold">{{ part().purchasePrice }}</span>
+          <span class="text-xs text-muted">{{ part().purchaseCurrency }}</span>
+          @if (unitTotal() > 1) {
+            <span class="text-xs text-muted">each</span>
+          }
+        } @else {
+          <span class="text-xs text-muted italic">No purchase recorded</span>
         }
-      } @else {
-        <span class="text-xs text-muted italic">No purchase recorded</span>
-      }
-    </p>
+      </p>
 
-    <div class="-ml-2 flex gap-0.5">
-      <a matButton [routerLink]="['/parts', part().id]">Open</a>
-      <a matButton [routerLink]="['/parts', part().id, 'edit']">Edit</a>
-      <button matButton [disabled]="deleting()" (click)="delete.emit(part())">
-        {{ deleting() ? 'Deleting…' : 'Delete' }}
-      </button>
+      <!-- Opening it is the card itself; these two sit above the card's link. -->
+      <div class="card-action -mr-2 flex gap-0.5">
+        <a
+          matIconButton
+          [routerLink]="['/parts', part().id, 'edit']"
+          [attr.aria-label]="'Edit ' + title()"
+          title="Edit"
+        >
+          <mat-icon>edit</mat-icon>
+        </a>
+        <button
+          matIconButton
+          type="button"
+          [disabled]="deleting()"
+          [attr.aria-label]="'Delete ' + title()"
+          title="Delete"
+          (click)="delete.emit(part())"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
     </div>
   </div>
 </mat-card>

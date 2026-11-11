@@ -1,6 +1,8 @@
 <mat-card appearance="outlined" class="tone-{{ style().tone }} flex h-full min-h-42 flex-col gap-2 px-4 pt-3.5 pb-2.5">
   <div class="flex flex-col gap-1.5">
-    <h3 class="m-0 truncate text-base leading-snug font-semibold" [title]="build().name">{{ build().name }}</h3>
+    <h3 class="m-0 truncate text-base leading-snug font-semibold" [title]="build().name">
+      <a class="card-link" [routerLink]="[link(), build().id]">{{ build().name }}</a>
+    </h3>
 
     @if (!build().ownedByViewer) {
       <p class="m-0 -mt-1 truncate text-xs text-muted">Shared by {{ build().ownerName ?? 'another pilot' }}</p>
@@ -57,16 +59,29 @@
   </div>
 
   <div class="flex items-center border-t border-outline-variant pt-1.5">
-    <div class="-ml-2 flex gap-0.5">
-      <a matButton [routerLink]="[link(), build().id]">Open</a>
-      <!-- Only its owner changes a build; a shared one is read-only. -->
-      @if (actions() && build().ownedByViewer) {
-        <a matButton [routerLink]="['/hangar', build().id, 'edit']">Edit</a>
-        <button matButton [disabled]="deleting()" (click)="delete.emit(build())">
-          {{ deleting() ? 'Deleting…' : 'Delete' }}
+    <!-- Only its owner changes a build; a shared one is read-only. Opening it is the card itself. -->
+    @if (actions() && build().ownedByViewer) {
+      <div class="card-action -ml-2 flex gap-0.5">
+        <a
+          matIconButton
+          [routerLink]="['/hangar', build().id, 'edit']"
+          [attr.aria-label]="'Edit ' + build().name"
+          title="Edit"
+        >
+          <mat-icon>edit</mat-icon>
+        </a>
+        <button
+          matIconButton
+          type="button"
+          [disabled]="deleting()"
+          [attr.aria-label]="'Delete ' + build().name"
+          title="Delete"
+          (click)="delete.emit(build())"
+        >
+          <mat-icon>delete</mat-icon>
         </button>
-      }
-    </div>
+      </div>
+    }
 
     @if (build().likes.count > 0) {
       <span
