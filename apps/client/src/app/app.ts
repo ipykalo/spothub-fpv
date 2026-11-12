@@ -44,6 +44,22 @@ export class App {
   private readonly router = inject(Router);
 
   /**
+   * A line the shell itself has to say — that signing out did not happen.
+   * Its own, rather than Material's snack bar: the shell is in the initial
+   * bundle, and that budget is too tight to carry an overlay for one line.
+   */
+  protected readonly notice = signal<string | null>(null);
+  private noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  private showNotice(text: string): void {
+    clearTimeout(this.noticeTimer);
+    this.notice.set(text);
+    this.noticeTimer = setTimeout(() => {
+      this.notice.set(null);
+    }, 8000);
+  }
+
+  /**
    * The address being shown. It starts from the platform rather than the
    * router, which has not navigated yet when this first renders: that way the
    * server's page and the browser's first render of it agree on which header
@@ -131,7 +147,14 @@ export class App {
 
   protected async signOut(): Promise<void> {
     this.openMenu.set(null);
-    await this.auth.logout();
+
+    if (!(await this.auth.logout())) {
+      this.showNotice(
+        'Could not sign out: the server did not answer. Check your connection and try again.',
+      );
+      return;
+    }
+
     await this.router.navigateByUrl('/login');
   }
 }

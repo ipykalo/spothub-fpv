@@ -13,16 +13,21 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only by default: verify and e2e only check out and test. A job that
+# needs more — images, to publish to GHCR — asks for it itself.
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Nx affected commands need history to compare against the base.
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -47,6 +52,7 @@ jobs:
           npx tsc -p apps/api/tsconfig.app.json --noEmit
           npx tsc -p apps/api/e2e/tsconfig.json --noEmit
           npx tsc -p apps/client/tsconfig.app.json --noEmit
+          npx tsc -p apps/browser-e2e/tsconfig.json --noEmit
 
       # Parser tests against real SD-card logs — the most valuable tests in
       # the codebase, because a format quirk fails silently otherwise.
@@ -90,7 +96,7 @@ jobs:
       S3_SECRET_KEY: minioadmin
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # MinIO is started here rather than as a service container, because it
       # needs its `server /data` argument and a service container cannot give
@@ -120,7 +126,7 @@ jobs:
           docker logs minio
           exit 1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -135,11 +141,64 @@ jobs:
       # the API's real coverage only shows once that suite has run.
       - run: npm run coverage
 
+  # What a pilot does, in a real browser, against the images this run built —
+  # the deploy/ stack behind Caddy (apps/browser-e2e). Any console error or
+  # Content-Security-Policy violation fails a journey. Images are built here
+  # from the same cache the images job uses, and only loaded, never pushed.
+  browser:
+    needs: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build the API image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          load: true
+          tags: ghcr.io/${{ github.repository }}/api:browser
+          cache-from: type=gha,scope=api
+
+      - name: Build the client image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/client/Dockerfile
+          load: true
+          tags: ghcr.io/${{ github.repository }}/client:browser
+          cache-from: type=gha,scope=client
+
+      - name: Browser journeys
+        run: npm run test:browser -- --skip-build
+
+      - name: Keep the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-journeys-report
+          path: dist/browser-e2e/
+          retention-days: 7
+
   # Both images are built on every run, including pull requests, because a
   # Dockerfile that only breaks at release time is a Dockerfile nobody trusts.
-  # Pushing to the registry is the part reserved for branches.
+  # Pushing to the registry is the part reserved for branches — and only once
+  # the browser journeys have passed against those same images.
   images:
-    needs: [verify, e2e]
+    needs: [verify, e2e, browser]
     runs-on: ubuntu-latest
 
     permissions:
@@ -158,22 +217,22 @@ jobs:
             dockerfile: apps/client/Dockerfile
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       # A pull request from a fork has no write access, and does not need it —
       # it only builds.
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
           # A branch tag moves with its branch — `master` is what the server
@@ -185,7 +244,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           # The build context is the repository root: both Dockerfiles copy the
           # whole workspace, because Nx builds from it.

@@ -21,7 +21,7 @@ RUN mkdir -p /app/data/geoip \
 # binaries. It is GPL-3.0, and runs as a separate program, never linked in.
 # Also builds alone, for a machine with no C compiler:
 #   docker build --target blackbox-decode -t spothub-blackbox-decode -f apps/api/Dockerfile .
-FROM alpine:3.20 AS blackbox-decode
+FROM alpine:3.24 AS blackbox-decode
 ARG BLACKBOX_TOOLS_REV=f832acf9cd9dbe5ad8220de1a5f4eb4021523d72
 RUN apk add --no-cache build-base git \
  && git init /src \

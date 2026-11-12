@@ -44,6 +44,17 @@ export class PrismaRefreshTokenRepository extends RefreshTokenRepository {
     });
   }
 
+  async isSessionLive(userId: string, familyId: string): Promise<boolean> {
+    // Rotation stores the new token before revoking the old one, so a live
+    // session always has at least one row that matches.
+    const live = await this.prisma.refreshToken.findFirst({
+      where: { userId, familyId, revokedAt: null, expiresAt: { gt: new Date() } },
+      select: { id: true },
+    });
+
+    return live !== null;
+  }
+
   async deleteExpired(now: Date): Promise<number> {
     const { count } = await this.prisma.refreshToken.deleteMany({
       where: { expiresAt: { lt: now } },

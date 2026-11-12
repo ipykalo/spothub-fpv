@@ -66,6 +66,12 @@ export const envSchema = z.object({
     .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_ACCESS_TTL: seconds.default(900),
   JWT_REFRESH_TTL: seconds.default(2_592_000),
+  /**
+   * The longest a sign-in lasts, however often the pilot comes back: each
+   * refresh grants JWT_REFRESH_TTL more, but never past this from the moment
+   * they signed in with Google. 90 days.
+   */
+  JWT_SESSION_MAX_TTL: seconds.default(7_776_000),
 
   /**
    * S3-compatible object storage. MinIO locally, Blob/R2 in production — the

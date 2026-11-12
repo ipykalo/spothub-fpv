@@ -7,6 +7,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Env } from '../../config';
 import type { AuthenticatedUser } from '../../common';
 import type { AccessTokenPayload } from '../auth.types';
+import { RefreshTokenRepository } from '../abstract/refresh-token.repository';
 import { UsersFacade } from '../../users';
 
 /**
@@ -14,12 +15,16 @@ import { UsersFacade } from '../../users';
  *
  * The user is re-read from the database rather than trusted from the claims, so
  * a deleted account cannot keep acting for the remaining life of its token.
+ * And the token's session must still stand, so signing out — here, on every
+ * device, or by a stolen cookie being caught — ends its access tokens at
+ * once, not when their 15 minutes run out.
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     config: ConfigService<Env, true>,
     private readonly users: UsersFacade,
+    private readonly sessions: RefreshTokenRepository,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -29,7 +34,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: AccessTokenPayload): Promise<AuthenticatedUser> {
-    const user = await this.users.findById(payload.sub);
+    // A token from before sessions were named has no `sid`: refused, and the
+    // client's refresh hands it one that does.
+    if (typeof payload.sid !== 'string') {
+      throw new UnauthorizedException('Sign in again');
+    }
+
+    const [user, live] = await Promise.all([
+      this.users.findById(payload.sub),
+      this.sessions.isSessionLive(payload.sub, payload.sid),
+    ]);
+
+    if (!live) {
+      throw new UnauthorizedException('Signed out');
+    }
 
     if (!user) {
       throw new UnauthorizedException('Account no longer exists');
