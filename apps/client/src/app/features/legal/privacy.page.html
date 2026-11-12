@@ -1,0 +1,129 @@
+<article class="mx-auto max-w-3xl">
+  <header class="mb-8">
+    <h1 class="m-0 text-3xl">Privacy</h1>
+    <p class="mt-2 mb-0 text-sm text-muted">Last updated {{ legal.updatedOn }}</p>
+    <p class="mt-4 mb-0">
+      SpotHub FPV is a hangar and logbook for FPV pilots, run by one person, {{ legal.operator }}, in
+      {{ legal.country }}. This page says what the site keeps about you, why, where, for how long, and how to have it
+      deleted. Questions go to <a [href]="'mailto:' + legal.contactEmail">{{ legal.contactEmail }}</a
+      >.
+    </p>
+  </header>
+
+  <section class="mb-8" aria-labelledby="privacy-kept">
+    <h2 id="privacy-kept" class="text-xl">What is kept, and why</h2>
+
+    <h3 class="text-base">From Google, when you sign in</h3>
+    <ul class="grid gap-2 pl-5">
+      <li>
+        <strong>Your Google account id</strong> — what your account is tied to, so you are recognised the next time.
+      </li>
+      <li>
+        <strong>Your email address</strong> — to check you are invited, while sign-up is by invitation. Only you and the
+        site's admin see it.
+      </li>
+      <li>
+        <strong>Your name</strong> — shown to you and the admin. Everyone else sees the pilot name you choose on your
+        account page, or your first name and the initial of your last.
+      </li>
+      <li><strong>The address of your profile picture</strong> — stored, but never shown or loaded by the site.</li>
+    </ul>
+    <p>The site asks Google for nothing else, and never sees your Google password.</p>
+
+    <h3 class="text-base">Where you signed in from</h3>
+    <p>
+      The country of the address you sign in from, looked up on the site's own server from a local database — your
+      address is not sent anywhere and not stored. It is used to refuse sign-ins from a short list of restricted
+      countries, and the latest one is kept with your account.
+    </p>
+
+    <h3 class="text-base">What you put in</h3>
+    <p>
+      Your builds, parts, prices and where you bought them, repairs, firmware snapshots, flight logs and the flights
+      read from them — including GPS tracks, when a log has them — battery records, flying spots and their coordinates,
+      posts, comments, likes and YouTube links, and your settings such as your pilot name and home currency. It is kept
+      to show it back to you and to whoever you share it with.
+    </p>
+    <p>
+      <strong>Photos</strong> lose their location and camera details (EXIF) on the server as they are uploaded, so a
+      photo taken at home does not carry your home's position.
+    </p>
+
+    <h3 class="text-base">Who sees it</h3>
+    <ul class="grid gap-2 pl-5">
+      <li>
+        Builds and spots are private until you share them: by link with pilots who are signed in, or listed for them.
+        Cost and notes on a shared build stay hidden unless you switch them on.
+      </li>
+      <li>A post is a draft until you publish it; a published post can be read by anyone.</li>
+      <li>A comment can be read by everyone who can open what it is on.</li>
+      <li>
+        The admin sees a list of pilots: name, email, country of the last sign-in, when they joined and how much storage
+        they use. The admin can technically reach everything stored, and looks only to run the site or when a problem is
+        reported.
+      </li>
+    </ul>
+  </section>
+
+  <section class="mb-8" aria-labelledby="privacy-browser">
+    <h2 id="privacy-browser" class="text-xl">Cookies and your browser</h2>
+    <p>
+      One cookie, set when you sign in, keeps you signed in for up to 30 days. It is only ever sent to the site's
+      sign-in address and cannot be read by scripts. Your browser also remembers your light or dark theme, which page
+      sections you folded, and where to return after signing in — those never leave your device.
+    </p>
+    <p>There are no analytics, no advertising and no tracking cookies.</p>
+  </section>
+
+  <section class="mb-8" aria-labelledby="privacy-others">
+    <h2 id="privacy-others" class="text-xl">Other services your browser talks to</h2>
+    <ul class="grid gap-2 pl-5">
+      <li><strong>Google</strong> — only while you sign in.</li>
+      <li>
+        <strong>OpenStreetMap</strong> — maps of spots and flights load their tiles from it, so it sees your address and
+        which area you looked at.
+      </li>
+      <li><strong>YouTube</strong> — only once you press play on a video, and through its privacy-enhanced player.</li>
+      <li><strong>Google Maps</strong> — only if you tap Directions on a spot.</li>
+    </ul>
+  </section>
+
+  <section class="mb-8" aria-labelledby="privacy-where">
+    <h2 id="privacy-where" class="text-xl">Where it is kept</h2>
+    <p>
+      On a server rented from Hetzner, in {{ legal.hostingLocation }}. Backups are kept with Cloudflare R2, in its EU
+      jurisdiction. Nothing is sold or shared with anyone else.
+    </p>
+  </section>
+
+  <section class="mb-8" aria-labelledby="privacy-how-long">
+    <h2 id="privacy-how-long" class="text-xl">How long, and deleting it</h2>
+    <p>
+      Everything is kept for as long as you have an account. You can delete your account yourself on your
+      <a routerLink="/account">account page</a>: everything you put in — builds, parts, flights, logs, photos, spots,
+      posts, comments and likes — is deleted at once.
+    </p>
+    <p>
+      Copies in the backups go after that: your files within a day, and the database backups as they age out, at the
+      latest 8 weeks later. A backup is only ever read to restore the site after a failure.
+    </p>
+  </section>
+
+  <section class="mb-8" aria-labelledby="privacy-rights">
+    <h2 id="privacy-rights" class="text-xl">Your rights</h2>
+    <p>
+      You can see, correct and delete what the site keeps about you — most of it on the site itself. To get a copy of
+      your data, have something corrected that you cannot change yourself, or to object to how it is used, write to
+      <a [href]="'mailto:' + legal.contactEmail">{{ legal.contactEmail }}</a
+      >. If you are in the EU you can also complain to your country's data protection authority.
+    </p>
+  </section>
+
+  <section aria-labelledby="privacy-changes">
+    <h2 id="privacy-changes" class="text-xl">Changes</h2>
+    <p class="mb-0">
+      If this page changes, the date at the top changes with it, and anything that matters is announced on the blog
+      first. The <a routerLink="/terms">terms of use</a> cover what you may post.
+    </p>
+  </section>
+</article>

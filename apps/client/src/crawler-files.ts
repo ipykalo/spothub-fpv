@@ -71,7 +71,7 @@ export function robotsTxt(origin: string): string {
  * The public pages that are not posts. Undated: they change with a release,
  * not with anything the sitemap could read a date from.
  */
-const STATIC_PAGES = ['/about'];
+const STATIC_PAGES = ['/about', '/privacy', '/terms'];
 
 /**
  * Every address a search engine should know: the blog, the about page, and
