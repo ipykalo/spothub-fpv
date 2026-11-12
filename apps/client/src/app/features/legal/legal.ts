@@ -4,7 +4,7 @@
  */
 export const LEGAL = {
   /** The person responsible for the site and the data on it. */
-  operator: 'DRAFT: operator name',
+  operator: 'Ivan P.',
   /** Where a pilot writes about their data, or anything here. */
   contactEmail: 'privacy@spothubfpv.com',
   /** The day either page's wording last changed, as shown at the top. */
