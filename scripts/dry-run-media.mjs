@@ -40,14 +40,29 @@ const site = args.get('site') ?? 'https://localhost';
 const PILOT_ID = '11111111-2222-3333-4444-555555555555';
 const PILOT_EMAIL = 'dry-run@example.invalid';
 
-// Caddy signs the dry run's certificate itself, and nothing here trusts its
-// authority. Only ever used against a stack this script also cleaned up.
-if (site.startsWith('https://localhost')) {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-}
-
 const env = readEnv(envFile);
 const compose = ['compose', '--env-file', envFile];
+
+/**
+ * The dry run's own certificate authority: Caddy signs `localhost` and
+ * `storage.localhost` with a root it keeps in its data volume. Trusting that
+ * one root keeps every certificate check on. A real domain needs none.
+ */
+const caddyRoot =
+  new URL(site).hostname === 'localhost'
+    ? execFileSync(
+        'docker',
+        [
+          ...compose,
+          'exec',
+          '-T',
+          'caddy',
+          'cat',
+          '/data/caddy/pki/authorities/local/root.crt',
+        ],
+        { cwd: 'deploy', encoding: 'utf8' },
+      )
+    : undefined;
 
 function readEnv(path) {
   const values = new Map();
@@ -102,7 +117,12 @@ function toLoopback(hostname, options, callback) {
 }
 
 /**
- * The upload, sent the way a browser would send it.
+ * Every request, to the site and to storage alike, with certificates checked.
+ *
+ * Against the dry run, Caddy signs the certificates with an authority of its
+ * own, so that authority is what is trusted — read out of the Caddy container
+ * — rather than checking switched off. Against a real domain, `ca` is unset
+ * and the system's own authorities apply.
  *
  * Not `fetch`, because of one Windows detail: `storage.localhost` does not
  * resolve there, while plain `localhost` does — so the dry run would fail on
@@ -110,39 +130,56 @@ function toLoopback(hostname, options, callback) {
  * `curl --resolve` does it, leaving the Host header and the SNI name alone:
  * SigV4 signs the host, so rewriting the URL would invalidate the signature.
  */
-function putBytes(url, contentType, body) {
+function send(url, { method = 'GET', headers = {}, body } = {}) {
   const target = new URL(url);
   const isLoopback = target.hostname.endsWith('.localhost');
+  const payload = typeof body === 'string' ? Buffer.from(body) : body;
 
   return new Promise((done, fail) => {
-    const call = request(
+    const outgoing = request(
       {
         hostname: target.hostname,
         port: target.port || 443,
         path: `${target.pathname}${target.search}`,
-        method: 'PUT',
-        headers: { 'Content-Type': contentType, 'Content-Length': body.byteLength },
+        method,
+        headers: payload ? { ...headers, 'Content-Length': payload.byteLength } : headers,
         servername: target.hostname,
-        rejectUnauthorized: !isLoopback,
+        ...(caddyRoot ? { ca: caddyRoot } : {}),
         ...(isLoopback ? { lookup: toLoopback } : {}),
       },
       (answer) => {
-        answer.resume();
-        answer.on('end', () => done(answer.statusCode));
+        const chunks = [];
+        answer.on('data', (chunk) => chunks.push(chunk));
+        answer.on('end', () =>
+          done({
+            status: answer.statusCode,
+            text: Buffer.concat(chunks).toString('utf8'),
+          }),
+        );
       },
     );
 
-    call.on('error', fail);
-    call.end(body);
+    outgoing.on('error', fail);
+    outgoing.end(payload);
   });
 }
 
+/** The upload, sent the way a browser would send it: straight to storage. */
+async function putBytes(url, contentType, body) {
+  const answer = await send(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body,
+  });
+
+  return answer.status;
+}
+
 async function call(path, options = {}) {
-  const response = await fetch(`${site}${path}`, options);
-  const text = await response.text();
+  const { status, text } = await send(`${site}${path}`, options);
 
   return {
-    status: response.status,
+    status,
     body: text.length > 0 ? JSON.parse(text) : null,
   };
 }
