@@ -88,13 +88,13 @@ describe('sitemap.xml', () => {
 
   const ORIGIN = 'https://spothub.example';
 
-  it('lists the feed, the about page and every published post at its canonical address', () => {
+  it('lists the feed, the static pages and every published post at its canonical address', () => {
     const xml = sitemapXml(ORIGIN, [post('1'), post('2')]);
 
     expect(xml).toContain(`<loc>${ORIGIN}</loc>`);
     expect(xml).toContain(`<loc>${ORIGIN}/blog/1/post-1</loc>`);
     expect(xml).toContain(`<loc>${ORIGIN}/blog/2/post-2</loc>`);
-    expect(xml.match(/<url>/g)).toHaveLength(4);
+    expect(xml.match(/<url>/g)).toHaveLength(6);
   });
 
   it('dates the feed by the newest post on it, since that is when it changed', () => {
@@ -111,19 +111,24 @@ describe('sitemap.xml', () => {
     expect(sitemapXml(ORIGIN, [post('1')])).toContain('<lastmod>2026-09-01</lastmod>');
   });
 
-  it('lists the about page, undated, since nothing it reads says when it changed', () => {
+  it('lists the about, privacy and terms pages, undated: nothing says when they changed', () => {
     const xml = sitemapXml(ORIGIN, [post('1')]);
-    const about = xml.split('<url>').find((block) => block.includes('/about'));
 
-    expect(about).toContain(`<loc>${ORIGIN}/about</loc>`);
-    expect(about).not.toContain('<lastmod>');
+    for (const page of ['/about', '/privacy', '/terms']) {
+      const entry = xml
+        .split('<url>')
+        .find((block) => block.includes(`${ORIGIN}${page}<`));
+
+      expect(entry).toContain(`<loc>${ORIGIN}${page}</loc>`);
+      expect(entry).not.toContain('<lastmod>');
+    }
   });
 
   it('is still valid XML for a blog with nothing published yet', () => {
     const xml = sitemapXml(ORIGIN, []);
 
     expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
-    expect(xml.match(/<url>/g)).toHaveLength(2);
+    expect(xml.match(/<url>/g)).toHaveLength(4);
     expect(xml).not.toContain('<lastmod>');
     expect(xml.trimEnd().endsWith('</urlset>')).toBe(true);
   });

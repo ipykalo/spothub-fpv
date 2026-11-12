@@ -1,0 +1,97 @@
+<article class="mx-auto max-w-3xl">
+  <header class="mb-8">
+    <h1 class="m-0 text-3xl">Terms of use</h1>
+    <p class="mt-2 mb-0 text-sm text-muted">Last updated {{ legal.updatedOn }}</p>
+    <p class="mt-4 mb-0">
+      SpotHub FPV is run by one person, {{ legal.operator }}. By signing in you agree to these terms. They are short on
+      purpose; if anything is unclear, write to <a [href]="'mailto:' + legal.contactEmail">{{ legal.contactEmail }}</a
+      >.
+    </p>
+  </header>
+
+  <section class="mb-8" aria-labelledby="terms-account">
+    <h2 id="terms-account" class="text-xl">Your account</h2>
+    <ul class="grid gap-2 pl-5">
+      <li>You sign in with your own Google account, and you must be at least 16.</li>
+      <li>One account per person. What happens under your account is your responsibility.</li>
+      <li>The site is free. Sign-up is by invitation for now.</li>
+    </ul>
+  </section>
+
+  <section class="mb-8" aria-labelledby="terms-content">
+    <h2 id="terms-content" class="text-xl">What you post</h2>
+    <p>
+      What you put on the site stays yours. You allow the site to store it and to show it to the people your sharing
+      settings allow — nothing more, and only to run the site. Delete it, or your account, and that permission ends.
+    </p>
+    <p>Do not post, upload or link to anything that:</p>
+    <ul class="grid gap-2 pl-5">
+      <li>is illegal, or encourages breaking the law;</li>
+      <li>harasses, threatens or demeans anyone, or attacks people for who they are;</li>
+      <li>shares someone else's personal details, or photos and videos of people who have not agreed to be shown;</li>
+      <li>you do not have the right to share — someone else's photos, videos or writing;</li>
+      <li>is spam, advertising, or a link to a shop you are paid by without saying so;</li>
+      <li>is sexual, violent or shocking.</li>
+    </ul>
+    <p>
+      And do not try to get into other pilots' accounts or data, overload the site, or copy it wholesale with a program.
+    </p>
+  </section>
+
+  <section class="mb-8" aria-labelledby="terms-flying">
+    <h2 id="terms-flying" class="text-xl">Flying</h2>
+    <p>
+      Drone rules differ from country to country, and often from place to place within one: registration, licences,
+      where and how high you may fly, and when you need permission. Knowing and following the rules where you fly is
+      your responsibility alone. SpotHub FPV does not check them, and is not responsible for where, when or how anyone
+      flies.
+    </p>
+    <p>
+      Spots, posts and comments are pilots' own notes. They may be out of date or wrong, and they are never permission
+      to fly anywhere. Check the airspace yourself, and get the landowner's permission where it is needed. Do not share
+      a spot that can only be reached by trespassing or flown by breaking the rules. You fly at your own risk.
+    </p>
+  </section>
+
+  <section class="mb-8" aria-labelledby="terms-moderation">
+    <h2 id="terms-moderation" class="text-xl">When something breaks these terms</h2>
+    <p>
+      The admin may remove what breaks these terms, make an account read-only, or block it. Where it is reasonable, you
+      will be told why first. If you think a decision was wrong, write to
+      <a [href]="'mailto:' + legal.contactEmail">{{ legal.contactEmail }}</a
+      >.
+    </p>
+  </section>
+
+  <section class="mb-8" aria-labelledby="terms-promises">
+    <h2 id="terms-promises" class="text-xl">What the site does and does not promise</h2>
+    <ul class="grid gap-2 pl-5">
+      <li>
+        It is run with care and backed up every night, but it comes as it is, without guarantees that it will always be
+        available or free of mistakes. Keep your own copy of anything you cannot afford to lose — your Betaflight
+        configs above all.
+      </li>
+      <li>
+        Converted prices use the National Bank of Ukraine's official rates and are approximate. Nothing on the site is
+        financial, legal or flying advice.
+      </li>
+      <li>
+        If the site ever closes, it will be announced on the blog at least 30 days ahead, with a way to take your data
+        with you.
+      </li>
+      <li>
+        As far as the law allows, the site and the person running it are not liable for losses from using it, or from
+        not being able to.
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="terms-changes">
+    <h2 id="terms-changes" class="text-xl">Changes</h2>
+    <p class="mb-0">
+      If these terms change, the date at the top changes with it, and anything that matters is announced on the blog
+      first; signing in after that means you accept them. How your data is handled is on the
+      <a routerLink="/privacy">privacy page</a>.
+    </p>
+  </section>
+</article>
