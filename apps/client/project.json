@@ -13,6 +13,7 @@
       "options": {
         "outputPath": "dist/apps/client",
         "browser": "apps/client/src/main.ts",
+        "polyfills": ["apps/client/src/zod-config.ts"],
         "server": "apps/client/src/main.server.ts",
         "outputMode": "server",
         "ssr": {
