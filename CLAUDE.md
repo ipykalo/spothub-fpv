@@ -396,11 +396,36 @@ The rules that keep Tailwind and Angular Material from fighting:
   with their id — photos, thumbnails, logs, spot covers — so
   `StorageGateway.deletePrefix('<id>/')` finds them all, and a storage
   failure leaves the account intact to try again rather than files nobody
-  can reach. The row delete cascades to everything owned. The only admin is
+  can reach.
+- **Signing out only counts once the server says so.** The refresh cookie
+  is out of a script's reach, so `AuthStore.logout()` forgets the pilot only
+  when `/auth/logout` answered, and says so otherwise — looking signed out
+  while the cookie signs you back in on the next visit was worse. "Sign out
+  on all devices" on `/account` is `POST /auth/logout-all`, revoking every
+  family the pilot has. After account deletion the server has already ended
+  it, so `forget()` clears the client without asking
+  (`sign-out-everywhere.e2e.spec.ts`).
+- **An access token is good only while its session stands.** It carries
+  `sid`, its refresh family, and `JwtStrategy` asks `isSessionLive` on every
+  request beside the user lookup — one indexed query — so signing out, on
+  one device or all, and reuse detection end access at once rather than when
+  the 15 minutes run out. A token without `sid` is refused and the client's
+  refresh replaces it. **Anything that mints an access token by hand** (the
+  browser journeys' pilot, `dry-run-media.mjs`) must also insert a live
+  `refresh_tokens` row and name its family as `sid`
+  (`instant-sign-out.e2e.spec.ts`). The row delete cascades to everything owned. The only admin is
   refused with 409 (`apps/api/e2e/delete-account.e2e.spec.ts`). **Any new
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
 - Google identities key on the `sub` claim, never the email.
+- **A sign-in lasts 30 days from the last visit, and 90 at most.** Each
+  refresh grants `JWT_REFRESH_TTL` more, capped at `JWT_SESSION_MAX_TTL` from
+  the Google sign-in. The start travels in the refresh token's own signed
+  `started` claim, rotation to rotation — rotated rows are cleaned up, so the
+  table could not say when a session began — and the token, its row and the
+  cookie all expire together. Past 90 days the family is revoked and the
+  pilot signs in again. A token from before the limit starts its clock at its
+  next refresh (`session-lifetime.e2e.spec.ts`).
 - **An email Google has not verified is refused**, first thing in
   `signInWithGoogle`: the allowlist matches on the address, and an identity
   not seen before is linked to the account that has it, so an unverified

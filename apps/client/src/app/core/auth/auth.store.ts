@@ -94,13 +94,42 @@ export class AuthStore {
     return this.refreshInFlight;
   }
 
-  async logout(): Promise<void> {
-    await firstValueFrom(
-      this.http.post(`${this.baseUrl}/auth/logout`, {}, { withCredentials: true }),
-    ).catch(() => undefined);
+  /**
+   * Ends this device's session, and answers whether it did. Only the server
+   * can end it — the cookie is out of a script's reach — so when it cannot be
+   * told, nothing is forgotten here: looking signed out while the cookie
+   * still signs you back in on the next visit is worse than being told to
+   * try again.
+   */
+  logout(): Promise<boolean> {
+    return this.endSession('/auth/logout');
+  }
 
+  /** The same, for every session the pilot has, on every device. */
+  logoutEverywhere(): Promise<boolean> {
+    return this.endSession('/auth/logout-all');
+  }
+
+  /**
+   * Forgets who is signed in, here, without asking the server — for when it
+   * has already ended the session itself, as deleting the account does.
+   */
+  forget(): void {
     this.accessToken.set(null);
     this.currentUser.set(null);
+  }
+
+  private async endSession(path: string): Promise<boolean> {
+    try {
+      await firstValueFrom(
+        this.http.post(`${this.baseUrl}${path}`, {}, { withCredentials: true }),
+      );
+    } catch {
+      return false;
+    }
+
+    this.forget();
+    return true;
   }
 
   private async performRefresh(): Promise<boolean> {

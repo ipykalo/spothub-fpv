@@ -17,6 +17,8 @@
       (chosen)="saveHomeCurrency($event)"
     />
 
+    <sh-sign-out-everywhere [busy]="signingOut()" [error]="signOutError()" (requested)="signOutEverywhere()" />
+
     <sh-account-details
       [user]="user"
       [storage]="store.storage()"

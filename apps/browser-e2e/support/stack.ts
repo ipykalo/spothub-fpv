@@ -81,14 +81,23 @@ export function createPilot(): Pilot {
   const id = randomUUID();
   const email = `browser-e2e-${id}@example.invalid`;
 
+  // An access token is only good while its session stands, so the pilot gets
+  // one: a refresh-token row of a family of its own, as a sign-in makes. Its
+  // hash matches no token anyone holds — only its being live matters here.
+  const session = randomUUID();
+
   psql(
     `INSERT INTO users (id, email, display_name, pilot_name, role, created_at, updated_at)
-     VALUES ('${id}', '${email}', 'Browser Journeys', 'Journey Pilot', 'USER', now(), now());`,
+     VALUES ('${id}', '${email}', 'Browser Journeys', 'Journey Pilot', 'USER', now(), now());
+     INSERT INTO refresh_tokens (id, user_id, token_hash, family_id, expires_at)
+     VALUES ('${randomUUID()}', '${id}', '${randomUUID()}', '${session}', now() + interval '1 day');`,
   );
 
-  const token = jwt.sign({ sub: id, email, role: 'USER' }, setting('JWT_ACCESS_SECRET'), {
-    expiresIn: '30m',
-  });
+  const token = jwt.sign(
+    { sub: id, email, role: 'USER', sid: session },
+    setting('JWT_ACCESS_SECRET'),
+    { expiresIn: '30m' },
+  );
 
   return { id, email, token };
 }

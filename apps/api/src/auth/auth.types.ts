@@ -6,6 +6,12 @@ export interface AccessTokenPayload {
   readonly sub: string;
   readonly email: string;
   readonly role: Role;
+  /**
+   * The session — the refresh family — this token was issued for. Checked on
+   * every request, so signing out ends access at once rather than when the
+   * token runs out.
+   */
+  readonly sid: string;
 }
 
 /** Claims carried by the refresh token. `jti` identifies the stored row. */
@@ -13,6 +19,13 @@ export interface RefreshTokenPayload {
   readonly sub: string;
   readonly jti: string;
   readonly family: string;
+  /**
+   * When the session began — the Google sign-in — in seconds since the epoch.
+   * Carried from token to token on every rotation, and signed with the rest,
+   * so no rotation can extend it. Absent on tokens issued before the limit
+   * existed: their clock starts at their next refresh.
+   */
+  readonly started?: number;
 }
 
 /** The profile fields taken from Google. */
