@@ -297,7 +297,25 @@ The rules that keep Tailwind and Angular Material from fighting:
 
 - **Prisma is pinned to `^6` on purpose.** `latest` resolves to an 8.0 release
   candidate with a reworked CLI that has no `generate` or `migrate`. Do not
-  bump it.
+  bump it. Its own audit findings (`@prisma/config` → `deepmerge-ts`, stack
+  exhaustion merging recursive objects) are fixed only in 7 and are accepted:
+  only Prisma's own config is ever merged, never anything a visitor sends.
+- **Angular 22.2 needs Node 22.22.3 or newer** (`engines` on `@angular/build`).
+  On an older Node 22 the production build fails while extracting routes with
+  `Cannot read properties of undefined (reading 'exports')`, thrown from
+  Node's own `esm/translators` — nothing in the app. CI and both images take
+  the newest Node 22 and are unaffected; update Node on a dev machine.
+- **The initial bundle's hard limit is 1.05 MB**, raised from 1 MB when
+  Angular 22.2 re-split the bundle and the framework's own share grew by
+  about 30 KB (220 KB compressed). It still exists to stop an addition like
+  `MatMenu` (66 KB), which was turned down for breaking it.
+- **Two transitive pins are lifted with `overrides`**: Nx 23.2 pins `axios`
+  1.18.1 and `follow-redirects` 1.16.0, both with known advisories. The app
+  itself uses neither; `axios` was an unused direct dependency since the
+  scaffold, and is gone. **npm 10.9.3 crashes** ("reading 'edgesOut'") when
+  resolving some peer sets from an old lockfile: drop those packages' lock
+  entries and install again, or install once with `npx npm@11`, then let
+  npm 10 run `npm install` so `npm ci` (CI, the images) accepts the lock.
 - `prisma generate` runs via postinstall. If types from `@prisma/client` are
   missing, run it manually before debugging anything else.
 - The Alpine runtime needs the musl binary target — already set in
