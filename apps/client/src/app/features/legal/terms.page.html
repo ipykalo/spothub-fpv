@@ -3,9 +3,8 @@
     <h1 class="m-0 text-3xl">Terms of use</h1>
     <p class="mt-2 mb-0 text-sm text-muted">Last updated {{ legal.updatedOn }}</p>
     <p class="mt-4 mb-0">
-      SpotHub FPV is run by one person, {{ legal.operator }}, in {{ legal.country }}. By signing in you agree to these
-      terms. They are short on purpose; if anything is unclear, write to
-      <a [href]="'mailto:' + legal.contactEmail">{{ legal.contactEmail }}</a
+      SpotHub FPV is run by one person, {{ legal.operator }}. By signing in you agree to these terms. They are short on
+      purpose; if anything is unclear, write to <a [href]="'mailto:' + legal.contactEmail">{{ legal.contactEmail }}</a
       >.
     </p>
   </header>
@@ -42,9 +41,15 @@
   <section class="mb-8" aria-labelledby="terms-flying">
     <h2 id="terms-flying" class="text-xl">Flying</h2>
     <p>
-      Spots, posts and comments are pilots' own notes, not permission to fly anywhere. Before you fly, check the drone
-      rules and airspace where you are, and get the landowner's permission where it is needed. Do not share a spot that
-      can only be reached by trespassing or flown by breaking the rules. You fly at your own risk.
+      Drone rules differ from country to country, and often from place to place within one: registration, licences,
+      where and how high you may fly, and when you need permission. Knowing and following the rules where you fly is
+      your responsibility alone. SpotHub FPV does not check them, and is not responsible for where, when or how anyone
+      flies.
+    </p>
+    <p>
+      Spots, posts and comments are pilots' own notes. They may be out of date or wrong, and they are never permission
+      to fly anywhere. Check the airspace yourself, and get the landowner's permission where it is needed. Do not share
+      a spot that can only be reached by trespassing or flown by breaking the rules. You fly at your own risk.
     </p>
   </section>
 
@@ -82,11 +87,11 @@
   </section>
 
   <section aria-labelledby="terms-changes">
-    <h2 id="terms-changes" class="text-xl">Changes, and the law</h2>
+    <h2 id="terms-changes" class="text-xl">Changes</h2>
     <p class="mb-0">
       If these terms change, the date at the top changes with it, and anything that matters is announced on the blog
-      first; signing in after that means you accept them. They are read under the law of {{ legal.country }}. How your
-      data is handled is on the <a routerLink="/privacy">privacy page</a>.
+      first; signing in after that means you accept them. How your data is handled is on the
+      <a routerLink="/privacy">privacy page</a>.
     </p>
   </section>
 </article>
