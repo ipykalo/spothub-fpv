@@ -70,6 +70,7 @@ describe('app settings', () => {
       await testApp.app.get(AuthService).signInWithGoogle({
         subject: randomUUID(),
         email,
+        emailVerified: true,
         displayName: null,
         avatarUrl: null,
       });

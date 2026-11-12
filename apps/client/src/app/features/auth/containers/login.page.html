@@ -12,6 +12,10 @@
         <p class="tone-stop mb-4 rounded bg-(--tone-surface) px-3 py-2 text-sm" role="alert">
           Signing in to SpotHub FPV isn't available from your country.
         </p>
+      } @else if (deniedUnverified) {
+        <p class="tone-stop mb-4 rounded bg-(--tone-surface) px-3 py-2 text-sm" role="alert">
+          Google hasn't verified that account's email address yet. Verify it in your Google account, then try again.
+        </p>
       } @else if (denied) {
         <p class="tone-stop mb-4 rounded bg-(--tone-surface) px-3 py-2 text-sm" role="alert">
           That Google account can't sign in here. Sign-up may be invite-only for now — ask to be added — or the account

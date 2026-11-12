@@ -4,6 +4,7 @@ import { type CurrentUserDto, publicName, Role, UserStatus } from '@spothub/shar
 import { CountryLookup } from '../../geo';
 import { SettingsFacade } from '../../settings';
 import { RestrictedCountryError } from '../restricted-country.error';
+import { UnverifiedEmailError } from '../unverified-email.error';
 import { AuthProviderKind, type UserEntity, UsersFacade } from '../../users';
 import type { GoogleProfile } from '../auth.types';
 import { IssuedTokens, TokenService } from './token.service';
@@ -30,6 +31,15 @@ export class AuthService {
    * the country it is in decides whether a restricted country refuses them.
    */
   async signInWithGoogle(profile: GoogleProfile, ip?: string): Promise<IssuedTokens> {
+    // First, before anything reads the address: the allowlist matches on it,
+    // and an identity not seen before is linked to the account that has it.
+    // Unverified, it is only a claim — anyone could create a Google account
+    // under someone else's address and walk into their hangar.
+    if (!profile.emailVerified) {
+      this.logger.warn(`Rejected sign-in with an unverified email address`);
+      throw new UnverifiedEmailError();
+    }
+
     // Asked at every sign-in, so a change on the Admin page needs no restart.
     if (!(await this.settings.permitsSignIn(profile.email))) {
       this.logger.warn(`Rejected sign-in for non-allowlisted address`);
