@@ -362,6 +362,43 @@ Without it a new server needs every secret made again: new JWT secrets only
 sign everyone out, but the R2 token and the Google secret have to be
 re-issued from their dashboards before anything can be restored.
 
+## Alerts
+
+Two more dead-man's switches, both fed by `watch.sh` every five minutes, so
+an email arrives when the site stops answering or the disk fills — rather
+than when a pilot mentions it.
+
+- **The site** (`UPTIME_HEARTBEAT_URL`) is asked for the way a visitor asks:
+  `https://<SITE_DOMAIN>/api/health` must say `"status":"ok"` — the API is up
+  and reaches the database — and the home page must render. That goes
+  through DNS, the certificate and Caddy. A failure reports at once with
+  what went wrong; a server that is off reports nothing, which the check
+  also emails about.
+- **The disk** (`DISK_HEARTBEAT_URL`) is the root filesystem, where the
+  database, photos and logs all live — 40 GB on the CX23. Past
+  `DISK_ALERT_PERCENT` (80) it fails with the `df` line, every five minutes
+  until there is room. Then `docker system df` shows what images and build
+  cache hold, `docker image prune -a` drops the ones no container uses, and
+  `du -sh backups` the local dumps; beyond that the data has outgrown the
+  disk, and a Hetzner Volume is the next step.
+
+To set them up:
+
+1. At healthchecks.io, add two checks: **period 5 minutes, grace 10
+   minutes**, each with the email integration. Name them so the email says
+   which: "SpotHub site" and "SpotHub disk".
+2. Put their ping URLs in `/opt/spothub/.env` as `UPTIME_HEARTBEAT_URL=` and
+   `DISK_HEARTBEAT_URL=`.
+3. Copy `watch.sh` to `/opt/spothub`, run it once by hand — both checks
+   turn green — and add it to `crontab -e` beside the backup:
+
+   ```
+   */5 * * * * /opt/spothub/watch.sh >> /opt/spothub/backups/watch.log 2>&1
+   ```
+
+The log grows by a line only when something is wrong. Nothing in `watch.sh`
+changes anything; it only asks.
+
 ## When something is wrong
 
 ```bash
@@ -388,7 +425,3 @@ Failures that are worth recognising on sight:
   deploy a week; a GitHub Actions job over SSH can come later.
 - **No HSTS.** Added once the site has run on HTTPS long enough to trust it —
   it is hard to undo.
-- **No monitoring.** `docker compose ps` and the site itself, for now — and
-  that includes backups: a night that fails says so only in
-  `backups/backup.log`. A dead-man's switch, a free healthchecks.io check
-  pinged at the end of `backup.sh`, is the obvious next step.
