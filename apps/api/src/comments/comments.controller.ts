@@ -29,6 +29,7 @@ import {
   CurrentViewer,
   Public,
   ZodValidationPipe,
+  RateLimit,
 } from '../common';
 import type { SubjectRef } from './comment.entity';
 import { CommentsService } from './comments.service';
@@ -79,6 +80,7 @@ export class CommentsController {
   }
 
   /** A question, or a reply when the body names one. Answers with the whole conversation. */
+  @RateLimit('comment')
   @Post('spots/:spotId/comments')
   createOnSpot(
     @CurrentUser() user: AuthenticatedUser,
@@ -139,6 +141,7 @@ export class CommentsController {
     return this.comments.list(user.id, build(buildId));
   }
 
+  @RateLimit('comment')
   @Post('builds/:buildId/comments')
   createOnBuild(
     @CurrentUser() user: AuthenticatedUser,
@@ -198,6 +201,7 @@ export class CommentsController {
     return this.comments.list(viewer?.id ?? null, post(postId));
   }
 
+  @RateLimit('comment')
   @Post('posts/:postId/comments')
   createOnPost(
     @CurrentUser() user: AuthenticatedUser,

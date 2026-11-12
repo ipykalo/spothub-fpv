@@ -12,11 +12,13 @@ export {
 export { CurrentUser } from './decorators/current-user.decorator';
 export { CurrentViewer } from './decorators/current-viewer.decorator';
 export { IS_PUBLIC_KEY, Public } from './decorators/public.decorator';
+export { RateLimit } from './decorators/rate-limit.decorator';
 export { fromDateOnly, toDateOnly, toNullableDateOnly } from './domain/date-only';
 export { sumByCurrency } from './domain/currency-total';
 export type { CurrencyTotal } from './domain/currency-total';
 export { AllExceptionsFilter } from './filters/all-exceptions.filter';
 export { JwtAuthGuard } from './guards/jwt-auth.guard';
+export { RateLimitGuard, rateLimits } from './guards/rate-limit.guard';
 export { ZodValidationPipe } from './pipes/zod-validation.pipe';
 export type { AuthenticatedUser } from './types/authenticated-user';
 export { assertAdmin } from './utils/assert-admin';

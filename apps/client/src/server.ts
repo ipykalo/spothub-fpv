@@ -5,7 +5,10 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
+
+import { contentSecurityPolicy, withNonce } from './content-security';
 
 import {
   SITEMAP_TTL_MS,
@@ -49,6 +52,51 @@ const angularApp = new AngularNodeAppEngine({ allowedHosts });
  * address inside the network, never the public site.
  */
 const apiOrigin = process.env['API_INTERNAL_ORIGIN'] ?? 'http://localhost:3000';
+
+/**
+ * Where photos load from and uploads go: the presigned addresses' origin. In
+ * production that is the storage domain; locally, MinIO's own port.
+ */
+const storageOrigin = process.env['STORAGE_ORIGIN'] ?? 'http://localhost:9000';
+
+/**
+ * Only in production. The development server injects scripts of its own for
+ * hot reload, and a policy written for the built app would refuse them.
+ *
+ * `CSP_MODE=report` sends the same policy as Report-Only: the browser logs
+ * what it would have refused and refuses nothing. The way out if a page turns
+ * out to need something the policy forgot — one line in `.env` and a client
+ * restart, no release.
+ */
+const policyHeader =
+  process.env['NODE_ENV'] !== 'production'
+    ? null
+    : process.env['CSP_MODE'] === 'report'
+      ? 'Content-Security-Policy-Report-Only'
+      : 'Content-Security-Policy';
+
+/**
+ * A page with its policy: a fresh nonce written into every inline script the
+ * page carries, and the header naming it. Rendering already holds the whole
+ * page in memory to inline its critical CSS, so reading it out costs nothing.
+ */
+async function withPolicy(response: Response): Promise<Response> {
+  if (!policyHeader || !response.headers.get('content-type')?.startsWith('text/html')) {
+    return response;
+  }
+
+  const nonce = randomBytes(16).toString('base64');
+  const headers = new Headers(response.headers);
+
+  headers.delete('content-length');
+  headers.set(policyHeader, contentSecurityPolicy({ nonce, storageOrigin }));
+
+  return new Response(withNonce(await response.text(), nonce), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 let sitemap: { readonly xml: string; readonly at: number } | null = null;
 
@@ -109,7 +157,7 @@ app.use((req, res, next) => {
     .handle(req)
     .then(async (response) => {
       if (response) {
-        await writeResponseToNodeResponse(response, res);
+        await writeResponseToNodeResponse(await withPolicy(response), res);
       } else {
         next();
       }

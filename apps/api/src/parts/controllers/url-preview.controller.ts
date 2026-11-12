@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { type EnrichUrlDto, type UrlPreviewDto, enrichUrlSchema } from '@spothub/shared';
 
-import { ZodValidationPipe } from '../../common';
+import { RateLimit, ZodValidationPipe } from '../../common';
 import { UrlPreviewService } from '../services/url-preview.service';
 
 /**
@@ -22,6 +22,7 @@ export class UrlPreviewController {
    * A POST rather than a GET because the URL is a body, not a path — and it
    * keeps the pasted link out of the access log.
    */
+  @RateLimit('urlPreview')
   @Post('url-preview')
   @HttpCode(HttpStatus.OK)
   urlPreview(

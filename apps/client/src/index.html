@@ -41,6 +41,10 @@
     -->
   </head>
   <body>
-    <sh-root></sh-root>
+    <!--
+      The placeholder is swapped for a fresh nonce on every response
+      (content-security.ts); the build copies it onto each inline script.
+    -->
+    <sh-root ngCspNonce="sh-csp-nonce-placeholder"></sh-root>
   </body>
 </html>

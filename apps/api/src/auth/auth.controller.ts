@@ -22,11 +22,13 @@ import {
   type AuthenticatedUser,
   CurrentUser,
   Public,
+  RateLimit,
 } from '../common';
 import type { Env } from '../config';
 import { AuthService } from './services/auth.service';
 import type { GoogleProfile } from './auth.types';
 import { RestrictedCountryError } from './restricted-country.error';
+import { UnverifiedEmailError } from './unverified-email.error';
 import type { IssuedTokens } from './services/token.service';
 
 const REFRESH_COOKIE = 'spothub_rt';
@@ -46,6 +48,7 @@ export class AuthController {
 
   /** Kicks off the OAuth dance. The guard performs the redirect. */
   @Public()
+  @RateLimit('signIn')
   @Get('google')
   @UseGuards(AuthGuard('google'))
   startGoogleSignIn(): void {
@@ -53,6 +56,7 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit('signIn')
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async completeGoogleSignIn(
@@ -69,6 +73,11 @@ export class AuthController {
       // not a JSON body: back to sign-in, saying why in general terms.
       if (error instanceof RestrictedCountryError) {
         response.redirect(`${this.clientUrl}/login?denied=country`);
+        return;
+      }
+
+      if (error instanceof UnverifiedEmailError) {
+        response.redirect(`${this.clientUrl}/login?denied=unverified`);
         return;
       }
 

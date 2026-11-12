@@ -24,13 +24,25 @@
 		reverse_proxy client:4000
 	}
 
-	# Sent on every response. HSTS is deliberately absent until the site has
-	# run on HTTPS for a while: it is hard to undo, and a mistake locks
-	# browsers out of the domain for as long as the max-age says.
+	# Sent on every response. A page's Content-Security-Policy is not here:
+	# it carries a nonce made fresh for each response, so the client server
+	# sends it (apps/client/src/content-security.ts). The API sends its own,
+	# through helmet.
+	#
+	# HSTS starts at a day. It is hard to undo — a mistake locks browsers out
+	# of the domain for as long as max-age says — so it grows only once a day
+	# has passed without trouble; no includeSubDomains or preload until then.
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
 		X-Frame-Options SAMEORIGIN
+		Strict-Transport-Security "max-age=86400"
+		Cross-Origin-Opener-Policy same-origin
+		# Location is asked for at the field ("Add location", "Show my
+		# location"); nothing else the browser offers is used.
+		Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=(), usb=()"
+		-Server
+		-X-Powered-By
 	}
 }
 

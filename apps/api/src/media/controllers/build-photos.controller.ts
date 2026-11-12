@@ -21,7 +21,12 @@ import {
   setCoverSchema,
 } from '@spothub/shared';
 
-import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../../common';
+import {
+  type AuthenticatedUser,
+  CurrentUser,
+  RateLimit,
+  ZodValidationPipe,
+} from '../../common';
 import { AssetSubject } from '../asset.entity';
 import { AssetsService } from '../assets.service';
 
@@ -49,6 +54,7 @@ export class BuildPhotosController {
     return this.assets.list(user.id, AssetSubject.Build, buildId);
   }
 
+  @RateLimit('imageUpload')
   @Post('uploads')
   @HttpCode(HttpStatus.OK)
   requestUpload(
