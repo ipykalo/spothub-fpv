@@ -321,6 +321,23 @@ The rules that keep Tailwind and Angular Material from fighting:
 - The Alpine runtime needs the musl binary target — already set in
   `schema.prisma`, do not remove it.
 - Migrations run at container startup, never in a Dockerfile layer.
+- **Every route is rate limited**, per route and per caller — the signed-in
+  pilot, else the address — by `RateLimitGuard`, a global guard registered
+  after `JwtAuthGuard` so the pilot is already known. **Every number is an
+  environment variable** (`RATE_LIMIT_*` in `env.schema.ts`, defaults 300
+  requests and 60 writes a minute), so a limit that proves too tight is a
+  restart, not a release; the production compose file passes each through as
+  `${…:-}`, and empty means the default. `rateLimits()` builds them from
+  `ConfigService` at start-up. A route that differs — sign-in, new comments,
+  the URL preview, upload signing — is marked `@RateLimit('…')`, which only
+  names its limit; `ROUTE_LIMITS` beside the guard says which variable sets
+  it and which default it replaces. A flight-log upload is _looser_, since a
+  LOGS folder signs one file after another. A
+  refusal is 429 with a sentence the client shows as it is, and a standard
+  `Retry-After`. Counts live in memory: one API process. **A page the client
+  server renders forwards the visitor's `X-Forwarded-For`**
+  (`serverApiInterceptor`), or every visitor would count as the rendering
+  server. The health check is never limited (`rate-limits.e2e.spec.ts`).
 - **Who may sign in is changed on the Admin page (`/admin`), not in `.env`.**
   The `settings` module keeps one `app_settings` row — `open_registration`
   and `allowed_emails` — and `auth` asks `SettingsFacade.permitsSignIn` at
@@ -384,6 +401,12 @@ The rules that keep Tailwind and Angular Material from fighting:
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
 - Google identities key on the `sub` claim, never the email.
+- **An email Google has not verified is refused**, first thing in
+  `signInWithGoogle`: the allowlist matches on the address, and an identity
+  not seen before is linked to the account that has it, so an unverified
+  one would let anyone walk into someone else's hangar. Read from the raw
+  `email_verified` claim; missing counts as unverified. The login page says
+  so (`?denied=unverified`) (`verified-email.e2e.spec.ts`).
 - **A price's currency is one from a list** — `CURRENCIES` in
   `libs/shared/src/lib/currency.ts`: the hryvnia and the 40 currencies the
   National Bank of Ukraine publishes a rate for, so every price can be
@@ -778,6 +801,18 @@ with every ticket. Caddy terminates TLS for the site and
 for storage, and is the only container that publishes a port. Three things
 about it are not obvious:
 
+- **Every page carries a Content-Security-Policy with a fresh nonce**, sent
+  by `server.ts` rather than Caddy because a nonce cannot be a fixed line.
+  `index.html` puts a placeholder in `ngCspNonce`; the build copies it onto
+  every inline `<script>`/`<style>` and server rendering onto the ones it
+  adds (event replay, the critical-CSS loader), and `withNonce`
+  (`content-security.ts`) swaps it per response — only inside `nonce`
+  attributes, never in a post's text. Scripts are strict; styles allow
+  inline. A new outside source (a tile server, an embed) must be added
+  there, and **`STORAGE_ORIGIN`** must reach the client container or photos
+  and uploads are refused. Production only; `CSP_MODE=report` turns it into
+  Report-Only without a release. Caddy sends the static headers (HSTS at a
+  day, COOP, Permissions-Policy); the API's own comes from helmet.
 - **The client is refused on its own domain unless `NG_ALLOWED_HOSTS` reaches
   it.** `AngularNodeAppEngine` resolves the setting as `options?.allowedHosts
 ?? getAllowedHostsFromEnv()`, so passing a list in `server.ts` — as it did —
@@ -1154,6 +1189,19 @@ row count with the live one; it passed on the first night's dump. The pinned
 MinIO image has a shell and `mc` but **no awk** — write its scripts with `mc
 find` and shell expansion. The runbook's "Backups" section has the real
 restore, on this box and on a new one.
+
+**Point-in-time recovery is WAL archiving to the same bucket**, with
+Postgres's own tools and the MinIO image's `mc` — no WAL-G, no custom
+Postgres image. `archive_command` gzips each segment into a local
+`walarchive` volume (never a network call, so R2 cannot stall the
+database), the `wal-shipper` service moves them to `wal/segments/` every
+minute, and `wal.sh base` ships a weekly `pg_basebackup` to `wal/base/`.
+`wal.sh check` (hourly) reports a refusing archiver or a segment stuck half
+an hour to the backup heartbeat's `/fail`, never success. `pitr-test.sh`
+rebuilds from R2 alone in a throwaway container — to the latest moment or
+one given — and compares row counts. All of it is off until
+`WAL_ARCHIVING=on` and `COMPOSE_PROFILES=wal` are in `.env`; turning it on
+restarts Postgres. Runbook: "Point-in-time recovery".
 
 **A failed backup is reported**, not just logged: with
 `BACKUP_HEARTBEAT_URL` set (a healthchecks.io check), `backup.sh` pings it on

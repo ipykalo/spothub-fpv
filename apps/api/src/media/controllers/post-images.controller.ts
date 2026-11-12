@@ -27,6 +27,7 @@ import {
   CurrentViewer,
   Public,
   ZodValidationPipe,
+  RateLimit,
 } from '../../common';
 import { AssetSubject } from '../asset.entity';
 import { AssetsService } from '../assets.service';
@@ -90,6 +91,7 @@ export class PostImagesController {
     };
   }
 
+  @RateLimit('imageUpload')
   @Post('uploads')
   @HttpCode(HttpStatus.OK)
   requestUpload(

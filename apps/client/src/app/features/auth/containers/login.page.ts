@@ -22,6 +22,9 @@ export class LoginPage {
   /** Refused for the country the sign-in came from, rather than for the account. */
   protected readonly deniedForCountry =
     this.route.snapshot.queryParamMap.get('denied') === 'country';
+  /** Refused because Google has not verified the account's email address. */
+  protected readonly deniedUnverified =
+    this.route.snapshot.queryParamMap.get('denied') === 'unverified';
 
   /**
    * A full navigation rather than an XHR: the OAuth flow needs the browser to

@@ -20,6 +20,12 @@ export interface GoogleProfile {
   /** Google's stable subject id. Keyed on rather than the email. */
   readonly subject: string;
   readonly email: string;
+  /**
+   * Whether Google has confirmed the address belongs to this account. An
+   * unverified one is refused: admission matches on the email, and so does
+   * linking a new identity to an existing account.
+   */
+  readonly emailVerified: boolean;
   readonly displayName: string | null;
   readonly avatarUrl: string | null;
 }

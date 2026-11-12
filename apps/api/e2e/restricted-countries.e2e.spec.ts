@@ -33,7 +33,7 @@ describe('restricted countries', () => {
   const profile = (label: string, subject = randomUUID()): GoogleProfile => {
     const email = `e2e-country-${label}-${randomUUID()}@example.invalid`;
     emails.push(email);
-    return { subject, email, displayName: null, avatarUrl: null };
+    return { subject, email, emailVerified: true, displayName: null, avatarUrl: null };
   };
 
   const settings = (body: object): request.Test =>
@@ -113,6 +113,7 @@ describe('restricted countries', () => {
         {
           subject: identity.subject,
           email: adminRow.email,
+          emailVerified: true,
           displayName: null,
           avatarUrl: null,
         },

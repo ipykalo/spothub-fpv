@@ -19,6 +19,17 @@ const csvEmails = z
       .filter((entry) => entry.length > 0),
   );
 
+/**
+ * A rate limit: a whole number of requests a minute, never zero. Empty counts
+ * as unset, because the production compose file passes each one through as
+ * `${RATE_LIMIT_…:-}` — and the default stays here, in one place.
+ */
+const perMinute = (fallback: number): z.ZodPreprocess<z.ZodDefault<z.ZodCoercedNumber>> =>
+  z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce.number().int().min(1).default(fallback),
+  );
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -139,6 +150,30 @@ export const envSchema = z.object({
    * Caddy; development has none.
    */
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+
+  /**
+   * Rate limits, each a count per minute, per route and per caller — the
+   * signed-in pilot, else the address. Changed here rather than in code so
+   * a limit that turns out too tight needs a restart, not a release
+   * (`common/guards/rate-limit.guard.ts`).
+   */
+  /** Any request to any route. */
+  RATE_LIMIT_REQUESTS: perMinute(300),
+  /** Any request that changes something: not GET, HEAD or OPTIONS. */
+  RATE_LIMIT_WRITES: perMinute(60),
+  /** Google sign-in and its callback, by address. */
+  RATE_LIMIT_SIGN_IN: perMinute(10),
+  /** A new question, reply or comment. */
+  RATE_LIMIT_COMMENTS: perMinute(10),
+  /** The one route where the server opens an address someone else chose. */
+  RATE_LIMIT_URL_PREVIEW: perMinute(20),
+  /** Signing a photo or post image upload: one per file. */
+  RATE_LIMIT_IMAGE_UPLOADS: perMinute(30),
+  /**
+   * Signing a flight-log upload. Looser than other writes: a radio's LOGS
+   * folder signs one file after another, and the storage limit bounds it.
+   */
+  RATE_LIMIT_LOG_UPLOADS: perMinute(600),
 });
 
 export type Env = z.output<typeof envSchema>;

@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 import { AuthModule } from '../auth';
 import { BuildPartsModule } from '../build-parts';
 import { BuildsModule } from '../builds';
 import { CommentsModule } from '../comments';
-import { AllExceptionsFilter, JwtAuthGuard } from '../common';
+import { AllExceptionsFilter, JwtAuthGuard, rateLimits, RateLimitGuard } from '../common';
 import { validateEnv } from '../config';
 import { ConfigsModule } from '../configs';
 import { FlightLogsModule } from '../flight-logs';
@@ -38,6 +39,9 @@ import { UsersModule } from '../users';
       // Fails fast at boot rather than surfacing an `undefined` days later.
       validate: validateEnv,
     }),
+    // Counted in memory: one API process, and a restart forgetting the
+    // counts costs nothing worth a Redis.
+    ThrottlerModule.forRootAsync({ inject: [ConfigService], useFactory: rateLimits }),
     PrismaModule,
     StorageModule,
     JobsModule,
@@ -63,6 +67,8 @@ import { UsersModule } from '../users';
   providers: [
     // Routes are protected by default; opting out is an explicit @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    // After authentication, so a signed-in pilot is counted as themselves.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
