@@ -13,6 +13,13 @@ export interface RefreshTokenPayload {
   readonly sub: string;
   readonly jti: string;
   readonly family: string;
+  /**
+   * When the session began — the Google sign-in — in seconds since the epoch.
+   * Carried from token to token on every rotation, and signed with the rest,
+   * so no rotation can extend it. Absent on tokens issued before the limit
+   * existed: their clock starts at their next refresh.
+   */
+  readonly started?: number;
 }
 
 /** The profile fields taken from Google. */

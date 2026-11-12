@@ -409,6 +409,14 @@ The rules that keep Tailwind and Angular Material from fighting:
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
 - Google identities key on the `sub` claim, never the email.
+- **A sign-in lasts 30 days from the last visit, and 90 at most.** Each
+  refresh grants `JWT_REFRESH_TTL` more, capped at `JWT_SESSION_MAX_TTL` from
+  the Google sign-in. The start travels in the refresh token's own signed
+  `started` claim, rotation to rotation — rotated rows are cleaned up, so the
+  table could not say when a session began — and the token, its row and the
+  cookie all expire together. Past 90 days the family is revoked and the
+  pilot signs in again. A token from before the limit starts its clock at its
+  next refresh (`session-lifetime.e2e.spec.ts`).
 - **An email Google has not verified is refused**, first thing in
   `signInWithGoogle`: the allowlist matches on the address, and an identity
   not seen before is linked to the account that has it, so an unverified
