@@ -1,0 +1,57 @@
+# Dependabot: one PR a week per ecosystem, into dev, like every other change.
+#
+# Security alerts arrive the moment an advisory is published, whatever this
+# file says. These weekly version updates are what fix them, and keep the
+# lockfile from drifting until an audit finds 33 findings at once.
+#
+# Major versions are never proposed: a major is a migration, planned as a
+# ticket (and Prisma is pinned to 6 on purpose — CLAUDE.md, Gotchas).
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # Packages released together move together: one PR, not twenty.
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*", "@schematics/angular"]
+      nx:
+        patterns: ["nx", "@nx/*"]
+      nestjs:
+        patterns: ["@nestjs/*"]
+      prisma:
+        patterns: ["prisma", "@prisma/*"]
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
+      everything-else:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # The images' base layers: node and alpine.
+  - package-ecosystem: docker
+    directories: ["/apps/api", "/apps/client"]
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
