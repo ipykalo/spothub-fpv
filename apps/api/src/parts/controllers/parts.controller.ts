@@ -42,7 +42,7 @@ export class PartsController {
     // declare and breaks outright on a non-object one.
     @Query(new ZodValidationPipe(listPartsQuerySchema)) query: ListPartsQuery,
   ): Promise<PartDto[]> {
-    return this.parts.list(user.id, query);
+    return this.parts.list(user, query);
   }
 
   @Get(':id')
@@ -50,7 +50,7 @@ export class PartsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<PartDto> {
-    return this.parts.getOne(user.id, id);
+    return this.parts.getOne(user, id);
   }
 
   @Post()

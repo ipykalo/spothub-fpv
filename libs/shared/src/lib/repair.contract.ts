@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { optionalCurrencySchema } from './currency';
+import { convertedTotalSchema, optionalCurrencySchema } from './currency';
 import { RepairCause } from './enums';
 
 /**
@@ -64,6 +64,11 @@ export const repairSchema = z.object({
   descriptionMd: z.string().nullable(),
   cost: z.number().nullable(),
   currency: z.string().nullable(),
+  /**
+   * The cost in the viewer's own currency, then USD, at the rate of the day
+   * of the repair. Empty with no cost, and wherever a reader is not given it.
+   */
+  converted: z.array(convertedTotalSchema),
   /** How many parts were fitted as part of this repair. */
   installCount: z.number().int(),
   createdAt: z.string(),

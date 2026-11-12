@@ -17,13 +17,14 @@
   <ul class="m-0 grid list-none gap-1.5 p-0">
     @for (install of rows(); track install.id) {
       <li
-        class="grid grid-cols-[1fr_auto] items-center gap-3 rounded bg-surface-container px-3 py-2 text-sm min-[40rem]:grid-cols-[minmax(5rem,8rem)_1fr_auto_auto]"
+        class="grid grid-cols-[1fr_auto] items-center gap-3 rounded bg-surface-container px-3 py-2 text-sm min-[40rem]:grid-cols-[minmax(5rem,8rem)_1fr_auto_auto_auto]"
         [class.opacity-70]="history()"
       >
         <!--
           On a phone: the part and its Remove on the first line, where and when
-          beneath — the name is what a reader scans for. Placed explicitly, so
-          the second line holds whether or not there is a Remove button.
+          beneath, and what it cost under the date — the name is what a reader
+          scans for. Placed explicitly, so the lines hold whether or not there
+          is a Remove button or a price.
         -->
         <span
           class="font-semibold max-[40rem]:col-start-1 max-[40rem]:row-start-2 max-[40rem]:text-xs max-[40rem]:font-normal max-[40rem]:text-muted"
@@ -47,6 +48,15 @@
             <mat-icon class="icon-sm" aria-hidden="true">{{ categoryIcons[install.part.category] }}</mat-icon>
             {{ categoryLabels[install.part.category] }} · {{ unitName(install) }}
           </span>
+        </span>
+
+        @let money = price(install);
+        <span class="text-right text-sm max-[40rem]:col-start-2 max-[40rem]:row-start-3">
+          @if (money.kind === 'paid') {
+            <sh-price [amount]="money.amount" [currency]="money.currency" [converted]="money.converted" />
+          } @else if (money.kind === 'included') {
+            <span class="text-xs text-muted" title="Covered by the quad's own price">Included</span>
+          }
         </span>
 
         <span

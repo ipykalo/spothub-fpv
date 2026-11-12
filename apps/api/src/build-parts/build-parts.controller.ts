@@ -48,7 +48,7 @@ export class BuildPartsController {
     // answered 400 before it reached the service.
     @Query(new ZodValidationPipe(listBuildPartsQuerySchema)) query: ListBuildPartsQuery,
   ): Promise<BuildPartDto[]> {
-    return this.installs.list(user.id, buildId, query);
+    return this.installs.list(user, buildId, query);
   }
 
   @Get('cost')

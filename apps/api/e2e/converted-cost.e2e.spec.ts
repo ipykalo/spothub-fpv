@@ -1,4 +1,10 @@
-import type { BuildCostDto, BuildDto, PartDto } from '@spothub/shared';
+import type {
+  BuildCostDto,
+  BuildDto,
+  BuildPartDto,
+  PartDto,
+  RepairDto,
+} from '@spothub/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +22,7 @@ describe('converted cost totals', () => {
   let testApp: TestApp;
   let owner: TestUser;
   let build: BuildDto;
+  let partId: string;
 
   const BOUGHT_ON = '2026-04-01';
   const PART_ON = '2026-04-10';
@@ -59,6 +66,7 @@ describe('converted cost totals', () => {
       name: 'Upgrade motor',
       category: 'MOTOR',
     });
+    partId = part.id;
     await send('post', `/api/parts/${part.id}/sources`, {
       price: 50,
       currency: 'USD',
@@ -132,6 +140,60 @@ describe('converted cost totals', () => {
       exact: true,
       ratesOn: REPAIR_ON,
     });
+  });
+
+  it('converts each price on its own wherever it is shown, as well as adding them up', async () => {
+    // The first test waited for every day's rates, so these are exact.
+    const usdOnPart = StubRateSource.usdOn(PART_ON);
+    const usdOnBuy = StubRateSource.usdOn(BOUGHT_ON);
+    const eurOnRepair = StubRateSource.usdOn(REPAIR_ON) + 5;
+    const cents = (amount: number): number => Math.round(amount * 100) / 100;
+
+    // The $50 purchase, at its purchase day's rate; USD itself needs none.
+    const motor = [
+      { currency: 'UAH', amount: cents(50 * usdOnPart), exact: true, ratesOn: PART_ON },
+      { currency: 'USD', amount: 50, exact: true, ratesOn: null },
+    ];
+
+    const part = await send<PartDto>('get', `/api/parts/${partId}`);
+    expect(part.sources[0].converted).toEqual(motor);
+
+    const listed = await send<PartDto[]>('get', '/api/parts');
+    expect(listed.find((each) => each.id === partId)?.sources[0].converted).toEqual(
+      motor,
+    );
+
+    const fitted = await send<BuildPartDto[]>('get', `/api/builds/${build.id}/parts`);
+    expect(
+      fitted.find((install) => install.part.id === partId)?.part.sources[0].converted,
+    ).toEqual(motor);
+
+    const [repair] = await send<RepairDto[]>('get', `/api/builds/${build.id}/repairs`);
+    expect(repair.converted).toEqual([
+      {
+        currency: 'UAH',
+        amount: cents(20 * eurOnRepair),
+        exact: true,
+        ratesOn: REPAIR_ON,
+      },
+      {
+        currency: 'USD',
+        amount: cents((20 * eurOnRepair) / StubRateSource.usdOn(REPAIR_ON)),
+        exact: true,
+        ratesOn: REPAIR_ON,
+      },
+    ]);
+
+    // The quad's own ₴8,000, at its "built on" day.
+    expect((await cost()).converted.boughtFor).toEqual([
+      { currency: 'UAH', amount: 8000, exact: true, ratesOn: null },
+      {
+        currency: 'USD',
+        amount: cents(8000 / usdOnBuy),
+        exact: true,
+        ratesOn: BOUGHT_ON,
+      },
+    ]);
   });
 
   it('gives a USD pilot one total, in USD', async () => {

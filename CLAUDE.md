@@ -396,6 +396,19 @@ The rules that keep Tailwind and Angular Material from fighting:
   page shows them as "≈ ₴… · ≈ $…" over what was actually paid, per currency
   (`cost-lines.ts`). The viewer's currency rides on `AuthenticatedUser`, read
   afresh on every request (`converted-cost.e2e.spec.ts`).
+  **Every single price reads the same way too: what was paid, then ≈ home ·
+  ≈ USD.** A part source (`PartSourceDto.converted`), a repair
+  (`RepairDto.converted`) and a bought quad's price
+  (`BuildCostDto.converted.boughtFor`) each carry their own conversions, made
+  by `ExchangeRatesFacade.each` — one rate lookup for a whole list, at each
+  price's own day. The mappers leave `converted` empty because they do not
+  know the viewer; the services fill it (`SourcePrices` in `parts`, which the
+  parts facade also applies when `build-parts` passes `convertInto`). Redaction
+  is unchanged: a reader without `shareCosts` gets no sources and no repair
+  cost, so no conversions. The client lays every one out with `sh-price`
+  (`core/components/price`, over `priceLine` in `core/format/money.ts`), and a
+  component row shows its purchase, or "Included" for a part a bought quad
+  came with (`row-price.ts`).
 - **A link a pilot pastes is a web address and nothing else.** Shop links
   (a part source's `url`, a bought build's `purchaseUrl`) and the preview's
   input go through `webLinkSchema` (`libs/shared/src/lib/web-link.ts`):

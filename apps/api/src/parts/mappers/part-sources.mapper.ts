@@ -16,5 +16,7 @@ export function toPartSourceDto(source: PartSourceEntity): PartSourceDto {
     purchasedOn: toNullableDateOnly(source.purchasedOn),
     quantity: source.quantity,
     capturedAt: source.capturedAt.toISOString(),
+    // Filled by SourcePrices, which knows whose currency to convert into.
+    converted: [],
   };
 }

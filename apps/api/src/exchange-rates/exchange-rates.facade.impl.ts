@@ -6,6 +6,8 @@ import { ExchangeRatesRepository } from './abstract/exchange-rates.repository';
 import {
   type ConvertedTotal,
   type DatedAmount,
+  type RatesByDay,
+  convertEach,
   convertTotal,
   daysNeeded,
 } from './conversion';
@@ -31,6 +33,26 @@ export class ExchangeRatesFacadeImpl extends ExchangeRatesFacade {
     amounts: readonly DatedAmount[],
     currencies: readonly string[],
   ): Promise<ConvertedTotal[]> {
+    const rates = await this.ratesFor(amounts, currencies);
+    return currencies.map((currency) => convertTotal(amounts, currency, rates));
+  }
+
+  async each(
+    amounts: readonly DatedAmount[],
+    currencies: readonly string[],
+  ): Promise<ConvertedTotal[][]> {
+    if (amounts.length === 0) {
+      return [];
+    }
+
+    return convertEach(amounts, currencies, await this.ratesFor(amounts, currencies));
+  }
+
+  /** The stored rates the conversion needs, queuing any day not stored yet. */
+  private async ratesFor(
+    amounts: readonly DatedAmount[],
+    currencies: readonly string[],
+  ): Promise<RatesByDay> {
     const days = daysNeeded(amounts, currencies);
     const [rates, stored] = await Promise.all([
       this.rates.ratesAround(days),
@@ -39,7 +61,7 @@ export class ExchangeRatesFacadeImpl extends ExchangeRatesFacade {
 
     await this.askFor(days.filter((day) => !stored.has(day)));
 
-    return currencies.map((currency) => convertTotal(amounts, currency, rates));
+    return rates;
   }
 
   /** Queues the days not stored yet. A failure to queue never fails the page. */

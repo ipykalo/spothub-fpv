@@ -128,6 +128,8 @@ export const buildCostSchema = z.object({
   converted: z.object({
     totals: z.array(convertedTotalSchema),
     repairTotals: z.array(convertedTotalSchema),
+    /** A bought quad's own price, converted at its "built on" day. Empty on a built one. */
+    boughtFor: z.array(convertedTotalSchema),
   }),
 });
 

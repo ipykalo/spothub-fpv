@@ -46,8 +46,8 @@
         </span>
 
         <span class="whitespace-nowrap tabular-nums">
-          @if (repair.cost !== null) {
-            <strong>{{ repair.cost }}</strong> {{ repair.currency }}
+          @if (repair.cost !== null && repair.currency !== null) {
+            <sh-price [amount]="repair.cost" [currency]="repair.currency" [converted]="repair.converted" />
           } @else {
             <span class="text-muted italic">—</span>
           }

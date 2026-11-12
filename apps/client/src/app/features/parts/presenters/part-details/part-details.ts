@@ -17,6 +17,7 @@ import {
 } from '@spothub/shared';
 
 import { Autocomplete } from '../../../../core/components/autocomplete/autocomplete';
+import { Price } from '../../../../core/components/price/price';
 import { LinkHostPipe } from '../../../../core/format/link-host.pipe';
 import { Section } from '../../../../core/components/section/section';
 import { PART_CATEGORY_ICONS } from '../../part-category';
@@ -48,6 +49,7 @@ interface SpecEntry {
     MatButtonModule,
     MatCardModule,
     MatIconModule,
+    Price,
     Section,
   ],
   templateUrl: './part-details.html',

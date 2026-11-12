@@ -1,0 +1,14 @@
+<span
+  class="inline-flex gap-x-2 tabular-nums"
+  [class.flex-col]="!inline()"
+  [class.flex-wrap]="inline()"
+  [class.items-baseline]="inline()"
+  [class.items-end]="!inline()"
+>
+  <strong class="font-semibold" [class.text-lg]="emphasis()" [class.leading-snug]="emphasis()">{{
+    line().paid
+  }}</strong>
+  @if (line().approx.length) {
+    <span class="text-xs text-muted">{{ line().approx.join(' · ') }}</span>
+  }
+</span>

@@ -1,5 +1,7 @@
 import type { ConvertedTotalDto } from '@spothub/shared';
 
+import { formatMoney } from '../../../../core/format/money';
+
 /** What one cost card shows: the headline figures, what was paid, and how they relate. */
 export interface CostLines {
   /** The big figures: converted totals, or what was paid when nothing could be converted. */
@@ -13,21 +15,6 @@ export interface CostLines {
 interface Money {
   readonly currency: string;
   readonly amount: number;
-}
-
-/** `$410.20`, `₴18,640`, `zł12.50` — the currency's own sign, cents only when there are any. */
-export function formatMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('en', {
-      style: 'currency',
-      currency,
-      currencyDisplay: 'narrowSymbol',
-      minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${String(amount)} ${currency}`;
-  }
 }
 
 /**

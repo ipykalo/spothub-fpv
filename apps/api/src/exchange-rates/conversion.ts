@@ -94,6 +94,21 @@ export function convertTotal(
   return { currency, amount: Math.round(sum * 100) / 100, exact, ratesOn: latestUsed() };
 }
 
+/**
+ * Each price on its own in every one of `currencies` — for showing a single
+ * price as "≈ ₴… · ≈ $…" beside what was paid, where `convertTotal` adds
+ * them up. In the order given, one list of conversions per price.
+ */
+export function convertEach(
+  amounts: readonly DatedAmount[],
+  currencies: readonly string[],
+  rates: RatesByDay,
+): ConvertedTotal[][] {
+  return amounts.map((entry) =>
+    currencies.map((currency) => convertTotal([entry], currency, rates)),
+  );
+}
+
 /** The days among `amounts` that a conversion into `currencies` needs a rate for. */
 export function daysNeeded(
   amounts: readonly DatedAmount[],

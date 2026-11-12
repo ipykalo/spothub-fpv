@@ -52,10 +52,11 @@ export class BuildPartsService {
    * nothing, as before.
    */
   async list(
-    viewerId: string | null,
+    viewer: AuthenticatedUser,
     buildId: string,
     query: ListBuildPartsQuery,
   ): Promise<BuildPartDto[]> {
+    const viewerId = viewer.id;
     const access = await this.installs.findBuildAccessForViewer(viewerId, buildId);
 
     if (access === null) {
@@ -63,7 +64,9 @@ export class BuildPartsService {
     }
 
     const installs = await this.installs.findManyForOwner(access.ownerId, buildId, query);
-    const fitted = await this.hydrate(access.ownerId, installs);
+    // Prices in the viewer's own currency. A reader the owner shares no costs
+    // with loses the sources below, conversions and all.
+    const fitted = await this.hydrate(access.ownerId, installs, viewer.homeCurrency);
 
     return installs.map((install) => {
       const dto = toBuildPartDto(install, lookUp(fitted, install.unitId));
@@ -105,12 +108,15 @@ export class BuildPartsService {
 
     // In the viewer's own currency, then USD — whoever's build it is.
     const currencies = totalCurrencies(viewer.homeCurrency);
-    const [totals, repairTotals] = await Promise.all([
+    const bought =
+      access.boughtFor === null ? [] : [{ ...access.boughtFor, day: access.boughtOn }];
+    const [totals, repairTotals, boughtFor] = await Promise.all([
       this.rates.totals(cost.spent, currencies),
       this.rates.totals(repairs.amounts, currencies),
+      bought.length === 0 ? Promise.resolve([]) : this.rates.totals(bought, currencies),
     ]);
 
-    return toBuildCostDto(cost, { totals, repairTotals });
+    return toBuildCostDto(cost, { totals, repairTotals, boughtFor });
   }
 
   async install(
@@ -276,14 +282,19 @@ export class BuildPartsService {
     }
   }
 
-  /** One batched call to the parts facade, whatever the size of the list. */
+  /**
+   * One batched call to the parts facade, whatever the size of the list. With
+   * a currency, the parts' prices come converted into it for showing.
+   */
   private hydrate(
     ownerId: string,
     installs: readonly BuildPartEntity[],
+    convertInto?: string,
   ): Promise<ReadonlyMap<string, FittedUnitDto>> {
     return this.parts.findUnits(
       ownerId,
       installs.map((install) => install.unitId),
+      convertInto,
     );
   }
 

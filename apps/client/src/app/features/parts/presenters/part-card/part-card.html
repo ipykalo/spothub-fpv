@@ -52,10 +52,17 @@
   <!-- The border sits above the price only, so the card reads as name → detail → cost. -->
   <div class="flex flex-col gap-0.5 border-t border-outline-variant pt-2">
     <div class="flex items-center gap-1">
-      <p class="m-0 flex min-h-6 flex-auto items-baseline gap-1 tabular-nums">
-        @if (part().purchasePrice !== null) {
-          <span class="text-lg leading-[1.3] font-semibold">{{ part().purchasePrice }}</span>
-          <span class="text-xs text-muted">{{ part().purchaseCurrency }}</span>
+      <p class="m-0 flex min-h-6 flex-auto flex-wrap items-baseline gap-x-2">
+        @let price = part().purchasePrice;
+        @let currency = part().purchaseCurrency;
+        @if (price !== null && currency !== null) {
+          <sh-price
+            [amount]="price"
+            [currency]="currency"
+            [converted]="purchaseConverted()"
+            [inline]="true"
+            [emphasis]="true"
+          />
           @if (unitTotal() > 1) {
             <span class="text-xs text-muted">each</span>
           }

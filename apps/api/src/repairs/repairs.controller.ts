@@ -35,7 +35,7 @@ export class RepairsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('buildId', ParseUUIDPipe) buildId: string,
   ): Promise<RepairDto[]> {
-    return this.repairs.list(user.id, buildId);
+    return this.repairs.list(user, buildId);
   }
 
   @Post()
@@ -44,7 +44,7 @@ export class RepairsController {
     @Param('buildId', ParseUUIDPipe) buildId: string,
     @Body(new ZodValidationPipe(createRepairSchema)) body: CreateRepairDto,
   ): Promise<RepairDto> {
-    return this.repairs.create(user.id, buildId, body);
+    return this.repairs.create(user, buildId, body);
   }
 
   @Patch(':repairId')
@@ -54,7 +54,7 @@ export class RepairsController {
     @Param('repairId', ParseUUIDPipe) repairId: string,
     @Body(new ZodValidationPipe(updateRepairSchema)) body: UpdateRepairDto,
   ): Promise<RepairDto> {
-    return this.repairs.update(user.id, buildId, repairId, body);
+    return this.repairs.update(user, buildId, repairId, body);
   }
 
   @Delete(':repairId')

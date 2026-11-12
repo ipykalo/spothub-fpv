@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { type RatesByDay, convertTotal, daysNeeded, ratesFor } from './conversion';
+import {
+  type RatesByDay,
+  convertEach,
+  convertTotal,
+  daysNeeded,
+  ratesFor,
+} from './conversion';
 
 /** Hryvnias per unit, as the NBU publishes them. */
 const RATES: RatesByDay = new Map([
@@ -103,6 +109,32 @@ describe('convertTotal', () => {
       exact: true,
       ratesOn: null,
     });
+  });
+});
+
+describe('convertEach', () => {
+  it('converts each price on its own, at its own day’s rate, and keeps one in its own currency as it is', () => {
+    const [dollars, hryvnias] = convertEach(
+      [
+        { amount: 100, currency: 'USD', day: '2025-01-01' },
+        { amount: 4544.32, currency: 'UAH', day: '2026-11-08' },
+      ],
+      ['UAH', 'USD'],
+      RATES,
+    );
+
+    expect(dollars).toEqual([
+      { currency: 'UAH', amount: 4202.95, exact: true, ratesOn: '2025-01-01' },
+      { currency: 'USD', amount: 100, exact: true, ratesOn: null },
+    ]);
+    expect(hryvnias).toEqual([
+      { currency: 'UAH', amount: 4544.32, exact: true, ratesOn: null },
+      { currency: 'USD', amount: 100, exact: true, ratesOn: '2026-11-08' },
+    ]);
+  });
+
+  it('answers nothing for no prices', () => {
+    expect(convertEach([], ['USD'], RATES)).toEqual([]);
   });
 });
 
