@@ -381,6 +381,19 @@ Failures that are worth recognising on sight:
 | Photo upload fails at the PUT           | `storage.<domain>` has no certificate, or `S3_PUBLIC_ENDPOINT` is unset |
 | Photo commit answers 500                | `S3_ENDPOINT` names the public host; it should be `http://minio:9000`   |
 | API restarts in a loop                  | Usually the database URL, visible in the first lines of its log         |
+| Console: "Refused to load … CSP"        | The page needs a source the Content-Security-Policy does not name       |
+
+**When the Content-Security-Policy refuses something a page needs**, switch
+it to report-only while the policy is fixed — the browser then logs what it
+would have refused and refuses nothing:
+
+```bash
+echo 'CSP_MODE=report' >> .env
+docker compose up -d client
+```
+
+Take the line out of `.env` and run the same `up -d client` once the fixed
+release is out. The policy itself is `apps/client/src/content-security.ts`.
 
 ## What this deliberately does not do yet
 

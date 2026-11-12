@@ -97,6 +97,11 @@ services:
       # every canonical link, og:url and sitemap entry would be built from the
       # container's own address instead of the site's.
       NG_TRUST_PROXY_HEADERS: x-forwarded-proto,x-forwarded-host
+      # Named in each page's Content-Security-Policy: photos load from it and
+      # uploads go to it. Without it the policy would refuse both.
+      STORAGE_ORIGIN: https://${STORAGE_DOMAIN}
+      # `report` only logs what the policy would refuse (deploy/README.md).
+      CSP_MODE: ${CSP_MODE:-enforce}
     depends_on:
       - api
 
