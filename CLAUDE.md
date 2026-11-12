@@ -321,6 +321,23 @@ The rules that keep Tailwind and Angular Material from fighting:
 - The Alpine runtime needs the musl binary target — already set in
   `schema.prisma`, do not remove it.
 - Migrations run at container startup, never in a Dockerfile layer.
+- **Every route is rate limited**, per route and per caller — the signed-in
+  pilot, else the address — by `RateLimitGuard`, a global guard registered
+  after `JwtAuthGuard` so the pilot is already known. **Every number is an
+  environment variable** (`RATE_LIMIT_*` in `env.schema.ts`, defaults 300
+  requests and 60 writes a minute), so a limit that proves too tight is a
+  restart, not a release; the production compose file passes each through as
+  `${…:-}`, and empty means the default. `rateLimits()` builds them from
+  `ConfigService` at start-up. A route that differs — sign-in, new comments,
+  the URL preview, upload signing — is marked `@RateLimit('…')`, which only
+  names its limit; `ROUTE_LIMITS` beside the guard says which variable sets
+  it and which default it replaces. A flight-log upload is _looser_, since a
+  LOGS folder signs one file after another. A
+  refusal is 429 with a sentence the client shows as it is, and a standard
+  `Retry-After`. Counts live in memory: one API process. **A page the client
+  server renders forwards the visitor's `X-Forwarded-For`**
+  (`serverApiInterceptor`), or every visitor would count as the rendering
+  server. The health check is never limited (`rate-limits.e2e.spec.ts`).
 - **Who may sign in is changed on the Admin page (`/admin`), not in `.env`.**
   The `settings` module keeps one `app_settings` row — `open_registration`
   and `allowed_emails` — and `auth` asks `SettingsFacade.permitsSignIn` at

@@ -22,7 +22,12 @@ import {
   requestLogUploadSchema,
 } from '@spothub/shared';
 
-import { type AuthenticatedUser, CurrentUser, ZodValidationPipe } from '../common';
+import {
+  type AuthenticatedUser,
+  CurrentUser,
+  RateLimit,
+  ZodValidationPipe,
+} from '../common';
 import { FlightLogsService } from './flight-logs.service';
 
 /**
@@ -45,6 +50,7 @@ export class FlightLogsController {
     return this.logs.known(user.id, body);
   }
 
+  @RateLimit('logUpload')
   @Post('uploads')
   @HttpCode(HttpStatus.OK)
   requestUpload(

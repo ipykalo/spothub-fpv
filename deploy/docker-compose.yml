@@ -73,6 +73,15 @@ services:
       # Caddy is the one proxy in front: the visitor's address is the one it
       # adds to X-Forwarded-For. Read for refusing restricted countries.
       TRUST_PROXY_HOPS: 1
+      # Rate limits, per minute. Unset means the default in env.schema.ts;
+      # a change here is `docker compose up -d api`, not a release.
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-}
+      RATE_LIMIT_WRITES: ${RATE_LIMIT_WRITES:-}
+      RATE_LIMIT_SIGN_IN: ${RATE_LIMIT_SIGN_IN:-}
+      RATE_LIMIT_COMMENTS: ${RATE_LIMIT_COMMENTS:-}
+      RATE_LIMIT_URL_PREVIEW: ${RATE_LIMIT_URL_PREVIEW:-}
+      RATE_LIMIT_IMAGE_UPLOADS: ${RATE_LIMIT_IMAGE_UPLOADS:-}
+      RATE_LIMIT_LOG_UPLOADS: ${RATE_LIMIT_LOG_UPLOADS:-}
       # The starting list of restricted countries; the Admin page changes it.
       BLOCKED_COUNTRIES: ${BLOCKED_COUNTRIES:-RU,BY,IR,KP,SY,CU}
     depends_on:

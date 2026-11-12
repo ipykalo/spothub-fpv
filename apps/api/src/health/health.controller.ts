@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 
 import { Public } from '../common';
 import { PrismaService } from '../prisma';
@@ -14,6 +15,9 @@ interface HealthResponse {
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Asked by the container's health check and the uptime monitor, never
+  // by anyone worth limiting.
+  @SkipThrottle()
   @Public()
   @Get()
   async check(): Promise<HealthResponse> {
