@@ -530,6 +530,7 @@ Failures that are worth recognising on sight:
 | Photo upload fails at the PUT           | `storage.<domain>` has no certificate, or `S3_PUBLIC_ENDPOINT` is unset |
 | Photo commit answers 500                | `S3_ENDPOINT` names the public host; it should be `http://minio:9000`   |
 | API restarts in a loop                  | Usually the database URL, visible in the first lines of its log         |
+| Many requests answer `429`              | Rate limits: raise a `RATE_LIMIT_*` in `.env`, then `up -d api`         |
 | Console: "Refused to load … CSP"        | The page needs a source the Content-Security-Policy does not name       |
 
 **When the Content-Security-Policy refuses something a page needs**, switch
