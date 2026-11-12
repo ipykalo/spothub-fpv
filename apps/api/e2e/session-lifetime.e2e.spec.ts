@@ -60,15 +60,13 @@ describe('session lifetime', () => {
     const id = randomUUID();
     const family = randomUUID();
     const started = Math.floor(Date.now() / 1000) - daysAgo * DAY;
-    const token = await testApp.app
-      .get(JwtService)
-      .signAsync(
-        { sub: pilot.id, jti: id, family, started },
-        {
-          secret: config().get('JWT_REFRESH_SECRET', { infer: true }),
-          expiresIn: 30 * DAY,
-        },
-      );
+    const token = await testApp.app.get(JwtService).signAsync(
+      { sub: pilot.id, jti: id, family, started },
+      {
+        secret: config().get('JWT_REFRESH_SECRET', { infer: true }),
+        expiresIn: 30 * DAY,
+      },
+    );
 
     await testApp.app.get(RefreshTokenRepository).store({
       id,
