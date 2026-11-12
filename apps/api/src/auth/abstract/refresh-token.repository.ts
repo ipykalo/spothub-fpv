@@ -23,6 +23,13 @@ export abstract class RefreshTokenRepository {
 
   abstract revokeAllForUser(userId: string): Promise<void>;
 
+  /**
+   * Whether one of the user's sessions still stands: some token of it is
+   * neither revoked nor expired. Asked on every request, so it must stay one
+   * indexed lookup.
+   */
+  abstract isSessionLive(userId: string, familyId: string): Promise<boolean>;
+
   /** Housekeeping for expired rows. Safe to call from a cron. */
   abstract deleteExpired(now: Date): Promise<number>;
 }

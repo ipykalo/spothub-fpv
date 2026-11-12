@@ -18,6 +18,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { request } from 'node:https';
 import { resolve } from 'node:path';
@@ -185,14 +186,21 @@ async function call(path, options = {}) {
 }
 
 async function main() {
+  // An access token is only good while its session stands, so the pilot gets
+  // one: a refresh-token row of its own family, as a sign-in makes. It goes
+  // with the pilot at the end, by the schema's cascade.
+  const session = randomUUID();
+
   psql(
     `INSERT INTO users (id, email, display_name, role, created_at, updated_at)
      VALUES ('${PILOT_ID}', '${PILOT_EMAIL}', 'Dry run', 'USER', now(), now())
-     ON CONFLICT (id) DO NOTHING;`,
+     ON CONFLICT (id) DO NOTHING;
+     INSERT INTO refresh_tokens (id, user_id, token_hash, family_id, expires_at)
+     VALUES ('${randomUUID()}', '${PILOT_ID}', '${randomUUID()}', '${session}', now() + interval '1 hour');`,
   );
 
   const token = jwt.sign(
-    { sub: PILOT_ID, email: PILOT_EMAIL, role: 'USER' },
+    { sub: PILOT_ID, email: PILOT_EMAIL, role: 'USER', sid: session },
     env.get('JWT_ACCESS_SECRET'),
     { expiresIn: '10m' },
   );

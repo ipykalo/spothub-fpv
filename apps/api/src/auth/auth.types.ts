@@ -6,6 +6,12 @@ export interface AccessTokenPayload {
   readonly sub: string;
   readonly email: string;
   readonly role: Role;
+  /**
+   * The session — the refresh family — this token was issued for. Checked on
+   * every request, so signing out ends access at once rather than when the
+   * token runs out.
+   */
+  readonly sid: string;
 }
 
 /** Claims carried by the refresh token. `jti` identifies the stored row. */

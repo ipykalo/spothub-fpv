@@ -402,9 +402,18 @@ The rules that keep Tailwind and Angular Material from fighting:
   when `/auth/logout` answered, and says so otherwise — looking signed out
   while the cookie signs you back in on the next visit was worse. "Sign out
   on all devices" on `/account` is `POST /auth/logout-all`, revoking every
-  family the pilot has; a device's open tab keeps its access token for up to
-  15 minutes. After account deletion the server has already ended it, so
-  `forget()` clears the client without asking (`sign-out-everywhere.e2e.spec.ts`). The row delete cascades to everything owned. The only admin is
+  family the pilot has. After account deletion the server has already ended
+  it, so `forget()` clears the client without asking
+  (`sign-out-everywhere.e2e.spec.ts`).
+- **An access token is good only while its session stands.** It carries
+  `sid`, its refresh family, and `JwtStrategy` asks `isSessionLive` on every
+  request beside the user lookup — one indexed query — so signing out, on
+  one device or all, and reuse detection end access at once rather than when
+  the 15 minutes run out. A token without `sid` is refused and the client's
+  refresh replaces it. **Anything that mints an access token by hand** (the
+  browser journeys' pilot, `dry-run-media.mjs`) must also insert a live
+  `refresh_tokens` row and name its family as `sid`
+  (`instant-sign-out.e2e.spec.ts`). The row delete cascades to everything owned. The only admin is
   refused with 409 (`apps/api/e2e/delete-account.e2e.spec.ts`). **Any new
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
