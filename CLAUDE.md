@@ -801,6 +801,18 @@ with every ticket. Caddy terminates TLS for the site and
 for storage, and is the only container that publishes a port. Three things
 about it are not obvious:
 
+- **Every page carries a Content-Security-Policy with a fresh nonce**, sent
+  by `server.ts` rather than Caddy because a nonce cannot be a fixed line.
+  `index.html` puts a placeholder in `ngCspNonce`; the build copies it onto
+  every inline `<script>`/`<style>` and server rendering onto the ones it
+  adds (event replay, the critical-CSS loader), and `withNonce`
+  (`content-security.ts`) swaps it per response — only inside `nonce`
+  attributes, never in a post's text. Scripts are strict; styles allow
+  inline. A new outside source (a tile server, an embed) must be added
+  there, and **`STORAGE_ORIGIN`** must reach the client container or photos
+  and uploads are refused. Production only; `CSP_MODE=report` turns it into
+  Report-Only without a release. Caddy sends the static headers (HSTS at a
+  day, COOP, Permissions-Policy); the API's own comes from helmet.
 - **The client is refused on its own domain unless `NG_ALLOWED_HOSTS` reaches
   it.** `AngularNodeAppEngine` resolves the setting as `options?.allowedHosts
 ?? getAllowedHostsFromEnv()`, so passing a list in `server.ts` — as it did —
