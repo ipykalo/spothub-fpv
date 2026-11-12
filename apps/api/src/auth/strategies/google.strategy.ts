@@ -41,6 +41,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       // account, unlike the email.
       subject: profile.id,
       email: email.toLowerCase(),
+      // Google's own claim, read raw: a response without it is unverified.
+      emailVerified: profile._json.email_verified === true,
       displayName: profile.displayName || null,
       avatarUrl: profile.photos?.[0]?.value ?? null,
     };

@@ -384,6 +384,12 @@ The rules that keep Tailwind and Angular Material from fighting:
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.
 - Google identities key on the `sub` claim, never the email.
+- **An email Google has not verified is refused**, first thing in
+  `signInWithGoogle`: the allowlist matches on the address, and an identity
+  not seen before is linked to the account that has it, so an unverified
+  one would let anyone walk into someone else's hangar. Read from the raw
+  `email_verified` claim; missing counts as unverified. The login page says
+  so (`?denied=unverified`) (`verified-email.e2e.spec.ts`).
 - **A price's currency is one from a list** — `CURRENCIES` in
   `libs/shared/src/lib/currency.ts`: the hryvnia and the 40 currencies the
   National Bank of Ukraine publishes a rate for, so every price can be

@@ -117,6 +117,7 @@ describe('admin: pilots', () => {
       testApp.app.get(AuthService).signInWithGoogle({
         subject: 'not-linked-yet',
         email: pilot.email,
+        emailVerified: true,
         displayName: null,
         avatarUrl: null,
       }),
