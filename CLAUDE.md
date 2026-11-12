@@ -1190,6 +1190,19 @@ MinIO image has a shell and `mc` but **no awk** — write its scripts with `mc
 find` and shell expansion. The runbook's "Backups" section has the real
 restore, on this box and on a new one.
 
+**Point-in-time recovery is WAL archiving to the same bucket**, with
+Postgres's own tools and the MinIO image's `mc` — no WAL-G, no custom
+Postgres image. `archive_command` gzips each segment into a local
+`walarchive` volume (never a network call, so R2 cannot stall the
+database), the `wal-shipper` service moves them to `wal/segments/` every
+minute, and `wal.sh base` ships a weekly `pg_basebackup` to `wal/base/`.
+`wal.sh check` (hourly) reports a refusing archiver or a segment stuck half
+an hour to the backup heartbeat's `/fail`, never success. `pitr-test.sh`
+rebuilds from R2 alone in a throwaway container — to the latest moment or
+one given — and compares row counts. All of it is off until
+`WAL_ARCHIVING=on` and `COMPOSE_PROFILES=wal` are in `.env`; turning it on
+restarts Postgres. Runbook: "Point-in-time recovery".
+
 **A failed backup is reported**, not just logged: with
 `BACKUP_HEARTBEAT_URL` set (a healthchecks.io check), `backup.sh` pings it on
 success and its `/fail` on any error, and the check emails when a failure

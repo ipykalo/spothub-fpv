@@ -118,12 +118,36 @@ services:
     # The same image as development, pinned: a major version is a migration.
     image: postgis/postgis:17-3.5
     restart: unless-stopped
+    # Continuous archiving (README.md, "Point-in-time recovery"), off unless
+    # WAL_ARCHIVING=on. Each finished WAL segment is gzipped into the
+    # wal-archive volume — only ever a local write, so an unreachable R2 can
+    # never stall the database — and wal-shipper carries it off-site.
+    # archive_timeout closes a segment after five minutes of any activity, so
+    # at most that much is ever only on this disk.
+    #
+    # The container starts as root, so the archive directory is made and
+    # handed to postgres before the image's own entrypoint drops to it.
+    entrypoint: >
+      sh -c "mkdir -p /wal-archive/incoming /wal-archive/ready &&
+      chown -R postgres:postgres /wal-archive && chmod 700 /wal-archive &&
+      exec docker-entrypoint.sh \"$$@\"" --
+    command:
+      - postgres
+      - -c
+      - archive_mode=${WAL_ARCHIVING:-off}
+      - -c
+      - archive_timeout=300
+      - -c
+      # Written under incoming/ and moved once whole, so wal-shipper never
+      # takes a half-written file.
+      - archive_command=gzip < %p > /wal-archive/incoming/%f.gz && mv /wal-archive/incoming/%f.gz /wal-archive/ready/%f.gz
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - walarchive:/wal-archive
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -192,8 +216,40 @@ services:
       BACKUP_S3_SECRET_KEY: ${BACKUP_S3_SECRET_KEY:-}
     restart: "no"
 
+  # Carries archived WAL to R2 every minute: moved, so each file leaves this
+  # disk once it is safely there, and stays to be tried again if it is not.
+  # Runs only with COMPOSE_PROFILES=wal, set beside WAL_ARCHIVING=on. As
+  # postgres's own uid, since the archive is postgres's and private to it.
+  wal-shipper:
+    image: cgr.dev/chainguard/minio@sha256:a1ac4589a5f8136b616e667b48a0bea9719bb10bd45799ea946f24bbedfafde4
+    profiles: [wal]
+    restart: unless-stopped
+    user: "999:999"
+    environment:
+      HOME: /tmp
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_ACCESS_KEY: ${BACKUP_S3_ACCESS_KEY:-}
+      BACKUP_S3_SECRET_KEY: ${BACKUP_S3_SECRET_KEY:-}
+    volumes:
+      - walarchive:/wal-archive
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set r2 "$$BACKUP_S3_ENDPOINT" "$$BACKUP_S3_ACCESS_KEY" "$$BACKUP_S3_SECRET_KEY" --api S3v4 > /dev/null || exit 1
+        while true; do
+          for file in /wal-archive/ready/*.gz; do
+            [ -e "$$file" ] || break
+            mc mv -q "$$file" "r2/$$BACKUP_S3_BUCKET/wal/segments/" > /dev/null ||
+              echo "$$(date -u +%FT%TZ) could not ship $${file##*/}; trying again in a minute"
+          done
+          sleep 60
+        done
+
 volumes:
   pgdata:
+  walarchive:
   miniodata:
   caddydata:
   caddyconfig:

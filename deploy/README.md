@@ -325,6 +325,118 @@ the throwaway database afterwards and only ever reads the live one. Run it
 after changing anything about backups, and now and then regardless — a backup
 that has never been restored is a hope.
 
+### Point-in-time recovery
+
+The nightly dump can only take the database back to 03:17. Continuous WAL
+archiving takes it back to **any moment** — the minute before a bad
+migration, a mistaken delete — losing at most five minutes. The dump stays
+as a second, independent copy made by different tools.
+
+How it works: Postgres writes every change to its write-ahead log first.
+With `WAL_ARCHIVING=on`, each finished 16 MB segment is gzipped into the
+`walarchive` volume (`archive_command` in `docker-compose.yml`; a local
+write, so R2 being down never stalls the database), and `wal-shipper` moves
+it to `wal/segments/` in the backup bucket within a minute.
+`archive_timeout=300` closes a segment after five minutes of any activity.
+Once a week `wal.sh base` ships a base backup — the whole data directory —
+to `wal/base/`. A restore unpacks a base backup and replays segments up to
+the moment asked for. Base backups are kept 8 weeks and segments a day
+longer, so the oldest one can always be replayed.
+
+**Turning it on** — once; it restarts Postgres, a few seconds offline:
+
+```bash
+cd /opt/spothub
+printf 'WAL_ARCHIVING=on\nCOMPOSE_PROFILES=wal\n' >> .env
+docker compose up -d postgres wal-shipper
+docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c 'show archive_mode'   # on
+./wal.sh base                          # the first base backup
+./pitr-test.sh                         # proves it, from R2
+```
+
+and in `crontab -e`, beside the nightly backup:
+
+```
+23 4 * * 0 /opt/spothub/wal.sh base  >> /opt/spothub/backups/wal.log 2>&1
+41 * * * * /opt/spothub/wal.sh check >> /opt/spothub/backups/wal.log 2>&1
+```
+
+`wal.sh check` reports to the backup's own heartbeat `/fail` when Postgres
+cannot archive or a segment has waited half an hour for R2. Either means
+WAL is piling up on this disk, so it is worth acting on the same day:
+`docker compose logs wal-shipper` first. It never reports success, which
+would clear a failed night's backup. Copy `wal.sh` and `pitr-test.sh` to
+`/opt/spothub` whenever they change, as with the backup scripts.
+
+**Prove it** — `./pitr-test.sh` rebuilds the latest moment in a throwaway
+container from R2 alone and compares every table's row count with the live
+database; `./pitr-test.sh "2026-11-12 09:30:00+00"` rebuilds that moment
+instead, where differing counts are expected. Run it after any change to
+archiving, and now and then regardless.
+
+**Restoring for real**, to a moment before something went wrong. First run
+`./pitr-test.sh "<moment>"` and check the counts look like that moment. Then
+the live database is set aside — not deleted — and rebuilt the same way:
+
+```bash
+cd /opt/spothub
+set -a; . ./.env; set +a
+moment="2026-11-12 09:30:00+00"         # UTC, just before the mistake
+
+docker compose stop api client postgres
+# The current database, kept whole until the restore is known good.
+docker volume create spothub_pgdata_before_restore
+docker run --rm -v spothub_pgdata:/from -v spothub_pgdata_before_restore:/to \
+  postgis/postgis:17-3.5 sh -c 'cp -a /from/. /to/'
+
+# The newest base backup from before the moment, and the WAL after it.
+mkdir -p backups/pitr/wal
+docker compose run --rm --no-deps -T --user "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$PWD/backups/pitr:/pitr" backup -c '
+  mc alias set r2 "$BACKUP_S3_ENDPOINT" "$BACKUP_S3_ACCESS_KEY" "$BACKUP_S3_SECRET_KEY" --api S3v4 > /dev/null
+  mc ls "r2/$BACKUP_S3_BUCKET/wal/base/"'
+# Pick the newest base-…tar.gz older than the moment, then:
+docker compose run --rm --no-deps -T --user "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$PWD/backups/pitr:/pitr" backup -c '
+  mc alias set r2 "$BACKUP_S3_ENDPOINT" "$BACKUP_S3_ACCESS_KEY" "$BACKUP_S3_SECRET_KEY" --api S3v4 > /dev/null
+  mc cp -q "r2/$BACKUP_S3_BUCKET/wal/base/<that file>" /pitr/base.tar.gz
+  mc cp -q -r "r2/$BACKUP_S3_BUCKET/wal/segments/" /pitr/wal/'
+chmod -R a+rX backups/pitr
+
+# Empty the volume, unpack the base backup, and ask for recovery to the moment.
+docker run --rm -v spothub_pgdata:/data -v "$PWD/backups/pitr:/pitr:ro" \
+  -e MOMENT="$moment" postgis/postgis:17-3.5 sh -c '
+  find /data -mindepth 1 -delete &&
+  tar -xzf /pitr/base.tar.gz -C /data &&
+  printf "%s\n" "restore_command = '\''test -f /wal/%f.gz && gunzip < /wal/%f.gz > %p'\''" \
+    "recovery_target_time = '\''$MOMENT'\''" "recovery_target_action = '\''promote'\''" \
+    >> /data/postgresql.auto.conf &&
+  touch /data/recovery.signal && chown -R postgres:postgres /data && chmod 700 /data'
+```
+
+Then start Postgres with the segments mounted where `restore_command` reads
+them. `docker compose run` does that with the service's own settings, and
+archiving stays on, so the restored database keeps archiving on a new
+timeline:
+
+```bash
+docker compose run -d --name spothub-recovering --no-deps \
+  -v "$PWD/backups/pitr/wal:/wal:ro" postgres
+until docker exec spothub-recovering psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  -tAc 'select pg_is_in_recovery()' 2> /dev/null | grep -q f; do sleep 5; done
+docker stop spothub-recovering && docker rm spothub-recovering
+# recovery_target_time and restore_command have done their job:
+docker run --rm -v spothub_pgdata:/data postgis/postgis:17-3.5 \
+  sed -i '/^restore_command\|^recovery_target/d' /data/postgresql.auto.conf
+docker compose up -d
+./wal.sh base                            # a base backup on the new timeline
+```
+
+Check the site, then remove what was set aside:
+`docker volume rm spothub_pgdata_before_restore` and `rm -r backups/pitr`.
+Had it gone wrong, copy `spothub_pgdata_before_restore` back the same way and
+start again.
+
 ### Restoring for real
 
 **The database, on this server** — after a bad migration or a mistake:
