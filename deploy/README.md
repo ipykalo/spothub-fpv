@@ -399,8 +399,6 @@ release is out. The policy itself is `apps/client/src/content-security.ts`.
 
 - **No deploy automation.** A pull and a restart by hand is honest at one
   deploy a week; a GitHub Actions job over SSH can come later.
-- **No HSTS.** Added once the site has run on HTTPS long enough to trust it —
-  it is hard to undo.
 - **No monitoring.** `docker compose ps` and the site itself, for now — and
   that includes backups: a night that fails says so only in
   `backups/backup.log`. A dead-man's switch, a free healthchecks.io check
