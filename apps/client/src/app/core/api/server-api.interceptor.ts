@@ -1,5 +1,5 @@
 import type { HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { REQUEST, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 
 import { SERVER_API_ORIGIN } from './api.tokens';
@@ -12,6 +12,12 @@ import { SERVER_API_ORIGIN } from './api.tokens';
  * here Angular's server platform may also have made that URL absolute against
  * the page's own address — the public site, which the rendering server should
  * not have to reach. Both forms are rewritten onto `SERVER_API_ORIGIN`.
+ *
+ * The visitor's address goes along with it. Caddy hands the rendering server
+ * the address it saw, and the API — which trusts one proxy hop — counts its
+ * rate limits by it. Without it, every visitor's page would be counted as the
+ * rendering server's own, and one busy crawler would turn the blog away for
+ * everybody.
  */
 export function serverApiInterceptor(
   request: HttpRequest<unknown>,
@@ -29,5 +35,14 @@ export function serverApiInterceptor(
     return next(request);
   }
 
-  return next(request.clone({ url: `${origin}${url.pathname}${url.search}` }));
+  const forwardedFor = inject(REQUEST, { optional: true })?.headers.get(
+    'x-forwarded-for',
+  );
+
+  return next(
+    request.clone({
+      url: `${origin}${url.pathname}${url.search}`,
+      ...(forwardedFor ? { setHeaders: { 'X-Forwarded-For': forwardedFor } } : {}),
+    }),
+  );
 }

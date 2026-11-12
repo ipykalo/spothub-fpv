@@ -22,6 +22,7 @@ import {
   type AuthenticatedUser,
   CurrentUser,
   Public,
+  RateLimit,
 } from '../common';
 import type { Env } from '../config';
 import { AuthService } from './services/auth.service';
@@ -46,6 +47,7 @@ export class AuthController {
 
   /** Kicks off the OAuth dance. The guard performs the redirect. */
   @Public()
+  @RateLimit('signIn')
   @Get('google')
   @UseGuards(AuthGuard('google'))
   startGoogleSignIn(): void {
@@ -53,6 +55,7 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit('signIn')
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async completeGoogleSignIn(
