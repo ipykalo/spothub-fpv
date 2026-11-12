@@ -32,6 +32,16 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./features/about/about.page').then((m) => m.AboutPage),
   },
   {
+    // Public, and linked from the footer only.
+    path: 'privacy',
+    loadComponent: () =>
+      import('./features/legal/privacy.page').then((m) => m.PrivacyPage),
+  },
+  {
+    path: 'terms',
+    loadComponent: () => import('./features/legal/terms.page').then((m) => m.TermsPage),
+  },
+  {
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () =>
