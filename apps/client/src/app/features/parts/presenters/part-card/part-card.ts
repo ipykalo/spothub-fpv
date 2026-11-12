@@ -16,8 +16,10 @@ import {
   type PartDto,
 } from '@spothub/shared';
 
+import { Price } from '../../../../core/components/price/price';
 import type { StatusStyle } from '../../../../core/ui/status-style';
 import { PART_CATEGORY_ICONS } from '../../part-category';
+import { purchaseConverted } from '../../part-price';
 import {
   PART_CONDITION_STYLES,
   availableUnits,
@@ -49,7 +51,7 @@ const MAX_SPEC_SHOWN = 3;
 @Component({
   selector: 'sh-part-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatCardModule, MatIconModule, RouterLink],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, Price, RouterLink],
   templateUrl: './part-card.html',
   styleUrl: './part-card.scss',
 })
@@ -128,6 +130,8 @@ export class PartCard {
 
   /** Units held, used to decide whether the price needs an "each". */
   protected readonly unitTotal = computed(() => unitCount(this.part()));
+
+  protected readonly purchaseConverted = computed(() => purchaseConverted(this.part()));
 
   protected readonly stockDetail = computed(() => {
     const free = availableUnits(this.part());

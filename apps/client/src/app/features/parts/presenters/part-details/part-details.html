@@ -134,8 +134,8 @@
             </span>
 
             <span class="whitespace-nowrap tabular-nums">
-              @if (source.price !== null) {
-                <strong>{{ source.price }}</strong> {{ source.currency }}
+              @if (source.price !== null && source.currency !== null) {
+                <sh-price [amount]="source.price" [currency]="source.currency" [converted]="source.converted" />
               } @else {
                 <span class="text-muted italic">No price</span>
               }

@@ -25,8 +25,10 @@ import {
   type SortOption,
   gridView,
 } from '../../../../core/components/grid-toolbar/grid-view';
+import { Price } from '../../../../core/components/price/price';
 import { PART_CATEGORY_ICONS } from '../../../parts/part-category';
 import { unitName as partUnitName } from '../../../parts/part-condition';
+import { type RowPrice, rowPrice } from './row-price';
 
 type InstallSortKey = 'fitted' | 'removed' | 'name' | 'position';
 
@@ -74,7 +76,7 @@ const HISTORY_SORTS: readonly SortOption<InstallSortKey>[] = [
 @Component({
   selector: 'sh-installed-parts-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FilterChips, GridToolbar, MatButtonModule, MatIconModule, RouterLink],
+  imports: [FilterChips, GridToolbar, MatButtonModule, MatIconModule, Price, RouterLink],
   templateUrl: './installed-parts-list.html',
   styleUrl: './installed-parts-list.scss',
 })
@@ -98,6 +100,10 @@ export class InstalledPartsList {
 
   protected readonly categoryLabels = PART_CATEGORY_LABELS;
   protected readonly categoryIcons = PART_CATEGORY_ICONS;
+
+  protected price(install: BuildPartDto): RowPrice {
+    return rowPrice(install, this.boughtComplete());
+  }
 
   protected reasonLabel(install: BuildPartDto): string {
     return this.boughtComplete() && install.reason === InstallReason.Initial

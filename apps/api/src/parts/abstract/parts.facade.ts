@@ -28,11 +28,14 @@ export abstract class PartsFacade {
    * and needs to render them.
    *
    * Batched, and scoped to the owner: ids that are not theirs are simply
-   * absent from the result rather than an error.
+   * absent from the result rather than an error. With `convertInto` — a
+   * viewer's home currency — every source price comes converted into it and
+   * USD, for a page that shows the prices.
    */
   abstract findUnits(
     ownerId: string,
     unitIds: readonly string[],
+    convertInto?: string,
   ): Promise<ReadonlyMap<string, FittedUnitDto>>;
 
   /** True when the unit exists and belongs to this owner. */

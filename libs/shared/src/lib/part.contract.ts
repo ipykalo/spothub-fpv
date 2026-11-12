@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { PartCategory, PartCondition } from './enums';
-import { optionalCurrencySchema } from './currency';
+import { convertedTotalSchema, optionalCurrencySchema } from './currency';
 import { optionalWebLinkSchema, webLinkSchema } from './web-link';
 
 /**
@@ -174,6 +174,12 @@ export const partSourceSchema = z.object({
   purchasedOn: z.string().nullable(),
   quantity: z.number().int(),
   capturedAt: z.string(),
+  /**
+   * The price in the viewer's own currency, then USD, at the rate of the day
+   * it was paid (`purchasedOn`, else the day it was recorded). Empty with no
+   * price, and wherever a reader is not given the price.
+   */
+  converted: z.array(convertedTotalSchema),
 });
 
 export const partSchema = z.object({

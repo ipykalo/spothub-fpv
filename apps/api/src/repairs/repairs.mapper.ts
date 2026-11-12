@@ -18,6 +18,8 @@ export function toRepairDto(repair: RepairEntity): RepairDto {
     descriptionMd: repair.descriptionMd,
     cost: repair.cost,
     currency: repair.currency,
+    // Filled by the service, which knows whose currency to convert into.
+    converted: [],
     installCount: repair.installCount,
     createdAt: repair.createdAt.toISOString(),
   };

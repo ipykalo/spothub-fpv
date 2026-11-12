@@ -11,6 +11,7 @@ import {
 import { PartsRepository } from './abstract/parts.repository';
 import { toPartUnitDto } from './mappers/part-units.mapper';
 import { toPartDto } from './mappers/parts.mapper';
+import { SourcePrices } from './services/source-prices.service';
 
 /** Serves the parts facade out of the module's own repositories. */
 @Injectable()
@@ -18,6 +19,7 @@ export class PartsFacadeImpl extends PartsFacade {
   constructor(
     private readonly units: PartUnitsRepository,
     private readonly parts: PartsRepository,
+    private readonly prices: SourcePrices,
   ) {
     super();
   }
@@ -25,17 +27,21 @@ export class PartsFacadeImpl extends PartsFacade {
   async findUnits(
     ownerId: string,
     unitIds: readonly string[],
+    convertInto?: string,
   ): Promise<ReadonlyMap<string, FittedUnitDto>> {
     if (unitIds.length === 0) {
       return new Map();
     }
 
     const rows = await this.units.findManyWithPartForOwner(ownerId, unitIds);
+    const parts = rows.map((row) => toPartDto(row.part));
+    const shown =
+      convertInto === undefined ? parts : await this.prices.convert(parts, convertInto);
 
     return new Map(
-      rows.map((row) => [
+      rows.map((row, index) => [
         row.unit.id,
-        { unit: toPartUnitDto(row.unit), part: toPartDto(row.part) },
+        { unit: toPartUnitDto(row.unit), part: shown[index] },
       ]),
     );
   }

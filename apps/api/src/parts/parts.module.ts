@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { ExchangeRatesModule } from '../exchange-rates';
 import { PartSourcesRepository } from './abstract/part-sources.repository';
 import { PartUnitsRepository } from './abstract/part-units.repository';
 import { PartsFacade } from './abstract/parts.facade';
@@ -15,6 +16,7 @@ import { PrismaPartsRepository } from './repositories/prisma-parts.repository';
 import { PartSourcesService } from './services/part-sources.service';
 import { PartUnitsService } from './services/part-units.service';
 import { PartsService } from './services/parts.service';
+import { SourcePrices } from './services/source-prices.service';
 import { UrlPreviewService } from './services/url-preview.service';
 
 /**
@@ -29,6 +31,7 @@ import { UrlPreviewService } from './services/url-preview.service';
  * repository here.
  */
 @Module({
+  imports: [ExchangeRatesModule],
   controllers: [
     // Listed first so its fixed `url-preview` path is matched before any
     // parameterised sibling route can claim it.
@@ -41,6 +44,7 @@ import { UrlPreviewService } from './services/url-preview.service';
     PartsService,
     PartUnitsService,
     PartSourcesService,
+    SourcePrices,
     UrlPreviewService,
     { provide: PartsRepository, useClass: PrismaPartsRepository },
     { provide: PartUnitsRepository, useClass: PrismaPartUnitsRepository },

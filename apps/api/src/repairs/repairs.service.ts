@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { CreateRepairDto, RepairDto, UpdateRepairDto } from '@spothub/shared';
+import {
+  type CreateRepairDto,
+  type RepairDto,
+  type UpdateRepairDto,
+  totalCurrencies,
+} from '@spothub/shared';
 
-import { fromDateOnly } from '../common';
+import { type AuthenticatedUser, fromDateOnly } from '../common';
+import { ExchangeRatesFacade } from '../exchange-rates';
 import { RepairsRepository } from './abstract/repairs.repository';
 import type { UpdateRepairData } from './repair.entity';
 import { toRepairDto } from './repairs.mapper';
@@ -9,14 +15,18 @@ import { toRepairDto } from './repairs.mapper';
 /** Business rules for repairs. Knows nothing about HTTP or Prisma. */
 @Injectable()
 export class RepairsService {
-  constructor(private readonly repairs: RepairsRepository) {}
+  constructor(
+    private readonly repairs: RepairsRepository,
+    private readonly rates: ExchangeRatesFacade,
+  ) {}
 
   /**
    * The repair history of a build the viewer may see. Someone it is shared with
    * reads what broke and when, and what putting it right cost only where the
    * owner switched costs on. A build they cannot see lists nothing, as before.
    */
-  async list(viewerId: string | null, buildId: string): Promise<RepairDto[]> {
+  async list(viewer: AuthenticatedUser, buildId: string): Promise<RepairDto[]> {
+    const viewerId = viewer.id;
     const access = await this.repairs.findBuildAccessForViewer(viewerId, buildId);
 
     if (access === null) {
@@ -26,18 +36,20 @@ export class RepairsService {
     const repairs = await this.repairs.findManyForOwner(access.ownerId, buildId);
     const withCosts = viewerId === access.ownerId || access.shareCosts;
 
-    return repairs.map((repair) => {
+    const dtos = repairs.map((repair) => {
       const dto = toRepairDto(repair);
       return withCosts ? dto : { ...dto, cost: null, currency: null };
     });
+
+    return this.withConverted(dtos, viewer.homeCurrency);
   }
 
   async create(
-    ownerId: string,
+    owner: AuthenticatedUser,
     buildId: string,
     input: CreateRepairDto,
   ): Promise<RepairDto> {
-    const repair = await this.repairs.create(ownerId, {
+    const repair = await this.repairs.create(owner.id, {
       buildId,
       occurredOn: fromDateOnly(input.occurredOn),
       cause: input.cause,
@@ -50,17 +62,18 @@ export class RepairsService {
       throw new NotFoundException('Build not found');
     }
 
-    return toRepairDto(repair);
+    const [dto] = await this.withConverted([toRepairDto(repair)], owner.homeCurrency);
+    return dto;
   }
 
   async update(
-    ownerId: string,
+    owner: AuthenticatedUser,
     buildId: string,
     repairId: string,
     input: UpdateRepairDto,
   ): Promise<RepairDto> {
     const repair = await this.repairs.updateForOwner(
-      ownerId,
+      owner.id,
       buildId,
       repairId,
       toUpdateData(input),
@@ -70,7 +83,8 @@ export class RepairsService {
       throw new NotFoundException('Repair not found');
     }
 
-    return toRepairDto(repair);
+    const [dto] = await this.withConverted([toRepairDto(repair)], owner.homeCurrency);
+    return dto;
   }
 
   async remove(ownerId: string, buildId: string, repairId: string): Promise<void> {
@@ -79,6 +93,26 @@ export class RepairsService {
     if (!deleted) {
       throw new NotFoundException('Repair not found');
     }
+  }
+
+  /**
+   * Each repair's cost in the viewer's own currency and USD, at the rate of
+   * the day of the repair — one rate lookup for the whole list. A repair with
+   * no cost, or one whose cost the reader is not given, converts to nothing.
+   */
+  private async withConverted(
+    dtos: readonly RepairDto[],
+    homeCurrency: string,
+  ): Promise<RepairDto[]> {
+    const priced = dtos.flatMap((dto) =>
+      dto.cost === null || dto.currency === null
+        ? []
+        : [{ id: dto.id, amount: dto.cost, currency: dto.currency, day: dto.occurredOn }],
+    );
+    const converted = await this.rates.each(priced, totalCurrencies(homeCurrency));
+    const byId = new Map(priced.map((entry, index) => [entry.id, converted[index]]));
+
+    return dtos.map((dto) => ({ ...dto, converted: byId.get(dto.id) ?? [] }));
   }
 }
 

@@ -3,7 +3,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import type { BuildCostDto } from '@spothub/shared';
 
-import { costLines, formatMoney } from './cost-lines';
+import { priceLine } from '../../../../core/format/money';
+import { costLines } from './cost-lines';
 
 /**
  * Presenter: what the fitted parts and the repairs cost.
@@ -32,13 +33,16 @@ export class BuildCostSummary {
 
   /** On a bought quad, how much of the total is the quad itself. */
   protected readonly boughtNote = computed(() => {
-    const { boughtFor, totals } = this.cost();
+    const { boughtFor, totals, converted } = this.cost();
 
     if (boughtFor === null) {
       return null;
     }
 
-    const price = `Bought complete for ${formatMoney(boughtFor.amount, boughtFor.currency)}`;
+    // The same "paid ≈ home ≈ USD" as every other price.
+    const line = priceLine(boughtFor.amount, boughtFor.currency, converted.boughtFor);
+    const approx = line.approx.length ? ` ${line.approx.join(' · ')}` : '';
+    const price = `Bought complete for ${line.paid}${approx}`;
     const onlyThePrice =
       totals.length === 1 &&
       totals[0].currency === boughtFor.currency &&

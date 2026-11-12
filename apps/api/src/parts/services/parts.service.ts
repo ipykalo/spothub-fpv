@@ -6,28 +6,35 @@ import type {
   UpdatePartDto,
 } from '@spothub/shared';
 
+import type { AuthenticatedUser } from '../../common';
 import { PartsRepository } from '../abstract/parts.repository';
 import type { UpdatePartData } from '../entities/part.entity';
 import { toPartDto } from '../mappers/parts.mapper';
+import { SourcePrices } from './source-prices.service';
 
 /** Business rules for the part catalogue. Knows nothing about HTTP or Prisma. */
 @Injectable()
 export class PartsService {
-  constructor(private readonly parts: PartsRepository) {}
+  constructor(
+    private readonly parts: PartsRepository,
+    private readonly prices: SourcePrices,
+  ) {}
 
-  async list(ownerId: string, query: ListPartsQuery): Promise<PartDto[]> {
-    const parts = await this.parts.findManyForOwner(ownerId, query);
-    return parts.map(toPartDto);
+  /** Read in the viewer's currency: every source price comes converted. */
+  async list(owner: AuthenticatedUser, query: ListPartsQuery): Promise<PartDto[]> {
+    const parts = await this.parts.findManyForOwner(owner.id, query);
+    return this.prices.convert(parts.map(toPartDto), owner.homeCurrency);
   }
 
-  async getOne(ownerId: string, id: string): Promise<PartDto> {
-    const part = await this.parts.findOneForOwner(ownerId, id);
+  async getOne(owner: AuthenticatedUser, id: string): Promise<PartDto> {
+    const part = await this.parts.findOneForOwner(owner.id, id);
 
     if (!part) {
       throw new NotFoundException('Part not found');
     }
 
-    return toPartDto(part);
+    const [converted] = await this.prices.convert([toPartDto(part)], owner.homeCurrency);
+    return converted;
   }
 
   async create(ownerId: string, input: CreatePartDto): Promise<PartDto> {

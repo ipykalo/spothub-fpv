@@ -1,7 +1,7 @@
 import type { ConvertedTotalDto } from '@spothub/shared';
 import { describe, expect, it } from 'vitest';
 
-import { costLines, formatMoney } from './cost-lines';
+import { costLines } from './cost-lines';
 
 const total = (
   currency: string,
@@ -12,14 +12,6 @@ const total = (
   amount,
   exact,
   ratesOn: amount === null ? null : '2026-11-08',
-});
-
-describe('formatMoney', () => {
-  it('uses the currency’s own sign, and cents only when there are any', () => {
-    expect(formatMoney(410.2, 'USD')).toBe('$410.20');
-    expect(formatMoney(18640, 'UAH')).toBe('₴18,640');
-    expect(formatMoney(12.5, 'EUR')).toBe('€12.50');
-  });
 });
 
 describe('costLines', () => {

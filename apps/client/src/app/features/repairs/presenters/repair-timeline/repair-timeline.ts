@@ -17,6 +17,7 @@ import {
   type SortOption,
   gridView,
 } from '../../../../core/components/grid-toolbar/grid-view';
+import { Price } from '../../../../core/components/price/price';
 import { REPAIR_CAUSE_STYLES } from '../../repair-cause';
 
 type RepairSortKey = 'date' | 'cost' | 'cause';
@@ -48,7 +49,7 @@ const SORTS: readonly SortOption<RepairSortKey>[] = [
 @Component({
   selector: 'sh-repair-timeline',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FilterChips, GridToolbar, MatButtonModule, MatIconModule],
+  imports: [FilterChips, GridToolbar, MatButtonModule, MatIconModule, Price],
   templateUrl: './repair-timeline.html',
   styleUrl: './repair-timeline.scss',
 })
