@@ -396,7 +396,15 @@ The rules that keep Tailwind and Angular Material from fighting:
   with their id — photos, thumbnails, logs, spot covers — so
   `StorageGateway.deletePrefix('<id>/')` finds them all, and a storage
   failure leaves the account intact to try again rather than files nobody
-  can reach. The row delete cascades to everything owned. The only admin is
+  can reach.
+- **Signing out only counts once the server says so.** The refresh cookie
+  is out of a script's reach, so `AuthStore.logout()` forgets the pilot only
+  when `/auth/logout` answered, and says so otherwise — looking signed out
+  while the cookie signs you back in on the next visit was worse. "Sign out
+  on all devices" on `/account` is `POST /auth/logout-all`, revoking every
+  family the pilot has; a device's open tab keeps its access token for up to
+  15 minutes. After account deletion the server has already ended it, so
+  `forget()` clears the client without asking (`sign-out-everywhere.e2e.spec.ts`). The row delete cascades to everything owned. The only admin is
   refused with 409 (`apps/api/e2e/delete-account.e2e.spec.ts`). **Any new
   stored file must keep its key under `<owner>/`**, or it survives its
   owner's deletion.

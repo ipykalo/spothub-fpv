@@ -113,6 +113,15 @@ export class AuthService {
     return this.users.deleteAccount(userId);
   }
 
+  /**
+   * Ends every session the pilot has — a phone left signed in, a borrowed
+   * laptop — not just this one. Each device's next refresh is refused; an
+   * access token it already holds runs out within its 15 minutes.
+   */
+  signOutEverywhere(userId: string): Promise<void> {
+    return this.tokens.revokeAllFor(userId);
+  }
+
   signOut(refreshToken: string | undefined): Promise<void> {
     return refreshToken ? this.tokens.revokeFamilyOf(refreshToken) : Promise.resolve();
   }

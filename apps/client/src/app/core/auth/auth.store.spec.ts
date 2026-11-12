@@ -37,7 +37,7 @@ describe('AuthStore', () => {
     post<T>(url: string): Observable<T> {
       this.calls.push(`POST ${url}`);
 
-      if (url.endsWith('/auth/logout')) {
+      if (url.endsWith('/auth/logout') || url.endsWith('/auth/logout-all')) {
         return this.logoutFails
           ? throwError(() => new Error('offline'))
           : (of(null) as Observable<T>);
@@ -215,21 +215,41 @@ describe('AuthStore', () => {
     it('forgets the token and who it was', async () => {
       await store.restoreSession();
 
-      await store.logout();
+      expect(await store.logout()).toBe(true);
 
       expect(store.token()).toBeNull();
       expect(store.user()).toBeNull();
       expect(store.isAuthenticated()).toBe(false);
     });
 
-    it('forgets them even when the server could not be told', async () => {
+    it('stays signed in, and says so, when the server could not be told', async () => {
       await store.restoreSession();
       http.logoutFails = true;
 
-      await store.logout();
+      // The cookie would still sign the pilot back in on the next visit, so
+      // looking signed out now would be a lie.
+      expect(await store.logout()).toBe(false);
 
-      expect(store.token()).toBeNull();
-      expect(store.user()).toBeNull();
+      expect(store.isAuthenticated()).toBe(true);
+    });
+
+    it('signs out everywhere through its own route', async () => {
+      await store.restoreSession();
+
+      expect(await store.logoutEverywhere()).toBe(true);
+
+      expect(http.calls).toContain('POST /api/auth/logout-all');
+      expect(store.isAuthenticated()).toBe(false);
+    });
+
+    it('forgets without asking the server, once the server has ended it', async () => {
+      await store.restoreSession();
+      const calls = http.calls.length;
+
+      store.forget();
+
+      expect(store.isAuthenticated()).toBe(false);
+      expect(http.calls).toHaveLength(calls);
     });
   });
 });

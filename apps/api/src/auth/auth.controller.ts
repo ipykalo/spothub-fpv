@@ -129,6 +129,22 @@ export class AuthController {
   }
 
   /**
+   * Signs the pilot out on every device at once. Open to a read-only account
+   * too, as leaving always is. This device's cookie is cleared here; the
+   * others' are refused at their next refresh.
+   */
+  @Post('logout-all')
+  @AllowedWhenReadOnly()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logoutEverywhere(
+    @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    await this.auth.signOutEverywhere(user.id);
+    response.clearCookie(REFRESH_COOKIE, this.cookieOptions(0));
+  }
+
+  /**
    * Deletes the signed-in pilot's account for good, and signs them out. Open
    * to a read-only account too: no restriction stands between someone and
    * leaving. Lives here rather than in `users` because the session cookie is

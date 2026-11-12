@@ -85,6 +85,11 @@ export class TokenService {
     return next;
   }
 
+  /** Every session the user has, on every device, ends here. */
+  revokeAllFor(userId: string): Promise<void> {
+    return this.refreshTokens.revokeAllForUser(userId);
+  }
+
   async revokeFamilyOf(rawToken: string): Promise<void> {
     const payload = await this.verifyRefreshToken(rawToken).catch(() => null);
 
