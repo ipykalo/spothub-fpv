@@ -1,0 +1,16 @@
+{
+  "name": "browser-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/browser-e2e",
+  "tags": [],
+  "implicitDependencies": ["api", "client"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/run-browser-tests.mjs"
+      }
+    }
+  }
+}

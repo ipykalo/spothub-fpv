@@ -521,6 +521,7 @@ npm run lint           # type-aware, zero warnings tolerated
 npm run typecheck
 npm test               # API unit tests (Vitest) — from PowerShell on Windows
 npm run test:e2e       # API end-to-end, needs db:up first
+npm run test:browser   # browser journeys against the built images (ports 80/443 free)
 npm run coverage       # every suite, then each area against its floor
 npm run coverage -- --skip-e2e   # without a database; floors not enforced
 npm run build
@@ -550,6 +551,24 @@ logbook, and CI gives it its own Postgres and MinIO service containers. The
 one production seam it swaps is `BlackboxDecoder`, for a stub that reads
 already-decoded fixtures, so no test needs the native decoder or Docker. Full
 rationale and how a test is put together: `apps/api/e2e/README.md`.
+
+**Browser journeys are the one exception to "client tests are logic,
+never UI".** `apps/browser-e2e` drives five things a pilot does — read the
+blog and a post, open a build, upload a photo, import a radio log, see the
+spots map — in Playwright's Chromium, on a desktop and a phone viewport,
+against the images that ship: `scripts/run-browser-tests.mjs` brings up the
+`deploy/` stack behind Caddy as its own compose project, runs them, and takes
+it down. **Any console error, page error or Content-Security-Policy violation
+fails a journey** (`support/fixtures.ts`); the visitor's 401 from
+`/api/auth/refresh` is the one expected error, allowed by its address. The
+pilot is inserted and signs in through `/auth/callback#access_token=…` with a
+token signed by the stack's own secret, as Google's redirect would. Keep them
+few and about journeys: no component tests, no screenshot comparisons. CI's
+`browser` job runs them on the images it builds, and publishing waits for it.
+The first run caught what the manual checks missed: zod 4 probes `new
+Function` as schemas are defined, which the policy refuses on every page —
+hence `apps/client/src/zod-config.ts`, the build's `polyfills` entry, setting
+`jitless` on zod's global before any chunk loads.
 
 ## State
 
