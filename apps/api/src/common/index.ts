@@ -18,7 +18,7 @@ export { sumByCurrency } from './domain/currency-total';
 export type { CurrencyTotal } from './domain/currency-total';
 export { AllExceptionsFilter } from './filters/all-exceptions.filter';
 export { JwtAuthGuard } from './guards/jwt-auth.guard';
-export { RATE_LIMITS, RateLimitGuard } from './guards/rate-limit.guard';
+export { RateLimitGuard, rateLimits } from './guards/rate-limit.guard';
 export { ZodValidationPipe } from './pipes/zod-validation.pipe';
 export type { AuthenticatedUser } from './types/authenticated-user';
 export { assertAdmin } from './utils/assert-admin';

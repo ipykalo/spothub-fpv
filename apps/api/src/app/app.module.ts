@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 
@@ -7,12 +7,7 @@ import { AuthModule } from '../auth';
 import { BuildPartsModule } from '../build-parts';
 import { BuildsModule } from '../builds';
 import { CommentsModule } from '../comments';
-import {
-  AllExceptionsFilter,
-  JwtAuthGuard,
-  RATE_LIMITS,
-  RateLimitGuard,
-} from '../common';
+import { AllExceptionsFilter, JwtAuthGuard, rateLimits, RateLimitGuard } from '../common';
 import { validateEnv } from '../config';
 import { ConfigsModule } from '../configs';
 import { FlightLogsModule } from '../flight-logs';
@@ -46,7 +41,7 @@ import { UsersModule } from '../users';
     }),
     // Counted in memory: one API process, and a restart forgetting the
     // counts costs nothing worth a Redis.
-    ThrottlerModule.forRoot(RATE_LIMITS),
+    ThrottlerModule.forRootAsync({ inject: [ConfigService], useFactory: rateLimits }),
     PrismaModule,
     StorageModule,
     JobsModule,

@@ -1,6 +1,9 @@
+import type { ConfigService } from '@nestjs/config';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { rateLimits } from '../src/common';
+import { type Env, validateEnv } from '../src/config';
 import { type TestApp, createTestApp } from './support/app';
 import { type TestUser, createTestUser, deleteTestUser } from './support/users';
 
@@ -70,5 +73,47 @@ describe('rate limits', () => {
     for (let i = 0; i < 310; i += 1) {
       await request(testApp.server).get('/api/health').expect(200);
     }
+  });
+
+  describe('from the environment', () => {
+    it('sets every limit from its own variable, so a change needs no release', () => {
+      const env = validateEnv({
+        ...process.env,
+        RATE_LIMIT_REQUESTS: '1000',
+        RATE_LIMIT_URL_PREVIEW: '5',
+        RATE_LIMIT_LOG_UPLOADS: '900',
+      });
+      const config = {
+        get: (name: keyof Env) => env[name],
+      } as unknown as ConfigService<Env, true>;
+
+      const limits = Object.fromEntries(
+        rateLimits(config).throttlers.map((t) => [t.name, t.limit]),
+      );
+
+      expect(limits).toEqual({
+        default: 1000,
+        writes: 60,
+        signIn: 10,
+        comment: 10,
+        urlPreview: 5,
+        imageUpload: 30,
+        logUpload: 900,
+      });
+    });
+
+    it('takes an empty value as unset, as the compose file passes them', () => {
+      expect(
+        validateEnv({ ...process.env, RATE_LIMIT_WRITES: '' }).RATE_LIMIT_WRITES,
+      ).toBe(60);
+    });
+
+    it('refuses to start on a limit that is not a whole number above zero', () => {
+      for (const bad of ['0', '-5', '2.5', 'lots']) {
+        expect(() => validateEnv({ ...process.env, RATE_LIMIT_WRITES: bad })).toThrow(
+          /RATE_LIMIT_WRITES/,
+        );
+      }
+    });
   });
 });
