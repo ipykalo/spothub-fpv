@@ -28,6 +28,7 @@ export class TokenService {
   private readonly refreshSecret: string;
   private readonly accessTtl: number;
   private readonly refreshTtl: number;
+  private readonly sessionMaxTtl: number;
 
   constructor(
     private readonly jwt: JwtService,
@@ -38,11 +39,12 @@ export class TokenService {
     this.refreshSecret = config.get('JWT_REFRESH_SECRET', { infer: true });
     this.accessTtl = config.get('JWT_ACCESS_TTL', { infer: true });
     this.refreshTtl = config.get('JWT_REFRESH_TTL', { infer: true });
+    this.sessionMaxTtl = config.get('JWT_SESSION_MAX_TTL', { infer: true });
   }
 
   /** Starts a new token family. Called once per successful login. */
   issueForLogin(user: UserEntity): Promise<IssuedTokens> {
-    return this.issue(user, randomUUID());
+    return this.issue(user, randomUUID(), nowSeconds());
   }
 
   /**
@@ -51,6 +53,9 @@ export class TokenService {
    * Presenting a token that has already been rotated means the cookie leaked
    * and is being replayed, so the entire family is revoked rather than just
    * that link — the legitimate holder is logged out too, which is the point.
+   *
+   * A session older than JWT_SESSION_MAX_TTL is over, however recently it was
+   * used: its family is revoked and the pilot signs in with Google again.
    */
   async rotate(
     rawToken: string,
@@ -72,6 +77,13 @@ export class TokenService {
       throw new UnauthorizedException('Refresh token expired');
     }
 
+    const started = payload.started ?? nowSeconds();
+
+    if (nowSeconds() - started >= this.sessionMaxTtl) {
+      await this.refreshTokens.revokeFamily(stored.familyId);
+      throw new UnauthorizedException('Session expired; sign in again');
+    }
+
     const user = await loadUser(stored.userId);
 
     if (!user) {
@@ -79,7 +91,7 @@ export class TokenService {
       throw new UnauthorizedException('Account no longer exists');
     }
 
-    const next = await this.issue(user, stored.familyId);
+    const next = await this.issue(user, stored.familyId, started);
     await this.refreshTokens.markRotated(stored.id, next.refreshTokenId);
 
     return next;
@@ -93,8 +105,18 @@ export class TokenService {
     }
   }
 
-  private async issue(user: UserEntity, familyId: string): Promise<IssuedTokens> {
+  private async issue(
+    user: UserEntity,
+    familyId: string,
+    started: number,
+  ): Promise<IssuedTokens> {
     const jti = randomUUID();
+    // Another JWT_REFRESH_TTL, but never past the session's own end — so the
+    // token, its stored row and the cookie all run out together.
+    const refreshTtl = Math.min(
+      this.refreshTtl,
+      started + this.sessionMaxTtl - nowSeconds(),
+    );
 
     const accessPayload: AccessTokenPayload = {
       sub: user.id,
@@ -106,6 +128,7 @@ export class TokenService {
       sub: user.id,
       jti,
       family: familyId,
+      started,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -115,7 +138,7 @@ export class TokenService {
       }),
       this.jwt.signAsync(refreshPayload, {
         secret: this.refreshSecret,
-        expiresIn: this.refreshTtl,
+        expiresIn: refreshTtl,
       }),
     ]);
 
@@ -124,14 +147,14 @@ export class TokenService {
       userId: user.id,
       tokenHash: TokenService.hash(refreshToken),
       familyId,
-      expiresAt: new Date(Date.now() + this.refreshTtl * 1000),
+      expiresAt: new Date(Date.now() + refreshTtl * 1000),
     });
 
     return {
       accessToken,
       accessTokenTtl: this.accessTtl,
       refreshToken,
-      refreshTokenTtl: this.refreshTtl,
+      refreshTokenTtl: refreshTtl,
       refreshTokenId: jti,
     };
   }
@@ -150,4 +173,8 @@ export class TokenService {
   private static hash(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
+}
+
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
 }
