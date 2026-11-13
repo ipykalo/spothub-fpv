@@ -35,11 +35,14 @@
       [subjectLabel]="subjectLabel()"
       [saving]="comments.saving()"
       [readOnly]="!auth.isAuthenticated()"
+      [moderator]="auth.isAdmin()"
       (replied)="reply($event)"
       (edited)="edit($event)"
       (deleted)="remove($event)"
       (answerMarked)="markAnswer($event)"
       (reported)="report($event)"
+      (hiddenAsAdmin)="hideAsAdmin($event)"
+      (deletedAsAdmin)="removeAsAdmin($event)"
     />
   }
 </sh-section>

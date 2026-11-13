@@ -46,11 +46,23 @@
 
 <!-- One comment, question or reply: who, when, what was said, and what the viewer may do. -->
 <ng-template #entry let-comment let-isReply="isReply">
-  @if (comment.deleted) {
-    <!-- Its asker deleted it after others replied: no words, no name, the replies kept below. -->
-    <article class="grid gap-1.5" [attr.aria-label]="isPost() ? 'Deleted comment' : 'Deleted question'">
+  @if (comment.deleted || comment.hidden) {
+    <!--
+      Its asker deleted it, or an admin hid it, after others replied: no words, no name, the
+      replies kept below.
+    -->
+    <article
+      class="grid gap-1.5"
+      [attr.aria-label]="comment.hidden ? 'Hidden by an admin' : isPost() ? 'Deleted comment' : 'Deleted question'"
+    >
       <header class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <span class="text-muted italic">{{ isPost() ? 'Comment deleted' : 'Question deleted' }}</span>
+        <span class="text-muted italic">
+          @if (comment.hidden) {
+            Hidden by an admin
+          } @else {
+            {{ isPost() ? 'Comment deleted' : 'Question deleted' }}
+          }
+        </span>
 
         @if (comment.answered) {
           <span
@@ -148,6 +160,19 @@
 
         @if (comment.canDelete) {
           <button matButton type="button" [disabled]="saving()" (click)="deleted.emit(comment)">Delete</button>
+        }
+
+        @if (moderator() && !comment.byViewer) {
+          <button matButton type="button" [disabled]="saving()" (click)="hiddenAsAdmin.emit(comment)">
+            <mat-icon>visibility_off</mat-icon>
+            Hide
+          </button>
+          @if (!comment.canDelete) {
+            <button matButton type="button" [disabled]="saving()" (click)="deletedAsAdmin.emit(comment)">
+              <mat-icon>delete</mat-icon>
+              Delete
+            </button>
+          }
         }
 
         @if (!comment.byViewer && !readOnly() && reporting() !== comment.id) {

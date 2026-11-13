@@ -28,8 +28,8 @@ import {
   CurrentViewer,
   Public,
   ZodValidationPipe,
-} from '../common';
-import { PostsService } from './posts.service';
+} from '../../common';
+import { PostsService } from '../posts.service';
 
 /**
  * Blog posts. Guarded by the global JwtAuthGuard, except the two reads the

@@ -97,6 +97,19 @@ describe('CommentsApi', () => {
         url: '/api/posts/p1/comments/c1',
       });
 
+      api.hideAsAdmin(CommentSubject.Post, 'p1', 'c1').subscribe();
+      expect(http.calls.slice(-2)).toMatchObject([
+        { method: 'PATCH', url: '/api/admin/comments/c1', body: { hidden: true } },
+        // The admin route answers with nothing: the conversation is read again.
+        { method: 'GET', url: '/api/posts/p1/comments' },
+      ]);
+
+      api.removeAsAdmin(CommentSubject.Post, 'p1', 'c1').subscribe();
+      expect(http.calls.slice(-2)).toMatchObject([
+        { method: 'DELETE', url: '/api/admin/comments/c1' },
+        { method: 'GET', url: '/api/posts/p1/comments' },
+      ]);
+
       api.markRead(CommentSubject.Post, 'p1').subscribe();
       expect(last()).toMatchObject({
         method: 'POST',

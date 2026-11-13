@@ -29,7 +29,7 @@
   <ul class="m-0 grid list-none gap-1.5 p-0">
     @for (user of rows(); track user.id) {
       <li
-        class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 rounded bg-surface-container px-3 py-2 text-sm min-[64rem]:grid-cols-[auto_minmax(0,1fr)_8rem_9rem_10rem_11rem]"
+        class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 rounded bg-surface-container px-3 py-2 text-sm min-[64rem]:grid-cols-[auto_minmax(0,1fr)_8rem_9rem_9rem_10rem_11rem]"
       >
         <!-- No avatar: it would be fetched from Google, which this site never calls. -->
         <mat-icon class="text-muted" aria-hidden="true">account_circle</mat-icon>
@@ -83,6 +83,37 @@
               [style.width.%]="percentUsed(user.storageUsedBytes, user.storageLimitBytes)"
             ></span>
           </span>
+        </span>
+
+        <span class="col-start-2 flex flex-col items-start text-xs min-[64rem]:col-auto">
+          <span>
+            {{ user.postCount }} {{ user.postCount === 1 ? 'post' : 'posts' }}
+            @if (user.hiddenPostCount) {
+              <span class="text-muted">· {{ user.hiddenPostCount }} hidden</span>
+            }
+          </span>
+          @if (user.postCount > user.hiddenPostCount) {
+            <button
+              class="-ml-3"
+              matButton
+              type="button"
+              [disabled]="saving()"
+              (click)="postsHidden.emit({ id: user.id, hidden: true })"
+            >
+              Hide their posts
+            </button>
+          }
+          @if (user.hiddenPostCount) {
+            <button
+              class="-ml-3"
+              matButton
+              type="button"
+              [disabled]="saving()"
+              (click)="postsHidden.emit({ id: user.id, hidden: false })"
+            >
+              Show their posts
+            </button>
+          }
         </span>
 
         <span class="col-start-2 min-[64rem]:col-auto">

@@ -3,18 +3,21 @@ import {
   CommentSubject,
   type ConversationDto,
   type CreateCommentDto,
+  type HiddenCommentDto,
   type MarkAnswerDto,
+  type SetHiddenDto,
   type UnreadCommentsDto,
   type UnreadCountsDto,
   type UpdateCommentDto,
 } from '@spothub/shared';
 
 import { BuildsFacade } from '../builds';
+import { type AuthenticatedUser, assertAdmin } from '../common';
 import { PostsFacade } from '../posts';
 import { SpotsFacade } from '../spots';
 import { CommentsRepository } from './abstract/comments.repository';
 import type { SubjectRef } from './comment.entity';
-import { toConversationDto } from './comments.mapper';
+import { toConversationDto, toHiddenCommentDto } from './comments.mapper';
 
 const NOT_FOUND: Readonly<Record<CommentSubject, string>> = {
   [CommentSubject.Spot]: 'Spot not found',
@@ -71,6 +74,12 @@ export class CommentsService {
       if (parent.deletedAt !== null) {
         throw new BadRequestException(
           'That question was deleted and takes no new replies',
+        );
+      }
+
+      if (parent.hiddenAt !== null) {
+        throw new BadRequestException(
+          'That question was hidden and takes no new replies',
         );
       }
     }
@@ -171,12 +180,40 @@ export class CommentsService {
   async authorIfVisible(viewerId: string, commentId: string): Promise<string | null> {
     const placement = await this.comments.findPlacement(commentId);
 
-    if (!placement || placement.deleted) {
+    if (!placement || placement.deleted || placement.hidden) {
       return null;
     }
 
     const ownerId = await this.ownerIfVisible(viewerId, placement.ref);
     return ownerId === null ? null : placement.authorId;
+  }
+
+  /** What an admin has hidden, for the Admin page to show again or delete. */
+  async listHidden(viewer: AuthenticatedUser): Promise<HiddenCommentDto[]> {
+    assertAdmin(viewer);
+    return (await this.comments.findHidden()).map(toHiddenCommentDto);
+  }
+
+  /** An admin hides any comment, or shows it again. */
+  async setHidden(
+    viewer: AuthenticatedUser,
+    commentId: string,
+    input: SetHiddenDto,
+  ): Promise<void> {
+    assertAdmin(viewer);
+
+    if (!(await this.comments.setHidden(commentId, input.hidden))) {
+      throw new NotFoundException('Comment not found');
+    }
+  }
+
+  /** An admin deletes any comment, a question's replies with it. */
+  async removeAny(viewer: AuthenticatedUser, commentId: string): Promise<void> {
+    assertAdmin(viewer);
+
+    if (!(await this.comments.deleteAny(commentId))) {
+      throw new NotFoundException('Comment not found');
+    }
   }
 
   /** Whose subject it is — a post's author — when the viewer may open it; otherwise not found. */

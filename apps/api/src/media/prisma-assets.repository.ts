@@ -159,7 +159,11 @@ export class PrismaAssetsRepository extends AssetsRepository {
       return build?.ownerId ?? null;
     },
     [AssetSubject.Post]: async (viewerId, subjectId) => {
-      const shared = { visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] } };
+      // A post an admin hid is its author's alone, as its page is.
+      const shared = {
+        visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] },
+        hiddenAt: null,
+      };
       const post = await this.prisma.post.findFirst({
         where: {
           id: subjectId,

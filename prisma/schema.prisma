@@ -872,6 +872,8 @@ model Comment {
   /// Set when a question's asker deleted it after others had replied: its
   /// words are cleared and the replies stay, under "Question deleted".
   deletedAt DateTime? @map("deleted_at")
+  /// Set by an admin: its words are shown to nobody until an admin shows it again.
+  hiddenAt  DateTime? @map("hidden_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
@@ -934,6 +936,9 @@ model Post {
   /// The cover image, one of the post's own uploaded images. SetNull, so
   /// deleting the image does not delete the post.
   coverAssetId String?    @map("cover_asset_id") @db.Uuid
+  /// Set by an admin: the post is read by its author alone, whatever its
+  /// visibility says, until an admin shows it again.
+  hiddenAt     DateTime?  @map("hidden_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 

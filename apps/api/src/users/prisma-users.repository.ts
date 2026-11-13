@@ -6,6 +6,7 @@ import { UsersRepository } from './abstract/users.repository';
 import type {
   AuthProviderKind,
   LinkIdentityInput,
+  PostCounts,
   UpdateUserAdminData,
   UserEntity,
 } from './user.entity';
@@ -169,6 +170,36 @@ export class PrismaUsersRepository extends UsersRepository {
     }
 
     return used;
+  }
+
+  /** A grouped count over `posts`: SQL across a module line, as `storageUsedBy` is. */
+  async postCountsBy(ids: readonly string[]): Promise<ReadonlyMap<string, PostCounts>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const authors = { in: [...ids] };
+    const [all, hidden] = await Promise.all([
+      this.prisma.post.groupBy({
+        by: ['authorId'],
+        where: { authorId: authors },
+        _count: { _all: true },
+      }),
+      this.prisma.post.groupBy({
+        by: ['authorId'],
+        where: { authorId: authors, hiddenAt: { not: null } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const hiddenBy = new Map(hidden.map((row) => [row.authorId, row._count._all]));
+
+    return new Map(
+      all.map((row) => [
+        row.authorId,
+        { posts: row._count._all, hidden: hiddenBy.get(row.authorId) ?? 0 },
+      ]),
+    );
   }
 
   async findByEmail(email: string): Promise<UserEntity | null> {

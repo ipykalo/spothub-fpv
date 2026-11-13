@@ -213,6 +213,37 @@ export class CommentsSection {
     }
   }
 
+  protected async hideAsAdmin(comment: CommentDto): Promise<void> {
+    if (await this.comments.hideAsAdmin(comment.id)) {
+      this.snackBar.open('Hidden. Show it again from the Admin page.', undefined, {
+        duration: 4000,
+      });
+    } else {
+      this.reportFailure();
+    }
+  }
+
+  protected async removeAsAdmin(comment: CommentDto): Promise<void> {
+    const replies =
+      this.comments.comments()?.questions.find((entry) => entry.id === comment.id)
+        ?.replies.length ?? 0;
+    const by = comment.authorName ?? 'a pilot';
+    const prompt =
+      replies > 0
+        ? `Delete this comment by ${by} and its ${String(replies)} ${replies === 1 ? 'reply' : 'replies'}?`
+        : `Delete this comment by ${by}?`;
+
+    if (!window.confirm(prompt)) {
+      return;
+    }
+
+    if (await this.comments.removeAsAdmin(comment.id)) {
+      this.snackBar.open('Deleted', undefined, { duration: 2500 });
+    } else {
+      this.reportFailure();
+    }
+  }
+
   protected async markAnswer(mark: AnswerMark): Promise<void> {
     if (!(await this.comments.setAnswer(mark.commentId, mark.isAnswer))) {
       this.reportFailure();

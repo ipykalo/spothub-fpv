@@ -67,6 +67,14 @@ describe('CommentsStore', () => {
       return this.write();
     }
 
+    hideAsAdmin(): Observable<ConversationDto> {
+      return this.write();
+    }
+
+    removeAsAdmin(): Observable<ConversationDto> {
+      return this.write();
+    }
+
     setAnswer(): Observable<ConversationDto> {
       return this.write();
     }
@@ -170,6 +178,8 @@ describe('CommentsStore', () => {
       await expect(store.edit('question-0', 'Reworded')).resolves.toBe(true);
       await expect(store.remove('question-0')).resolves.toBe(true);
       await expect(store.setAnswer('question-0', true)).resolves.toBe(true);
+      await expect(store.hideAsAdmin('question-0')).resolves.toBe(true);
+      await expect(store.removeAsAdmin('question-0')).resolves.toBe(true);
     });
 
     it('reports a change that did not go through, and keeps what was shown', async () => {

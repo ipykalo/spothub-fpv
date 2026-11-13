@@ -54,6 +54,9 @@
           }
           @if (manage()) {
             · {{ visibilityLabels[post().visibility] }}
+            @if (post().hidden) {
+              · <span class="tone-stop font-semibold text-(--tone)">Hidden by an admin</span>
+            }
           }
         </p>
       </div>
