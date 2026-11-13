@@ -8,7 +8,13 @@
 
     <article class="overflow-hidden rounded-lg border border-outline-variant bg-surface">
       @if (post.coverImageUrl; as cover) {
-        <img class="block aspect-[5/2] w-full object-cover" [src]="cover" [alt]="'Cover of ' + post.title" />
+        <img
+          class="block aspect-[5/2] w-full object-cover"
+          [src]="cover"
+          [attr.srcset]="coverSrcset()"
+          sizes="(max-width: 72rem) 100vw, 72rem"
+          [alt]="'Cover of ' + post.title"
+        />
       }
 
       <div class="px-4 py-6 sm:px-12 sm:py-10">

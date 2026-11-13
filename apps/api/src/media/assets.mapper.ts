@@ -6,6 +6,7 @@ import type { AssetEntity } from './asset.entity';
 export interface SignedUrls {
   readonly url: string | null;
   readonly thumbUrl: string | null;
+  readonly displayUrl: string | null;
 }
 
 /**
@@ -27,6 +28,7 @@ export function toAssetDto(asset: AssetEntity, urls: SignedUrls): AssetDto {
     height: asset.height,
     url: urls.url,
     thumbUrl: urls.thumbUrl,
+    displayUrl: urls.displayUrl,
     sortOrder: asset.sortOrder,
     createdAt: asset.createdAt.toISOString(),
   };

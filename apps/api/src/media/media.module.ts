@@ -1,18 +1,20 @@
 import { Module } from '@nestjs/common';
 
+import { JobsModule } from '../jobs';
 import { StorageModule } from '../storage';
 import { UsersModule } from '../users';
 import { AssetsRepository } from './abstract/assets.repository';
 import { MediaFacade } from './abstract/media.facade';
 import { AssetsService } from './assets.service';
 import { BuildPhotosController } from './controllers/build-photos.controller';
+import { DisplayBackfillJob } from './display-backfill.job';
 import { PostImagesController } from './controllers/post-images.controller';
 import { MediaFacadeImpl } from './media.facade.impl';
 import { PrismaAssetsRepository } from './prisma-assets.repository';
 
 /**
  * Images: presigned upload straight to object storage, EXIF stripped and a
- * thumbnail generated when the client commits — for a build's photos and a
+ * thumbnail and a display version generated when the client commits — for a build's photos and a
  * post's images alike.
  *
  * Depends on one feature module only, `users`, which it asks through
@@ -22,10 +24,11 @@ import { PrismaAssetsRepository } from './prisma-assets.repository';
  * can depend on `MediaFacade` without closing a cycle. `MediaFacade` is the only provider exported.
  */
 @Module({
-  imports: [StorageModule, UsersModule],
+  imports: [JobsModule, StorageModule, UsersModule],
   controllers: [BuildPhotosController, PostImagesController],
   providers: [
     AssetsService,
+    DisplayBackfillJob,
     { provide: AssetsRepository, useClass: PrismaAssetsRepository },
     { provide: MediaFacade, useClass: MediaFacadeImpl },
   ],

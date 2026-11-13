@@ -130,6 +130,7 @@ describe('post images', () => {
     // Addresses that do not expire, so a page left open and a shared card keep working.
     expect(image?.url).toBe(`/api/posts/${post.id}/images/${frame.id}/file`);
     expect(image?.thumbUrl).toBe(`/api/posts/${post.id}/images/${frame.id}/thumb`);
+    expect(image?.displayUrl).toBe(`/api/posts/${post.id}/images/${frame.id}/display`);
     expect(image).toMatchObject({ width: 320, height: 240 });
   });
 
@@ -178,9 +179,10 @@ describe('post images', () => {
 
     const blog = (await request(testApp.server).get('/api/posts/published').expect(200))
       .body as PostSummaryDto[];
-    // The full image: a card is the width of the feed, wider than any thumbnail.
+    // The display version: a card is the width of the feed, wider than any
+    // thumbnail, and needs no camera original.
     expect(blog.find((entry) => entry.id === post.id)?.coverUrl).toBe(
-      `/api/posts/${post.id}/images/${frame.id}/file`,
+      `/api/posts/${post.id}/images/${frame.id}/display`,
     );
   });
 
@@ -194,6 +196,19 @@ describe('post images', () => {
     await request(testApp.server)
       .get(`/api/posts/${post.id}/images/${frame.id}/thumb`)
       .expect(302);
+
+    // The display version is its own object, not the original under another name.
+    const display = await request(testApp.server)
+      .get(`/api/posts/${post.id}/images/${frame.id}/display`)
+      .expect(302);
+    const displayKey = (
+      await prisma().asset.findUniqueOrThrow({
+        where: { id: frame.id },
+        include: { display: true },
+      })
+    ).display?.storageKey;
+    expect(displayKey).toBeTruthy();
+    expect(display.headers['location']).toContain(displayKey ?? 'missing');
 
     const hidden = await upload(draft.id, 'hidden.jpg');
 

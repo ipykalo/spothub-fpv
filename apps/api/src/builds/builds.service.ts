@@ -4,6 +4,7 @@ import {
   type CreateBuildDto,
   type ListBuildsQuery,
   NO_LIKES,
+  type ResponsiveImageDto,
   type UpdateBuildDto,
 } from '@spothub/shared';
 
@@ -146,11 +147,17 @@ export class BuildsService {
       }
     }
 
-    const urls = new Map<string, string>();
+    // The display version and thumbnail, never the camera original: a
+    // hangar of cards used to load every cover at full size.
+    const covers = new Map<string, ResponsiveImageDto>();
 
     for (const [ownerId, ids] of coversByOwner) {
-      for (const [id, url] of await this.media.urlsFor(ownerId, ids)) {
-        urls.set(id, url);
+      const signed = await this.media.coverImages(
+        ownerId,
+        new Map(ids.map((id) => [id, null])),
+      );
+      for (const [id, cover] of signed) {
+        covers.set(id, cover);
       }
     }
 
@@ -163,7 +170,7 @@ export class BuildsService {
     return builds.map((build) =>
       toBuildDto(
         build,
-        build.coverAssetId === null ? null : (urls.get(build.coverAssetId) ?? null),
+        build.coverAssetId === null ? null : (covers.get(build.coverAssetId) ?? null),
         viewerId,
         likes.get(build.id) ?? NO_LIKES,
       ),

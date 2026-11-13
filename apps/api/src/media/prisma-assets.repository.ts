@@ -8,11 +8,14 @@ import {
   AssetSubject,
   type CommitAssetData,
   type CreateAssetData,
+  type DisplayCandidate,
+  type DisplayVersion,
 } from './asset.entity';
 
-type AssetWithThumb = Asset & { thumb: Asset | null };
+type AssetWithThumb = Asset & { thumb: Asset | null; display: Asset | null };
 
-const WITH_THUMB = { thumb: true } satisfies Prisma.AssetInclude;
+/** An image's generated versions, read with it wherever it is read. */
+const WITH_THUMB = { thumb: true, display: true } satisfies Prisma.AssetInclude;
 
 /** The only place this feature knows Prisma exists. */
 @Injectable()
@@ -74,6 +77,9 @@ export class PrismaAssetsRepository extends AssetsRepository {
           mime: 'image/webp',
         },
       });
+      const display = await tx.asset.create({
+        data: displayRow(ownerId, data.display),
+      });
 
       return tx.asset.update({
         where: { id },
@@ -84,6 +90,7 @@ export class PrismaAssetsRepository extends AssetsRepository {
           height: data.height,
           mime: data.mime,
           thumbId: thumb.id,
+          displayId: display.id,
         },
         include: WITH_THUMB,
       });
@@ -240,17 +247,23 @@ export class PrismaAssetsRepository extends AssetsRepository {
       return [];
     }
 
-    const keys = [asset.storageKey, asset.thumb?.storageKey].filter(
-      (key): key is string => typeof key === 'string',
-    );
+    const keys = [
+      asset.storageKey,
+      asset.thumb?.storageKey,
+      asset.display?.storageKey,
+    ].filter((key): key is string => typeof key === 'string');
 
     // The link rows cascade, and `builds.cover_asset_id` is SET NULL, so a
     // build whose cover this was simply loses its cover.
     await this.prisma.$transaction(async (tx) => {
       await tx.asset.deleteMany({ where: { id: assetId, ownerId } });
 
-      if (asset.thumbId) {
-        await tx.asset.deleteMany({ where: { id: asset.thumbId, ownerId } });
+      const derived = [asset.thumbId, asset.displayId].filter(
+        (id): id is string => id !== null,
+      );
+
+      if (derived.length > 0) {
+        await tx.asset.deleteMany({ where: { id: { in: derived }, ownerId } });
       }
     });
 
@@ -358,6 +371,62 @@ export class PrismaAssetsRepository extends AssetsRepository {
     );
   }
 
+  async findMissingDisplays(
+    afterId: string | null,
+    limit: number,
+  ): Promise<readonly DisplayCandidate[]> {
+    return this.prisma.asset.findMany({
+      where: {
+        kind: AssetKind.IMAGE,
+        status: AssetStatus.READY,
+        displayId: null,
+        ...(afterId === null ? {} : { id: { gt: afterId } }),
+      },
+      select: { id: true, ownerId: true, storageKey: true },
+      orderBy: { id: 'asc' },
+      take: limit,
+    });
+  }
+
+  async attachDisplayForOwner(
+    ownerId: string,
+    assetId: string,
+    display: DisplayVersion,
+    upright: { readonly width: number; readonly height: number },
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.asset.create({ data: displayRow(ownerId, display) });
+      // Only where it still has none: a second run, or a photo deleted while
+      // its display was being made, leaves this row to be taken back.
+      const { count } = await tx.asset.updateMany({
+        where: { id: assetId, ownerId, displayId: null },
+        data: { displayId: created.id, width: upright.width, height: upright.height },
+      });
+
+      if (count === 0) {
+        await tx.asset.delete({ where: { id: created.id } });
+      }
+
+      return count > 0;
+    });
+  }
+
+  async findReadyForOwner(
+    ownerId: string,
+    assetIds: readonly string[],
+  ): Promise<readonly AssetEntity[]> {
+    if (assetIds.length === 0) {
+      return [];
+    }
+
+    const assets = await this.prisma.asset.findMany({
+      where: { id: { in: [...assetIds] }, ownerId, status: AssetStatus.READY },
+      include: WITH_THUMB,
+    });
+
+    return assets.map((asset) => toEntity(asset));
+  }
+
   async findKeysForOwner(
     ownerId: string,
     assetIds: readonly string[],
@@ -388,7 +457,28 @@ function toEntity(asset: AssetWithThumb, sortOrder = 0): AssetEntity {
     width: asset.width,
     height: asset.height,
     thumbKey: asset.thumb?.storageKey ?? null,
+    displayKey: asset.display?.storageKey ?? null,
     sortOrder,
     createdAt: asset.createdAt,
+  };
+}
+
+/**
+ * A display version's own row. Its size is recorded, unlike a thumbnail's, so
+ * it counts toward the owner's storage: it is real bytes they asked for.
+ */
+function displayRow(
+  ownerId: string,
+  display: DisplayVersion,
+): Prisma.AssetUncheckedCreateInput {
+  return {
+    ownerId,
+    kind: AssetKind.DISPLAY,
+    status: AssetStatus.READY,
+    storageKey: display.storageKey,
+    mime: 'image/webp',
+    sizeBytes: BigInt(display.sizeBytes),
+    width: display.width,
+    height: display.height,
   };
 }

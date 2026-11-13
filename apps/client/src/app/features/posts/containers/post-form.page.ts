@@ -157,6 +157,7 @@ export class PostFormPage {
         id: asset.id,
         url: asset.url,
         thumbUrl: asset.thumbUrl,
+        displayUrl: asset.displayUrl,
         width: asset.width,
         height: asset.height,
       };

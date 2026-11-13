@@ -13,6 +13,8 @@ export interface AssetEntity {
   readonly height: number | null;
   /** The generated thumbnail's storage key, once one exists. */
   readonly thumbKey: string | null;
+  /** The display-size version's storage key, once one exists. */
+  readonly displayKey: string | null;
   /** Position within the subject's gallery. Only set when read through a link. */
   readonly sortOrder: number;
   readonly createdAt: Date;
@@ -35,6 +37,22 @@ export interface CommitAssetData {
   readonly mime: string;
   readonly thumbKey: string;
   readonly thumbStorageKey: string;
+  readonly display: DisplayVersion;
+}
+
+/** A display-size version, made on commit or by the backfill. */
+export interface DisplayVersion {
+  readonly storageKey: string;
+  readonly sizeBytes: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** An image that still needs a display version, as the backfill sees it. */
+export interface DisplayCandidate {
+  readonly id: string;
+  readonly ownerId: string;
+  readonly storageKey: string;
 }
 
 /**

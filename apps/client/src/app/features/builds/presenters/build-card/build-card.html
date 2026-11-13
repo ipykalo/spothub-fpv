@@ -34,6 +34,8 @@
     <img
       class="-mx-4 block aspect-video w-[calc(100%+2rem)] max-w-none bg-surface-high object-cover"
       [src]="build().coverUrl"
+      [attr.srcset]="coverSrcset()"
+      sizes="(max-width: 40rem) 100vw, (max-width: 64rem) 50vw, 24rem"
       [alt]="'Photo of ' + build().name"
       loading="lazy"
       (error)="coverFailed.emit()"

@@ -29,6 +29,7 @@ describe('PhotosStore', () => {
     height: 900,
     url: null,
     thumbUrl: null,
+    displayUrl: null,
     sortOrder: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
     ...over,

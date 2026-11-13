@@ -11,6 +11,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { type PostSummaryDto, VISIBILITY_LABELS, Visibility } from '@spothub/shared';
 
+import { coverSrcset } from '../../../../core/images/srcset';
+
 /**
  * Presenter: one post in a feed — the blog, a build's posts, or the author's
  * own. A full-width row: cover, author and date, a large title, the builds it
@@ -37,6 +39,12 @@ export class PostCard {
   protected readonly visibilityLabels = VISIBILITY_LABELS;
 
   /** A draft has no public page yet, so its title opens the editor instead. */
+  /** The cover's thumbnail and display version, for the browser to pick between. */
+  protected readonly coverSrcset = computed(() => {
+    const cover = this.post().coverImage;
+    return cover ? coverSrcset(cover) : null;
+  });
+
   protected readonly link = computed(() => {
     const post = this.post();
     return post.visibility === Visibility.Private
