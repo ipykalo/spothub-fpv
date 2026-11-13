@@ -115,6 +115,10 @@ describe('StructuredData', () => {
         '@id': `${ORIGIN}/blog/1/first-flight`,
       });
       expect(written1.publisher).toMatchObject({ '@type': 'Organization' });
+      expect(written1.publisher).toMatchObject({
+        logo: { '@type': 'ImageObject', width: 512, height: 512 },
+      });
+      expect(JSON.stringify(written1.publisher)).toContain('/logo.png');
     });
 
     it('counts the words of the body, which is what earns a reading time in a result', () => {

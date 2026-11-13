@@ -259,8 +259,14 @@ by `ThemeStore` (`core/theme/`). **No font comes from Google**: Material
 Icons, which `<mat-icon>` needs, is bundled from the `material-icons` package
 (filled set only) through `project.json`'s styles. It was a Google Fonts link
 until the site went public, which handed every visitor's address to Google
-on every page. The site icon is
-`public/favicon.svg`, with `.ico` and `apple-touch-icon.png` rendered from it.
+on every page. The mark — a
+prop mid-spin, amber on a dark tile with a faint ring so its edge holds on a
+dark page — is `public/favicon.svg`, and it is the one source: the toolbar
+(beside the name, alone on a phone) and the login card use it as it is, and
+`node scripts/render-icons.mjs` renders `favicon.ico`, `apple-touch-icon.png`
+and `logo.png` (the publisher logo in a post's structured data) from it.
+`share.jpg` is a photo with the mark composited in once; change the mark and
+that image needs redoing by hand.
 
 The rules that keep Tailwind and Angular Material from fighting:
 
