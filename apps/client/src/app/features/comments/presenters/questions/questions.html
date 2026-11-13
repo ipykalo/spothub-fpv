@@ -149,7 +149,23 @@
         @if (comment.canDelete) {
           <button matButton type="button" [disabled]="saving()" (click)="deleted.emit(comment)">Delete</button>
         }
+
+        @if (!comment.byViewer && !readOnly() && reporting() !== comment.id) {
+          <button matButton type="button" (click)="startReport(comment.id)">
+            <mat-icon>flag</mat-icon>
+            Report
+          </button>
+        }
       </div>
+
+      @if (reporting() === comment.id) {
+        <sh-report-form
+          noun="comment"
+          [saving]="saving()"
+          (submitted)="reported.emit({ commentId: comment.id, words: $event }); reporting.set(null)"
+          (cancelled)="reporting.set(null)"
+        />
+      }
     </article>
   }
 </ng-template>

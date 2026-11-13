@@ -164,6 +164,21 @@ export class CommentsService {
     };
   }
 
+  /**
+   * Who wrote a comment, when the viewer may open what it is on and it still
+   * has words — for `reports`, through the facade. Null otherwise.
+   */
+  async authorIfVisible(viewerId: string, commentId: string): Promise<string | null> {
+    const placement = await this.comments.findPlacement(commentId);
+
+    if (!placement || placement.deleted) {
+      return null;
+    }
+
+    const ownerId = await this.ownerIfVisible(viewerId, placement.ref);
+    return ownerId === null ? null : placement.authorId;
+  }
+
   /** Whose subject it is — a post's author — when the viewer may open it; otherwise not found. */
   private async ownerOfVisibleSubject(
     viewerId: string | null,

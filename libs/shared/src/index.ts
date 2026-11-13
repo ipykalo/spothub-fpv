@@ -14,6 +14,7 @@ export * from './lib/youtube';
 export * from './lib/comment.contract';
 export * from './lib/post.contract';
 export * from './lib/like.contract';
+export * from './lib/report.contract';
 export * from './lib/settings.contract';
 export * from './lib/pilot-name';
 export * from './lib/build-video.contract';

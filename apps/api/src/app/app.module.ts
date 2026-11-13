@@ -15,6 +15,7 @@ import { FlightsModule } from '../flights';
 import { HealthModule } from '../health';
 import { JobsModule } from '../jobs';
 import { LikesModule } from '../likes';
+import { ReportsModule } from '../reports';
 import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
 import { PostsModule } from '../posts';
@@ -61,6 +62,7 @@ import { UsersModule } from '../users';
     CommentsModule,
     PostsModule,
     LikesModule,
+    ReportsModule,
     SettingsModule,
     HealthModule,
   ],

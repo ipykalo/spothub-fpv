@@ -1,0 +1,10 @@
+@if (auth.isAuthenticated()) {
+  @if (open()) {
+    <sh-report-form [noun]="noun()" [saving]="saving()" (submitted)="send($event)" (cancelled)="open.set(false)" />
+  } @else {
+    <button matButton type="button" (click)="open.set(true)">
+      <mat-icon>flag</mat-icon>
+      Report
+    </button>
+  }
+}

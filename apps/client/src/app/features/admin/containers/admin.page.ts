@@ -1,12 +1,18 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { USER_STATUS_LABELS, type UserStatus, countryName } from '@spothub/shared';
+import {
+  type ReportDto,
+  USER_STATUS_LABELS,
+  type UserStatus,
+  countryName,
+} from '@spothub/shared';
 
 import { Section } from '../../../core/components/section/section';
 import { formatBytes } from '../../../core/format/bytes';
 import { AdminStore } from '../admin.store';
 import { PilotsTable } from '../presenters/pilots-table/pilots-table';
+import { ReportsList } from '../presenters/reports-list/reports-list';
 import { RestrictedCountries } from '../presenters/restricted-countries/restricted-countries';
 import { SignUpSettings } from '../presenters/sign-up-settings/sign-up-settings';
 
@@ -20,6 +26,7 @@ import { SignUpSettings } from '../presenters/sign-up-settings/sign-up-settings'
   imports: [
     MatProgressBarModule,
     PilotsTable,
+    ReportsList,
     RestrictedCountries,
     Section,
     SignUpSettings,
@@ -33,6 +40,10 @@ export class AdminPage {
 
   constructor() {
     void this.store.load();
+  }
+
+  protected async dismiss(report: ReportDto): Promise<void> {
+    this.tell(await this.store.resolveReport(report.id), 'Report dismissed');
   }
 
   protected async setOpen(open: boolean): Promise<void> {

@@ -12,6 +12,11 @@
 }
 
 @if (store.settings(); as settings) {
+  <!-- First: the one section that asks for something to be done. -->
+  <sh-section heading="Reports" icon="flag" [count]="store.reports().length">
+    <sh-reports-list [reports]="store.reports()" [saving]="store.saving()" (dismissed)="dismiss($event)" />
+  </sh-section>
+
   <sh-section heading="Who can sign in" icon="how_to_reg">
     <sh-sign-up-settings
       [settings]="settings"

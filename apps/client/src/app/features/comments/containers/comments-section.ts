@@ -12,16 +12,25 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { type CommentDto, CommentSubject, type ConversationDto } from '@spothub/shared';
+import {
+  type CommentDto,
+  CommentSubject,
+  type ConversationDto,
+  ReportSubject,
+} from '@spothub/shared';
+import { firstValueFrom } from 'rxjs';
 
+import { apiMessage } from '../../../core/api/api-error';
 import { Section } from '../../../core/components/section/section';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { ReportsApi } from '../../reports/reports.api';
 import { CommentsStore } from '../comments.store';
 import { CommentForm } from '../presenters/comment-form/comment-form';
 import {
   type AnswerMark,
   type CommentEdit,
   type CommentReply,
+  type CommentReport,
   Questions,
 } from '../presenters/questions/questions';
 
@@ -96,6 +105,7 @@ export class CommentsSection {
   protected readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly reports = inject(ReportsApi);
 
   /** The ask box is asked for, never shown by default. */
   protected readonly asking = signal(false);
@@ -180,6 +190,26 @@ export class CommentsSection {
       this.snackBar.open('Deleted', undefined, { duration: 2500 });
     } else {
       this.reportFailure();
+    }
+  }
+
+  /** Sent from here rather than the comments store: a report is not part of the conversation. */
+  protected async report(report: CommentReport): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.reports.file({
+          ...report.words,
+          subject: ReportSubject.Comment,
+          subjectId: report.commentId,
+        }),
+      );
+      this.snackBar.open('Reported. Thank you — an admin will look at it.', undefined, {
+        duration: 4000,
+      });
+    } catch (error) {
+      this.snackBar.open(apiMessage(error, 'The report did not go through.'), undefined, {
+        duration: 4000,
+      });
     }
   }
 

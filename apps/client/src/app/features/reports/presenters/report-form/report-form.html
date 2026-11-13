@@ -1,0 +1,36 @@
+<form
+  class="grid max-w-120 gap-2 rounded-lg border border-outline-variant bg-surface-low p-3"
+  [formGroup]="form"
+  [attr.aria-label]="'Report this ' + noun()"
+  (ngSubmit)="submit()"
+>
+  <p class="m-0 text-sm">
+    Tell an admin what is wrong with this {{ noun() }}. Only admins see reports, and nobody is told who sent one.
+  </p>
+
+  <sh-autocomplete label="Reason" formControlName="reason" [options]="reasons" subscriptSizing="dynamic" />
+
+  <mat-form-field class="w-full" subscriptSizing="dynamic">
+    <mat-label>Details (optional)</mat-label>
+    <textarea
+      matInput
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="2"
+      cdkAutosizeMaxRows="6"
+      formControlName="details"
+      [maxlength]="maxLength"
+    ></textarea>
+    <mat-hint align="end">{{ form.controls.details.value.length }} / {{ maxLength }}</mat-hint>
+  </mat-form-field>
+
+  @if (error(); as message) {
+    <p class="m-0 text-sm text-(--mat-sys-error)" role="alert">{{ message }}</p>
+  }
+
+  <div class="flex flex-wrap gap-2">
+    <button matButton="filled" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Sending…' : 'Send report' }}
+    </button>
+    <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</form>

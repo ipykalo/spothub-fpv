@@ -85,6 +85,11 @@
             }
           </div>
         }
+
+        <!-- Someone else's post: a signed-in reader may report it. The button hides itself from a visitor. -->
+        @if (!post.ownedByViewer) {
+          <sh-report-button class="mt-10 -ml-2" [subject]="reportSubject" [subjectId]="post.id" noun="post" />
+        }
       </div>
     </article>
 
