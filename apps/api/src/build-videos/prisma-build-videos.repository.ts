@@ -3,7 +3,11 @@ import type { BuildVideo } from '@prisma/client';
 
 import { PrismaService } from '../prisma';
 import { BuildVideosRepository } from './abstract/build-videos.repository';
-import type { BuildVideoEntity, CreateBuildVideoData } from './build-video.entity';
+import type {
+  BuildVideoEntity,
+  CoverlessVideo,
+  CreateBuildVideoData,
+} from './build-video.entity';
 
 /** The only place in this feature that knows Prisma exists. */
 @Injectable()
@@ -38,6 +42,17 @@ export class PrismaBuildVideosRepository extends BuildVideosRepository {
     return videos.map((video) => PrismaBuildVideosRepository.toEntity(video));
   }
 
+  async findOneForOwner(
+    ownerId: string,
+    videoId: string,
+  ): Promise<BuildVideoEntity | null> {
+    const video = await this.prisma.buildVideo.findFirst({
+      where: { id: videoId, build: { ownerId } },
+    });
+
+    return video ? PrismaBuildVideosRepository.toEntity(video) : null;
+  }
+
   async create(
     ownerId: string,
     data: CreateBuildVideoData,
@@ -61,16 +76,48 @@ export class PrismaBuildVideosRepository extends BuildVideosRepository {
     });
   }
 
+  async setCoverForOwner(
+    ownerId: string,
+    videoId: string,
+    coverStorageKey: string,
+  ): Promise<boolean> {
+    const { count } = await this.prisma.buildVideo.updateMany({
+      where: { id: videoId, coverStorageKey: null, build: { ownerId } },
+      data: { coverStorageKey },
+    });
+
+    return count > 0;
+  }
+
   async deleteForOwner(
     ownerId: string,
     buildId: string,
     videoId: string,
-  ): Promise<boolean> {
-    const { count } = await this.prisma.buildVideo.deleteMany({
-      where: { id: videoId, buildId, build: { ownerId } },
+  ): Promise<BuildVideoEntity | null> {
+    const where = { id: videoId, buildId, build: { ownerId } };
+    const video = await this.prisma.buildVideo.findFirst({ where });
+
+    if (!video) {
+      return null;
+    }
+
+    const { count } = await this.prisma.buildVideo.deleteMany({ where });
+    return count > 0 ? PrismaBuildVideosRepository.toEntity(video) : null;
+  }
+
+  async findCoverless(after: string | null, limit: number): Promise<CoverlessVideo[]> {
+    const videos = await this.prisma.buildVideo.findMany({
+      where: { coverStorageKey: null, ...(after === null ? {} : { id: { gt: after } }) },
+      orderBy: { id: 'asc' },
+      take: limit,
+      select: { id: true, buildId: true, build: { select: { ownerId: true } } },
     });
 
-    return count > 0;
+    return videos.map((video) => ({
+      id: video.id,
+      buildId: video.buildId,
+      ownerId: video.build.ownerId,
+    }));
   }
 
   private static toEntity(video: BuildVideo): BuildVideoEntity {
@@ -80,6 +127,7 @@ export class PrismaBuildVideosRepository extends BuildVideosRepository {
       youtubeId: video.youtubeId,
       startS: video.startS,
       title: video.title,
+      coverStorageKey: video.coverStorageKey,
       createdAt: video.createdAt,
     };
   }

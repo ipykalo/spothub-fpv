@@ -38,6 +38,18 @@ export class BuildVideosStore {
     }
   }
 
+  /**
+   * Reads the list again, keeping what is shown until it lands: fresh cover
+   * addresses for a page left open past their signature.
+   */
+  async refresh(buildId: string): Promise<void> {
+    try {
+      this.items.set(await firstValueFrom(this.api.list(buildId)));
+    } catch {
+      // Nothing to tell the reader: the next return to the tab asks again.
+    }
+  }
+
   /** True once added. Newest first, as the server orders them. */
   async add(buildId: string, input: CreateBuildVideoDto): Promise<boolean> {
     this.adding.set(true);

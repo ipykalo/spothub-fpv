@@ -1,17 +1,31 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   type BuildVideoDto,
   type CreateBuildVideoDto,
   MAX_BUILD_VIDEOS,
 } from '@spothub/shared';
 
+import type { Env } from '../config';
+import { StorageGateway } from '../storage';
 import { BuildVideosRepository } from './abstract/build-videos.repository';
+import { BuildVideoCoverJob } from './build-video-cover.job';
+import type { BuildVideoEntity } from './build-video.entity';
 import { toBuildVideoDto } from './build-videos.mapper';
 
 /** A build's videos. Knows nothing about HTTP or Prisma. */
 @Injectable()
 export class BuildVideosService {
-  constructor(private readonly videos: BuildVideosRepository) {}
+  private readonly downloadTtl: number;
+
+  constructor(
+    private readonly videos: BuildVideosRepository,
+    private readonly storage: StorageGateway,
+    private readonly coverJob: BuildVideoCoverJob,
+    config: ConfigService<Env, true>,
+  ) {
+    this.downloadTtl = config.get('S3_DOWNLOAD_URL_TTL', { infer: true });
+  }
 
   /**
    * The videos of a build the viewer may open. A build they cannot open
@@ -26,9 +40,12 @@ export class BuildVideosService {
     }
 
     const videos = await this.videos.findManyForOwner(ownerId, buildId);
-    return videos.map(toBuildVideoDto);
+    return Promise.all(
+      videos.map(async (video) => toBuildVideoDto(video, await this.coverUrlFor(video))),
+    );
   }
 
+  /** The cover comes a moment later, from the job; the video answers without one. */
   async add(
     ownerId: string,
     buildId: string,
@@ -55,12 +72,25 @@ export class BuildVideosService {
       );
     }
 
-    return toBuildVideoDto(created);
+    await this.coverJob.queue({ ownerId, buildId, videoId: created.id });
+    return toBuildVideoDto(created, null);
   }
 
   async remove(ownerId: string, buildId: string, videoId: string): Promise<void> {
-    if (!(await this.videos.deleteForOwner(ownerId, buildId, videoId))) {
+    const deleted = await this.videos.deleteForOwner(ownerId, buildId, videoId);
+
+    if (!deleted) {
       throw new NotFoundException('Video not found');
     }
+
+    if (deleted.coverStorageKey !== null) {
+      await this.storage.delete([deleted.coverStorageKey]);
+    }
+  }
+
+  private coverUrlFor(video: BuildVideoEntity): Promise<string | null> {
+    return video.coverStorageKey === null
+      ? Promise.resolve(null)
+      : this.storage.presignGet(video.coverStorageKey, this.downloadTtl);
   }
 }

@@ -27,6 +27,7 @@ import { SettingsModule } from '../settings';
 import { SpotsModule } from '../spots';
 import { StorageModule } from '../storage';
 import { UsersModule } from '../users';
+import { YouTubeModule } from '../youtube';
 
 /**
  * Every feature module is listed here even where one arrives transitively —
@@ -45,6 +46,7 @@ import { UsersModule } from '../users';
     ThrottlerModule.forRootAsync({ inject: [ConfigService], useFactory: rateLimits }),
     PrismaModule,
     StorageModule,
+    YouTubeModule,
     JobsModule,
     UsersModule,
     AuthModule,

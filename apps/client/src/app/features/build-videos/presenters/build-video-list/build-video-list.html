@@ -2,7 +2,7 @@
   <div class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-4">
     @for (video of videos(); track video.id) {
       <figure class="m-0 grid gap-2">
-        <sh-youtube-player [video]="video" />
+        <sh-youtube-player [video]="video" [cover]="video.coverUrl" />
         <figcaption class="flex items-center gap-2">
           <span class="min-w-0 flex-auto truncate text-sm">{{ video.title ?? 'Untitled video' }}</span>
           @if (!readOnly()) {

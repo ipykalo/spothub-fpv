@@ -398,12 +398,17 @@ model ExchangeRate {
 /// what is stored is the video's id and start time, never a pasted address,
 /// so a row cannot point anywhere else.
 model BuildVideo {
-  id        String   @id @default(uuid()) @db.Uuid
-  buildId   String   @map("build_id") @db.Uuid
-  youtubeId String   @map("youtube_id") @db.VarChar(11)
-  startS    Int?     @map("start_s")
-  title     String?  @db.VarChar(80)
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  buildId         String   @map("build_id") @db.Uuid
+  youtubeId       String   @map("youtube_id") @db.VarChar(11)
+  startS          Int?     @map("start_s")
+  title           String?  @db.VarChar(80)
+  /// The video's thumbnail, made into a cover and kept in our storage at
+  /// `<owner>/builds/<build>/video-<id>.webp`, so no viewer asks YouTube for
+  /// it. Null until the `build-video.cover` job has made it, or when YouTube
+  /// has none.
+  coverStorageKey String?  @map("cover_storage_key")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
 

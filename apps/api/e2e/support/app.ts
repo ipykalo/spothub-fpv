@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 
 import { AppModule } from '../../src/app';
 import { BlackboxDecoder } from '../../src/flight-logs/abstract/blackbox-decoder';
-import { YouTubeThumbnails } from '../../src/spots/abstract/youtube-thumbnails';
+import { YouTubeThumbnails } from '../../src/youtube';
 import { StubBlackboxDecoder } from './stub-blackbox-decoder';
 import { StubYouTubeThumbnails } from './stub-youtube-thumbnails';
 import { RateSource } from '../../src/exchange-rates';
