@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { type PostSummaryDto, VISIBILITY_LABELS, Visibility } from '@spothub/shared';
 
-import { coverSrcset } from '../../../../core/images/srcset';
+import { coverSrcset, placeholderUrl } from '../../../../core/images/srcset';
 
 /**
  * Presenter: one post in a feed — the blog, a build's posts, or the author's
@@ -43,6 +43,12 @@ export class PostCard {
   protected readonly coverSrcset = computed(() => {
     const cover = this.post().coverImage;
     return cover ? coverSrcset(cover) : null;
+  });
+
+  /** The cover's thumbnail, shown blurred behind it while it loads. */
+  protected readonly placeholder = computed(() => {
+    const cover = this.post().coverImage;
+    return cover ? placeholderUrl(cover.thumbUrl, cover.url) : null;
   });
 
   protected readonly link = computed(() => {

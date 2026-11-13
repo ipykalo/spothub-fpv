@@ -11,7 +11,19 @@
   class="group relative flex flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface transition-colors hover:border-primary hover:bg-surface-low has-[.post-link:focus-visible]:outline-2 has-[.post-link:focus-visible]:outline-primary min-[40rem]:flex-row"
 >
   @if (post().coverUrl; as cover) {
-    <div class="relative aspect-video shrink-0 min-[40rem]:aspect-auto min-[40rem]:min-h-44 min-[40rem]:w-64 lg:w-72">
+    <div
+      class="relative aspect-video shrink-0 overflow-hidden min-[40rem]:aspect-auto min-[40rem]:min-h-44 min-[40rem]:w-64 lg:w-72"
+    >
+      <!-- The thumbnail, blurred, until the cover paints over it. -->
+      @if (placeholder(); as thumb) {
+        <img
+          class="absolute inset-0 size-full scale-110 object-cover blur-lg"
+          [src]="thumb"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+        />
+      }
       <img
         class="absolute inset-0 size-full object-cover"
         [src]="cover"

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { coverSrcset, photoSrcset } from './srcset';
+import { coverSrcset, photoSrcset, placeholderUrl } from './srcset';
 
 describe('photoSrcset', () => {
   const photo = {
@@ -47,5 +47,17 @@ describe('coverSrcset', () => {
         height: 1000,
       }),
     ).toBe('thumb.webp 640w, display.webp 1600w');
+  });
+});
+
+describe('placeholderUrl', () => {
+  it('is the thumbnail while a larger version loads', () => {
+    expect(placeholderUrl('/t.webp', '/d.webp')).toBe('/t.webp');
+  });
+
+  it('is nothing without a thumbnail, or when the thumbnail is what loads', () => {
+    expect(placeholderUrl(null, '/d.webp')).toBeNull();
+    expect(placeholderUrl(undefined, '/d.webp')).toBeNull();
+    expect(placeholderUrl('/t.webp', '/t.webp')).toBeNull();
   });
 });

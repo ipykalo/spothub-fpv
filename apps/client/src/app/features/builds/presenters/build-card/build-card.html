@@ -31,15 +31,27 @@
   @if (build().coverUrl) {
     <!-- Full-bleed: the negative margin cancels the card's padding, and a
          fixed ratio keeps a row of cards aligned whatever the photo's shape. -->
-    <img
-      class="-mx-4 block aspect-video w-[calc(100%+2rem)] max-w-none bg-surface-high object-cover"
-      [src]="build().coverUrl"
-      [attr.srcset]="coverSrcset()"
-      sizes="(max-width: 40rem) 100vw, (max-width: 64rem) 50vw, 24rem"
-      [alt]="'Photo of ' + build().name"
-      loading="lazy"
-      (error)="coverFailed.emit()"
-    />
+    <div class="relative -mx-4 aspect-video w-[calc(100%+2rem)] overflow-hidden bg-surface-high">
+      <!-- The thumbnail, blurred, until the cover paints over it. -->
+      @if (placeholder(); as thumb) {
+        <img
+          class="absolute inset-0 size-full scale-110 object-cover blur-lg"
+          [src]="thumb"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+        />
+      }
+      <img
+        class="relative block size-full object-cover"
+        [src]="build().coverUrl"
+        [attr.srcset]="coverSrcset()"
+        sizes="(max-width: 40rem) 100vw, (max-width: 64rem) 50vw, 24rem"
+        [alt]="'Photo of ' + build().name"
+        loading="lazy"
+        (error)="coverFailed.emit()"
+      />
+    </div>
   } @else {
     <!-- No photo yet. The slot stays, so a row of cards lines up either way, and
          it holds the build's own status icon rather than a stock picture of
