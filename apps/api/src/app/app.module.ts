@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 import { AuthModule } from '../auth';
+import { BlocksModule } from '../blocks';
 import { BuildPartsModule } from '../build-parts';
 import { BuildsModule } from '../builds';
 import { CommentsModule } from '../comments';
@@ -62,6 +63,7 @@ import { UsersModule } from '../users';
     CommentsModule,
     PostsModule,
     LikesModule,
+    BlocksModule,
     ReportsModule,
     SettingsModule,
     HealthModule,

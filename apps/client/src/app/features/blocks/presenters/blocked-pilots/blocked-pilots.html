@@ -1,0 +1,25 @@
+<section class="rounded border border-outline-variant p-4">
+  <h2 class="mt-0 mb-2 text-lg">Blocked pilots</h2>
+  <p class="mt-0 mb-3 text-sm">
+    A pilot you block can no longer comment on your spots, builds and posts, and you no longer see their comments
+    anywhere. They are not told.
+  </p>
+  @if (error(); as message) {
+    <p class="tone-stop mt-0 mb-3 rounded bg-(--tone-surface) px-3 py-2 text-sm" role="alert">{{ message }}</p>
+  }
+  @if (pilots().length) {
+    <ul class="m-0 grid list-none gap-1 p-0">
+      @for (pilot of pilots(); track pilot.userId) {
+        <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <span>
+            {{ pilot.name }}
+            <span class="text-sm text-muted">· since {{ pilot.blockedAt | date: 'mediumDate' }}</span>
+          </span>
+          <button matButton type="button" [disabled]="saving()" (click)="unblocked.emit(pilot)">Unblock</button>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="m-0 text-sm text-muted italic">Nobody. To block a pilot, use Block on one of their comments.</p>
+  }
+</section>

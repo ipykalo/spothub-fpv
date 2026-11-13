@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { BlocksModule } from '../blocks';
 import { BuildsModule } from '../builds';
 import { PostsModule } from '../posts';
 import { SpotsModule } from '../spots';
@@ -19,11 +20,12 @@ import { PrismaCommentsRepository } from './prisma-comments.repository';
  * conversation has authors other than the owner, and rules of its own, the
  * same whichever it hangs off. It reaches them only through `SpotsFacade`,
  * `BuildsFacade` and `PostsFacade` — `comments → spots`, `comments → builds`,
- * `comments → posts`, never the other way. `CommentsFacade`, for `reports`,
- * is the only provider exported.
+ * `comments → posts`, never the other way — and asks `BlocksFacade` whom a
+ * reader blocked and whether an owner blocked a would-be commenter.
+ * `CommentsFacade`, for `reports`, is the only provider exported.
  */
 @Module({
-  imports: [SpotsModule, BuildsModule, PostsModule],
+  imports: [SpotsModule, BuildsModule, PostsModule, BlocksModule],
   controllers: [CommentsController, CommentsAdminController],
   providers: [
     CommentsService,

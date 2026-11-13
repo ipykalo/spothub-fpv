@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   CommentSubject,
   type ConversationDto,
@@ -11,6 +16,7 @@ import {
   type UpdateCommentDto,
 } from '@spothub/shared';
 
+import { BlocksFacade } from '../blocks';
 import { BuildsFacade } from '../builds';
 import { type AuthenticatedUser, assertAdmin } from '../common';
 import { PostsFacade } from '../posts';
@@ -43,6 +49,7 @@ export class CommentsService {
     private readonly spots: SpotsFacade,
     private readonly builds: BuildsFacade,
     private readonly posts: PostsFacade,
+    private readonly blocks: BlocksFacade,
   ) {}
 
   /** A null viewer is a signed-out visitor, who may read a shared build's or post's conversation only. */
@@ -57,6 +64,11 @@ export class CommentsService {
     input: CreateCommentDto,
   ): Promise<ConversationDto> {
     const ownerId = await this.ownerOfVisibleSubject(viewerId, ref);
+
+    // A pilot the owner blocked meets commenting closed, never the word "blocked".
+    if (ownerId !== viewerId && (await this.blocks.isBlocked(ownerId, viewerId))) {
+      throw new ForbiddenException('Comments are closed here');
+    }
 
     if (input.parentId !== null) {
       const parent = await this.comments.findOneOn(ref, input.parentId);
@@ -252,11 +264,15 @@ export class CommentsService {
     ref: SubjectRef,
     ownerId: string,
   ): Promise<ConversationDto> {
-    const comments = await this.comments.findManyOn(ref);
+    const [comments, blocked] = await Promise.all([
+      this.comments.findManyOn(ref),
+      this.blocks.blockedBy(viewerId),
+    ]);
     return toConversationDto(comments, {
       viewerId,
       ownerId,
       answers: ref.subject !== CommentSubject.Post,
+      blocked,
     });
   }
 }

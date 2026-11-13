@@ -36,6 +36,7 @@ apps/api/src/
   posts/                                     the blog: posts pilots write about their builds
   likes/                                     hearts on posts and builds
   reports/                                   pilots flagging a post or comment for an admin
+  blocks/                                    one pilot keeping another away from what they own
   settings/                                  what an admin changes on the Admin page
   health/
 ```
@@ -115,12 +116,13 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are ten: `UsersFacade` and `SettingsFacade` (both consumed by auth),
+that module's `exports`. There are eleven: `UsersFacade` and `SettingsFacade` (both consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
 `FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
 comments), `BuildsFacade` (consumed by comments and posts), `LikesFacade`
 (consumed by builds and posts), `PostsFacade` (consumed by comments and
-reports) and `CommentsFacade` (consumed by reports). A facade
+reports), `CommentsFacade` (consumed by reports) and `BlocksFacade` (consumed by
+comments). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -189,6 +191,7 @@ features/
   posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
   likes/        likes.api, like-button container (dropped into the post and build pages)
   reports/      reports.api, report-button container (the post page), report-form presenter (also under each comment)
+  blocks/       blocks.api/store, blocked-pilots presenter (on /account; Block itself is under each comment)
   admin/        admin.api/store, admin.page container + sign-up-settings presenter
 ```
 
@@ -1047,6 +1050,19 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   `assertAdmin` — and are the only writes not scoped by owner; every owner
   route is untouched. The Admin page's Hidden section shows them again or
   deletes them (`moderation.e2e.spec.ts`).
+- **A pilot blocks another** (`blocks`, `pilot_blocks`: one row per pair,
+  never oneself by a CHECK, going with either pilot). The blocked pilot can no
+  longer comment or reply on anything the blocker owns — spots, builds, posts
+  — and meets 403 "Comments are closed here", never the word "blocked". The
+  blocker no longer sees their comments anywhere: they leave the conversation
+  like a hidden one, a question with others' replies staying as "From a pilot
+  you blocked", and they are not counted as unread. Everyone else sees exactly
+  what they saw. `comments` asks `BlocksFacade` both things; `blocks` depends
+  on no feature module. A comment carries `authorId` for a signed-in reader so
+  Block can name its author (null for a visitor and on a placeholder). Nobody
+  blocks an admin. `PUT`/`DELETE /users/blocks/:userId` stay open to a
+  read-only pilot; the list (`GET /users/me/blocks`, public names) is on
+  `/account` with Unblock (`blocks.e2e.spec.ts`).
 - **zod 4 applies `.default()` inside `.partial()`.** An update schema built as
   `fields.partial()` over fields with defaults resets every field a PATCH does
   not name. It was live in builds, parts, part units, part sources and repairs

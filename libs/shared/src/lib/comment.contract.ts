@@ -47,6 +47,11 @@ export const commentSchema = z.object({
   body: z.string(),
   /** The author's display name, or null when they never set one. Never an email. */
   authorName: z.string().nullable(),
+  /**
+   * Who wrote it, so a signed-in reader can block them. Null for a signed-out
+   * visitor, and wherever the name is gone too.
+   */
+  authorId: z.uuid().nullable(),
   /** Written by the spot's or build's owner — shown as such, since theirs is the answer people want. */
   byOwner: z.boolean(),
   /** Written by the person asking. Only they can edit it. */
@@ -65,6 +70,12 @@ export const commentSchema = z.object({
    * one: empty body, null name, and the replies under it.
    */
   hidden: z.boolean(),
+  /**
+   * Written by a pilot the viewer blocked. Left out like a hidden one, except
+   * a question others replied to, which stays as a placeholder. Only ever
+   * true for the blocker.
+   */
+  blocked: z.boolean(),
   /** A reply marked as its question's answer, by the asker or the owner. Always false on a question. */
   isAnswer: z.boolean(),
   /**

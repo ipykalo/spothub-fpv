@@ -78,6 +78,8 @@ export class Questions {
   /** An admin's intents, sent to the admin routes rather than the owner's. */
   readonly hiddenAsAdmin = output<CommentDto>();
   readonly deletedAsAdmin = output<CommentDto>();
+  /** Block the comment's author: offered on anyone else's words, to a signed-in reader. */
+  readonly authorBlocked = output<CommentDto>();
 
   /** Comments under a post rather than questions: different words, the same thread. */
   protected readonly isPost = computed(() => this.subjectLabel() === 'post');

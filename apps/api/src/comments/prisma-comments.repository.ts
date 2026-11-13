@@ -262,6 +262,7 @@ export class PrismaCommentsRepository extends CommentsRepository {
 
   async countUnreadForOwner(ownerId: string): Promise<UnreadBySubject> {
     // One query for every spot, build and post the owner has, rather than one per card.
+    // A pilot the owner blocked is not counted: their comments are not shown to them.
     const rows = await this.prisma.$queryRaw<
       { subject: CommentSubject; subject_id: string; unread: number }[]
     >`
@@ -273,6 +274,10 @@ export class PrismaCommentsRepository extends CommentsRepository {
         AND c.author_id <> s.owner_id
         AND c.deleted_at IS NULL
         AND c.hidden_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pilot_blocks pb
+          WHERE pb.blocker_id = ${ownerId}::uuid AND pb.blocked_id = c.author_id
+        )
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.spot_id
       UNION ALL
@@ -284,6 +289,10 @@ export class PrismaCommentsRepository extends CommentsRepository {
         AND c.author_id <> b.owner_id
         AND c.deleted_at IS NULL
         AND c.hidden_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pilot_blocks pb
+          WHERE pb.blocker_id = ${ownerId}::uuid AND pb.blocked_id = c.author_id
+        )
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.build_id
       UNION ALL
@@ -295,6 +304,10 @@ export class PrismaCommentsRepository extends CommentsRepository {
         AND c.author_id <> p.author_id
         AND c.deleted_at IS NULL
         AND c.hidden_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pilot_blocks pb
+          WHERE pb.blocker_id = ${ownerId}::uuid AND pb.blocked_id = c.author_id
+        )
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.post_id
     `;
