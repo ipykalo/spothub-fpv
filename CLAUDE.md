@@ -24,7 +24,7 @@ whole public surface:
 
 ```
 apps/api/src/
-  app/  common/  config/  prisma/  storage/  jobs/   infrastructure
+  app/  common/  config/  prisma/  storage/  jobs/  youtube/   infrastructure
   auth/  users/                              sign-in and accounts
   builds/  build-parts/  repairs/  configs/  build-videos/  the hangar
   parts/                                     inventory (catalogue, units, sources)
@@ -88,7 +88,7 @@ contract: it marks the module's contract surface — the abstract repository and
 facade classes that are also the DI tokens — rather than being another pile of
 implementation files.
 
-`common/`, `config/`, `prisma/`, `storage/`, `jobs/` and `app/` are
+`common/`, `config/`, `prisma/`, `storage/`, `jobs/`, `youtube/` and `app/` are
 infrastructure, not feature modules, and keep their own shape.
 
 **Object storage and the job queue are infrastructure, not features.**
@@ -1044,7 +1044,20 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   old image by its exact key; the same video with a new start time keeps it.
   The DTO carries a presigned `coverUrl`, never the key. The e2e suite swaps
   the port for `StubYouTubeThumbnails`, which generates a 4:3 image so the
-  crop is tested too.
+  crop is tested too. **The port and the crop are infrastructure**, in
+  `youtube/` (`VideoCovers.make`): they began in `spots` and moved out when
+  build videos needed covers too, as `StorageGateway` left `media`.
+- **A build video's cover is made the same way.** Adding one queues
+  `build-video.cover`, which stores it at
+  `<owner>/builds/<build>/video-<video id>.webp` and records the key only
+  while the row still exists and has none. Removing the video deletes it by
+  key; deleting the build clears `<owner>/builds/<build>/`, a folder only
+  covers live in (photos sit at `<owner>/<uuid>`). At start-up every video
+  without a cover is queued, which is how ones added before covers got
+  theirs. `BuildVideoDto.coverUrl` is presigned; the build page renews it
+  with its photos (`build-video-covers.e2e.spec.ts`). A spec whose requests
+  queue jobs waits for them before closing (`e2e/support/jobs.ts`): a job
+  still running at shutdown outlives the database connection.
 - Tiles come from OpenStreetMap, and nothing else sends a spot's coordinates
   anywhere. Weather was deliberately deferred for that reason.
 - **A pilot reports a post or a comment** (`reports`, `POST /reports`): a

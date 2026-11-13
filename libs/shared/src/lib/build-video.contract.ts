@@ -31,5 +31,10 @@ export interface BuildVideoDto extends YouTubeVideo {
   readonly id: string;
   readonly buildId: string;
   readonly title: string | null;
+  /**
+   * The video's thumbnail from our own storage, presigned; null until it has
+   * been made, or when YouTube has none. Never a YouTube address.
+   */
+  readonly coverUrl: string | null;
   readonly createdAt: string;
 }

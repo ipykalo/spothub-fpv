@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import sharp from 'sharp';
 
-// Reaches past the spots module's barrel on purpose, as the blackbox stub
-// does: YouTubeThumbnails is an infrastructure seam for a test harness, not
-// part of the module's public API.
-import { YouTubeThumbnails } from '../../src/spots/abstract/youtube-thumbnails';
+// YouTubeThumbnails is an infrastructure seam, exported by `youtube/` for
+// this harness to stand in for.
+import { YouTubeThumbnails } from '../../src/youtube';
 
 /** A video id the stub has no thumbnail for, the way YouTube answers for a removed video. */
 export const VIDEO_WITHOUT_THUMBNAIL = 'noThumbnail';

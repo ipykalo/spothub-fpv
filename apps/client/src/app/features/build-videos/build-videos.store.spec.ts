@@ -13,6 +13,7 @@ const video = (id: string, buildId = 'b1'): BuildVideoDto => ({
   youtubeId: 'dQw4w9WgXcQ',
   startS: null,
   title: `Video ${id}`,
+  coverUrl: null,
   createdAt: '2026-11-10T10:00:00.000Z',
 });
 
@@ -22,9 +23,12 @@ describe('BuildVideosStore', () => {
     addFails: HttpErrorResponse | null = null;
     removeFails = false;
     removed: string[] = [];
+    listFails = false;
 
     list(buildId: string): Observable<BuildVideoDto[]> {
-      return of(this.lists[buildId] ?? []);
+      return this.listFails
+        ? throwError(() => new Error('offline'))
+        : of(this.lists[buildId] ?? []);
     }
 
     add(buildId: string, body: CreateBuildVideoDto): Observable<BuildVideoDto> {
@@ -66,6 +70,25 @@ describe('BuildVideosStore', () => {
     expect(store.videos()).toEqual([]);
     await loading;
     expect(store.videos()).toEqual([]);
+  });
+
+  it('refreshes in place: the videos stay shown, and come back with their covers', async () => {
+    await store.load('b1');
+    api.lists.b1 = [
+      { ...video('2'), coverUrl: 'https://storage/cover-2.webp' },
+      video('1'),
+    ];
+
+    const refreshing = store.refresh('b1');
+    expect(store.videos()).toHaveLength(2);
+    await refreshing;
+    expect(store.videos()[0].coverUrl).toBe('https://storage/cover-2.webp');
+
+    // A failed refresh keeps what is shown and says nothing.
+    api.listFails = true;
+    await store.refresh('b1');
+    expect(store.videos()).toHaveLength(2);
+    expect(store.error()).toBeNull();
   });
 
   it('puts an added video first', async () => {

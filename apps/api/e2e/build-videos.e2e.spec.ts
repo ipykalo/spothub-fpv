@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PrismaService } from '../src/prisma';
 import { type TestApp, createTestApp } from './support/app';
+import { waitForJobs } from './support/jobs';
 import { type TestUser, createTestUser, deleteTestUser } from './support/users';
 
 /**
@@ -16,6 +17,8 @@ describe('build videos', () => {
   let stranger: TestUser;
   let shared: BuildDto;
   let secret: BuildDto;
+
+  const started = new Date();
 
   beforeAll(async () => {
     testApp = await createTestApp();
@@ -32,6 +35,8 @@ describe('build videos', () => {
   });
 
   afterAll(async () => {
+    // Every video added queued its cover.
+    await waitForJobs(testApp.app, 'build-video.cover', started);
     await deleteTestUser(testApp.app, owner.id);
     await deleteTestUser(testApp.app, stranger.id);
     await testApp.close();
