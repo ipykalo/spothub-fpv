@@ -3,6 +3,9 @@ import type {
   AssetSubject,
   CommitAssetData,
   CreateAssetData,
+  DisplayCandidate,
+  DisplayVersion,
+  PilotPhotoData,
 } from '../asset.entity';
 
 /**
@@ -101,7 +104,53 @@ export abstract class AssetsRepository {
     assetId: string | null,
   ): Promise<boolean>;
 
-  /** Storage keys for a set of asset ids, for batch URL signing. */
+  /**
+   * Makes a pending upload the pilot's profile photo: the row becomes the
+   * processed square, the pilot points at it, and the photo it replaces is
+   * deleted — all at once. Answers the replaced photo's storage keys for the
+   * caller to delete, or null when the upload is not this pilot's pending one.
+   */
+  abstract setPilotPhotoForOwner(
+    ownerId: string,
+    assetId: string,
+    photo: PilotPhotoData,
+  ): Promise<readonly string[] | null>;
+
+  /** Takes the pilot's photo away, answering its storage keys; none when they had none. */
+  abstract clearPilotPhotoForOwner(ownerId: string): Promise<readonly string[]>;
+
+  /** Where a pilot's photo is stored, for the address that redirects to it. */
+  abstract findPilotPhotoKey(userId: string): Promise<string | null>;
+
+  /**
+   * Ready images with no display version yet, after `afterId` in id order —
+   * the backfill's pages. Ordered by id so a page that failed is not asked
+   * for again in the same run.
+   */
+  abstract findMissingDisplays(
+    afterId: string | null,
+    limit: number,
+  ): Promise<readonly DisplayCandidate[]>;
+
+  /**
+   * Records a display version made for an image, unless it gained one in the
+   * meantime, and the original's upright size beside it — older images were
+   * recorded with a phone photo's sides swapped. Answers whether it was
+   * recorded; when not, the caller deletes what it stored.
+   */
+  abstract attachDisplayForOwner(
+    ownerId: string,
+    assetId: string,
+    display: DisplayVersion,
+    upright: { readonly width: number; readonly height: number },
+  ): Promise<boolean>;
+
+  /** The owner's ready images among `assetIds`, with their versions' keys. */
+  abstract findReadyForOwner(
+    ownerId: string,
+    assetIds: readonly string[],
+  ): Promise<readonly AssetEntity[]>;
+
   abstract findKeysForOwner(
     ownerId: string,
     assetIds: readonly string[],

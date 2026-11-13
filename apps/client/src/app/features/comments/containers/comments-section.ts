@@ -12,16 +12,26 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { type CommentDto, CommentSubject, type ConversationDto } from '@spothub/shared';
+import {
+  type CommentDto,
+  CommentSubject,
+  type ConversationDto,
+  ReportSubject,
+} from '@spothub/shared';
+import { firstValueFrom } from 'rxjs';
 
+import { apiMessage } from '../../../core/api/api-error';
 import { Section } from '../../../core/components/section/section';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { BlocksStore } from '../../blocks/blocks.store';
+import { ReportsApi } from '../../reports/reports.api';
 import { CommentsStore } from '../comments.store';
 import { CommentForm } from '../presenters/comment-form/comment-form';
 import {
   type AnswerMark,
   type CommentEdit,
   type CommentReply,
+  type CommentReport,
   Questions,
 } from '../presenters/questions/questions';
 
@@ -96,6 +106,8 @@ export class CommentsSection {
   protected readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly reports = inject(ReportsApi);
+  private readonly blocks = inject(BlocksStore);
 
   /** The ask box is asked for, never shown by default. */
   protected readonly asking = signal(false);
@@ -180,6 +192,91 @@ export class CommentsSection {
       this.snackBar.open('Deleted', undefined, { duration: 2500 });
     } else {
       this.reportFailure();
+    }
+  }
+
+  /** Sent from here rather than the comments store: a report is not part of the conversation. */
+  protected async report(report: CommentReport): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.reports.file({
+          ...report.words,
+          subject: ReportSubject.Comment,
+          subjectId: report.commentId,
+        }),
+      );
+      this.snackBar.open('Reported. Thank you — an admin will look at it.', undefined, {
+        duration: 4000,
+      });
+    } catch (error) {
+      this.snackBar.open(apiMessage(error, 'The report did not go through.'), undefined, {
+        duration: 4000,
+      });
+    }
+  }
+
+  protected async hideAsAdmin(comment: CommentDto): Promise<void> {
+    if (await this.comments.hideAsAdmin(comment.id)) {
+      this.snackBar.open('Hidden. Show it again from the Admin page.', undefined, {
+        duration: 4000,
+      });
+    } else {
+      this.reportFailure();
+    }
+  }
+
+  protected async removeAsAdmin(comment: CommentDto): Promise<void> {
+    const replies =
+      this.comments.comments()?.questions.find((entry) => entry.id === comment.id)
+        ?.replies.length ?? 0;
+    const by = comment.authorName ?? 'a pilot';
+    const prompt =
+      replies > 0
+        ? `Delete this comment by ${by} and its ${String(replies)} ${replies === 1 ? 'reply' : 'replies'}?`
+        : `Delete this comment by ${by}?`;
+
+    if (!window.confirm(prompt)) {
+      return;
+    }
+
+    if (await this.comments.removeAsAdmin(comment.id)) {
+      this.snackBar.open('Deleted', undefined, { duration: 2500 });
+    } else {
+      this.reportFailure();
+    }
+  }
+
+  /**
+   * Says what a block does before doing it, then reads the conversation again:
+   * the server leaves the blocked pilot's words out of it.
+   */
+  protected async block(comment: CommentDto): Promise<void> {
+    if (comment.authorId === null) {
+      return;
+    }
+
+    const who = comment.authorName ?? 'this pilot';
+    const prompt =
+      `Block ${who}? They will no longer be able to comment on your spots, builds and ` +
+      'posts, and you will no longer see their comments. They are not told.';
+
+    if (!window.confirm(prompt)) {
+      return;
+    }
+
+    if (await this.blocks.block(comment.authorId)) {
+      this.snackBar.open(
+        `${who} is blocked. Unblock them on your account page.`,
+        undefined,
+        {
+          duration: 5000,
+        },
+      );
+      await this.comments.open(this.subject(), this.subjectId());
+    } else {
+      this.snackBar.open(this.blocks.error() ?? 'That did not go through.', undefined, {
+        duration: 4000,
+      });
     }
   }
 

@@ -1,6 +1,8 @@
 import type {
   CommentEntity,
+  CommentPlacement,
   CreateCommentData,
+  HiddenCommentEntity,
   SubjectRef,
   UnreadBySubject,
 } from '../comment.entity';
@@ -19,6 +21,9 @@ export abstract class CommentsRepository {
   abstract findManyOn(ref: SubjectRef): Promise<CommentEntity[]>;
 
   abstract findOneOn(ref: SubjectRef, commentId: string): Promise<CommentEntity | null>;
+
+  /** What a comment is on and who wrote it, found by its id alone. */
+  abstract findPlacement(commentId: string): Promise<CommentPlacement | null>;
 
   abstract create(ref: SubjectRef, data: CreateCommentData): Promise<CommentEntity>;
 
@@ -64,4 +69,19 @@ export abstract class CommentsRepository {
    * the owner last read each, counted per subject. Subjects with none are absent.
    */
   abstract countUnreadForOwner(ownerId: string): Promise<UnreadBySubject>;
+
+  // An admin's reach: not scoped by author or owner, and called only once the
+  // service has checked the caller is an admin.
+
+  /** Every comment an admin has hidden, most recently hidden first. */
+  abstract findHidden(): Promise<HiddenCommentEntity[]>;
+
+  /** Hides a comment or shows it again. False when there is no such comment with words. */
+  abstract setHidden(commentId: string, hidden: boolean): Promise<boolean>;
+
+  /**
+   * Deletes any comment, a question's replies with it, as the subject's owner
+   * would — and what is left of a deleted question once its last reply goes.
+   */
+  abstract deleteAny(commentId: string): Promise<boolean>;
 }

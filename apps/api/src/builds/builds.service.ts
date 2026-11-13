@@ -1,21 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   type BuildDto,
   type CreateBuildDto,
   type ListBuildsQuery,
   NO_LIKES,
+  type ResponsiveImageDto,
   type UpdateBuildDto,
 } from '@spothub/shared';
 
 import { fromDateOnly, uniqueSlug } from '../common';
 import { LikesFacade } from '../likes';
 import { MediaFacade } from '../media';
+import { StorageGateway } from '../storage';
 import { BuildsRepository } from './abstract/builds.repository';
 import type { BuildEntity, UpdateBuildData } from './build.entity';
 import { toBuildDto } from './builds.mapper';
 
 /**
- * Business rules for builds. Knows nothing about HTTP, Prisma or storage.
+ * Business rules for builds. Knows nothing about HTTP or Prisma, and of
+ * storage only that a build's own folder goes with it.
  *
  * Reading and writing are asked differently on purpose. Anyone signed in may
  * read a build shared with them; only its owner may change or delete it, and
@@ -23,10 +26,13 @@ import { toBuildDto } from './builds.mapper';
  */
 @Injectable()
 export class BuildsService {
+  private readonly logger = new Logger(BuildsService.name);
+
   constructor(
     private readonly builds: BuildsRepository,
     private readonly media: MediaFacade,
     private readonly likes: LikesFacade,
+    private readonly storage: StorageGateway,
   ) {}
 
   /** The viewer's own builds. */
@@ -123,6 +129,16 @@ export class BuildsService {
     if (!deleted) {
       throw new NotFoundException('Build not found');
     }
+
+    // What is stored for this build alone — its videos' covers — sits under
+    // its own folder. The rows are gone either way; a file left behind by a
+    // storage failure is still under the owner's prefix, so deleting the
+    // account removes it.
+    try {
+      await this.storage.deletePrefix(`${ownerId}/builds/${id}/`);
+    } catch (error) {
+      this.logger.warn(`Files of deleted build ${id} were not removed`, error);
+    }
   }
 
   /**
@@ -146,11 +162,17 @@ export class BuildsService {
       }
     }
 
-    const urls = new Map<string, string>();
+    // The display version and thumbnail, never the camera original: a
+    // hangar of cards used to load every cover at full size.
+    const covers = new Map<string, ResponsiveImageDto>();
 
     for (const [ownerId, ids] of coversByOwner) {
-      for (const [id, url] of await this.media.urlsFor(ownerId, ids)) {
-        urls.set(id, url);
+      const signed = await this.media.coverImages(
+        ownerId,
+        new Map(ids.map((id) => [id, null])),
+      );
+      for (const [id, cover] of signed) {
+        covers.set(id, cover);
       }
     }
 
@@ -163,7 +185,7 @@ export class BuildsService {
     return builds.map((build) =>
       toBuildDto(
         build,
-        build.coverAssetId === null ? null : (urls.get(build.coverAssetId) ?? null),
+        build.coverAssetId === null ? null : (covers.get(build.coverAssetId) ?? null),
         viewerId,
         likes.get(build.id) ?? NO_LIKES,
       ),

@@ -1,0 +1,21 @@
+@let url = photoUrl();
+
+@if (url && !failed()) {
+  <img
+    class="block shrink-0 rounded-full bg-surface-container object-cover"
+    [class]="sizeClasses()"
+    [src]="url"
+    alt=""
+    loading="lazy"
+    decoding="async"
+    (error)="failed.set(true)"
+  />
+} @else {
+  <span
+    class="grid shrink-0 place-items-center rounded-full bg-(--mat-sys-primary) font-bold text-(--mat-sys-on-primary)"
+    [class]="sizeClasses()"
+    aria-hidden="true"
+  >
+    {{ initial() }}
+  </span>
+}

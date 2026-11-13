@@ -12,6 +12,8 @@ export interface SpotEntity {
   readonly ownerId: string;
   /** The owner's display name, for people opening a spot they do not own. */
   readonly ownerName: string | null;
+  /** Their profile photo's lasting address, or null without one. */
+  readonly ownerPhotoUrl: string | null;
   readonly name: string;
   readonly slug: string;
   readonly lat: number;

@@ -43,4 +43,21 @@ export abstract class PostsRepository {
   ): Promise<PostEntity | null>;
 
   abstract deleteForAuthor(authorId: string, id: string): Promise<boolean>;
+
+  // An admin's reach: not scoped by author, and called only once the service
+  // has checked the caller is an admin.
+
+  /** Any post, whoever wrote it and whatever its visibility. */
+  abstract findAnyById(id: string): Promise<PostEntity | null>;
+
+  /** Every post an admin has hidden, most recently hidden first. */
+  abstract findHidden(): Promise<PostEntity[]>;
+
+  /** Hides a post or shows it again. False when there is no such post. */
+  abstract setHidden(id: string, hidden: boolean): Promise<boolean>;
+
+  /** Hides, or shows again, every post the author wrote; how many changed. */
+  abstract setHiddenForAllBy(authorId: string, hidden: boolean): Promise<number>;
+
+  abstract deleteAny(id: string): Promise<boolean>;
 }

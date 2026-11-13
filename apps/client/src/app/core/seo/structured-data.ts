@@ -4,6 +4,8 @@ import type { PostDto, PostSummaryDto } from '@spothub/shared';
 import { SITE_ORIGIN } from './site-origin';
 
 const SITE_NAME = 'SpotHub FPV';
+/** The mark as a square PNG, for a publisher logo: rendered from favicon.svg (`scripts/render-icons.mjs`). */
+const SITE_LOGO = '/logo.png';
 const SCRIPT_ID = 'sh-structured-data';
 
 /**
@@ -51,7 +53,17 @@ export class StructuredData {
       dateModified: post.updatedAt,
       wordCount: post.bodyMd.split(/\s+/u).filter(Boolean).length,
       author: { '@type': 'Person', name: post.authorName ?? 'A pilot' },
-      publisher: { '@type': 'Organization', name: SITE_NAME, url: this.origin },
+      publisher: {
+        '@type': 'Organization',
+        name: SITE_NAME,
+        url: this.origin,
+        logo: {
+          '@type': 'ImageObject',
+          url: `${this.origin}${SITE_LOGO}`,
+          width: 512,
+          height: 512,
+        },
+      },
       ...(post.tags.length === 0
         ? {}
         : { keywords: post.tags.map((tag) => tag.name).join(', ') }),

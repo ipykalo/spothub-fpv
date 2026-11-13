@@ -1,6 +1,6 @@
-import type { AdminUserDto, StorageUsageDto } from '@spothub/shared';
+import { type AdminUserDto, type StorageUsageDto, pilotPhotoUrl } from '@spothub/shared';
 
-import type { UserEntity } from './user.entity';
+import type { PostCounts, UserEntity } from './user.entity';
 
 /**
  * The single place a user becomes the Admin page's row. Explicit, so a column
@@ -11,6 +11,7 @@ export function toAdminUserDto(
   user: UserEntity,
   viewerId: string,
   storage: StorageUsageDto,
+  posts: PostCounts,
 ): AdminUserDto {
   return {
     id: user.id,
@@ -18,6 +19,7 @@ export function toAdminUserDto(
     displayName: user.displayName,
     pilotName: user.pilotName,
     avatarUrl: user.avatarUrl,
+    photoUrl: pilotPhotoUrl(user.id, user.photoAssetId),
     role: user.role,
     status: user.status,
     isViewer: user.id === viewerId,
@@ -27,5 +29,7 @@ export function toAdminUserDto(
     storageLimitBytes: storage.limitBytes,
     storageQuotaBytes: user.storageQuotaBytes,
     lastSignInCountry: user.lastSignInCountry,
+    postCount: posts.posts,
+    hiddenPostCount: posts.hidden,
   };
 }

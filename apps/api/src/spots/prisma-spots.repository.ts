@@ -1,4 +1,4 @@
-import { publicName } from '@spothub/shared';
+import { pilotPhotoUrl, publicName } from '@spothub/shared';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
@@ -12,7 +12,7 @@ import type { CreateSpotData, SpotEntity, UpdateSpotData } from './spot.entity';
  * email never leaves the users table through here.
  */
 const WITH_OWNER_NAME = {
-  owner: { select: { displayName: true, pilotName: true } },
+  owner: { select: { displayName: true, pilotName: true, photoAssetId: true } },
 } satisfies Prisma.SpotInclude;
 
 type SpotRow = Prisma.SpotGetPayload<{ include: typeof WITH_OWNER_NAME }>;
@@ -154,6 +154,7 @@ function toEntity(row: SpotRow): SpotEntity {
     id: row.id,
     ownerId: row.ownerId,
     ownerName: publicName(row.owner.pilotName, row.owner.displayName),
+    ownerPhotoUrl: pilotPhotoUrl(row.ownerId, row.owner.photoAssetId),
     name: row.name,
     slug: row.slug,
     lat: row.lat.toNumber(),

@@ -6,6 +6,8 @@ export interface PostEntity {
   readonly authorId: string;
   /** The author's display name, joined from users. Never their email. */
   readonly authorName: string | null;
+  /** Their profile photo's lasting address, or null without one. */
+  readonly authorPhotoUrl: string | null;
   readonly title: string;
   readonly slug: string;
   readonly summary: string | null;
@@ -17,6 +19,8 @@ export interface PostEntity {
   readonly coverAssetId: string | null;
   /** The builds it is about, in the author's order. Not yet checked against any viewer. */
   readonly buildIds: readonly string[];
+  /** Set by an admin: read by its author alone until an admin shows it again. */
+  readonly hiddenAt: Date | null;
   /** Comments and replies on it, a join inside the repository. */
   readonly commentCount: number;
   readonly createdAt: Date;

@@ -47,7 +47,11 @@ model User {
   /// The country of the IP their last sign-in came from, refused or not — for
   /// the Admin page. Null when it could not be placed.
   lastSignInCountry String?    @map("last_sign_in_country") @db.VarChar(2)
-  avatarUrl        String?    @map("avatar_url")
+  /// The photo Google gave. Kept, never shown: this site loads nothing from Google.
+  avatarUrl         String?    @map("avatar_url")
+  /// The profile photo they uploaded: one asset, a 256 px square WebP stored
+  /// under `<id>/photo/`. Shown beside their name wherever others see it.
+  photoAssetId      String?    @unique @map("photo_asset_id") @db.Uuid
   role              Role       @default(USER)
   status            UserStatus @default(ACTIVE)
   /// Stamped by a Google sign-in, not by a token refresh: when the person last
@@ -59,6 +63,7 @@ model User {
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
+  photo         Asset?         @relation("UserPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
   identities    AuthIdentity[]
   refreshTokens RefreshToken[]
   builds        Build[]
@@ -74,6 +79,12 @@ model User {
   commentReads CommentRead[]
   posts        Post[]
   likes        Like[]
+
+  reportsFiled    Report[] @relation("ReportsFiled")
+  reportsResolved Report[] @relation("ReportsResolved")
+
+  blocking  PilotBlock[] @relation("Blocking")
+  blockedBy PilotBlock[] @relation("BlockedBy")
 
   @@map("users")
 }
@@ -395,12 +406,17 @@ model ExchangeRate {
 /// what is stored is the video's id and start time, never a pasted address,
 /// so a row cannot point anywhere else.
 model BuildVideo {
-  id        String   @id @default(uuid()) @db.Uuid
-  buildId   String   @map("build_id") @db.Uuid
-  youtubeId String   @map("youtube_id") @db.VarChar(11)
-  startS    Int?     @map("start_s")
-  title     String?  @db.VarChar(80)
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  buildId         String   @map("build_id") @db.Uuid
+  youtubeId       String   @map("youtube_id") @db.VarChar(11)
+  startS          Int?     @map("start_s")
+  title           String?  @db.VarChar(80)
+  /// The video's thumbnail, made into a cover and kept in our storage at
+  /// `<owner>/builds/<build>/video-<id>.webp`, so no viewer asks YouTube for
+  /// it. Null until the `build-video.cover` job has made it, or when YouTube
+  /// has none.
+  coverStorageKey String?  @map("cover_storage_key")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
 
@@ -425,6 +441,9 @@ enum AssetKind {
   /// A generated derivative. Kept as its own row so it can be served, counted
   /// and deleted like anything else.
   THUMB
+  /// The size a screen shows: at most 1600 px, WebP. Generated like THUMB,
+  /// and counted toward the owner's storage, since it is real bytes.
+  DISPLAY
 }
 
 /// An asset is `ready` only once the bytes are in storage and the API has
@@ -458,6 +477,9 @@ model Asset {
   height     Int?
   /// The thumbnail generated from this asset, if it has one.
   thumbId    String?     @unique @map("thumb_id") @db.Uuid
+  /// The display-size version, once one exists (older photos get theirs from
+  /// a backfill job).
+  displayId  String?     @unique @map("display_id") @db.Uuid
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
@@ -466,8 +488,11 @@ model Asset {
   /// dropping the original takes its derivative with it.
   thumb        Asset?      @relation("AssetThumb", fields: [thumbId], references: [id], onDelete: SetNull)
   original     Asset?      @relation("AssetThumb")
+  display      Asset?      @relation("AssetDisplay", fields: [displayId], references: [id], onDelete: SetNull)
+  displayOf    Asset?      @relation("AssetDisplay")
   links        AssetLink[]
   coverFor     Build[]     @relation("BuildCover")
+  photoOf      User?       @relation("UserPhoto")
   /// Posts this image is the cover of.
   postCoverFor Post[]      @relation("PostCover")
 
@@ -861,6 +886,8 @@ model Comment {
   /// Set when a question's asker deleted it after others had replied: its
   /// words are cleared and the replies stay, under "Question deleted".
   deletedAt DateTime? @map("deleted_at")
+  /// Set by an admin: its words are shown to nobody until an admin shows it again.
+  hiddenAt  DateTime? @map("hidden_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
@@ -871,6 +898,7 @@ model Comment {
   /// Deleting a question takes its replies with it.
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies Comment[] @relation("CommentReplies")
+  reports Report[]
 
   @@index([spotId, createdAt])
   @@index([buildId, createdAt])
@@ -922,6 +950,9 @@ model Post {
   /// The cover image, one of the post's own uploaded images. SetNull, so
   /// deleting the image does not delete the post.
   coverAssetId String?    @map("cover_asset_id") @db.Uuid
+  /// Set by an admin: the post is read by its author alone, whatever its
+  /// visibility says, until an admin shows it again.
+  hiddenAt     DateTime?  @map("hidden_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
@@ -931,6 +962,7 @@ model Post {
   likes        Like[]
   comments     Comment[]
   commentReads CommentRead[]
+  reports      Report[]
 
   @@unique([authorId, slug])
   @@index([authorId, updatedAt])
@@ -973,6 +1005,60 @@ model Like {
   @@unique([postId, userId])
   @@unique([buildId, userId])
   @@map("likes")
+}
+
+// ------------------------------------------------------------ reports
+
+enum ReportReason {
+  SPAM
+  ABUSE
+  ILLEGAL
+  OTHER
+}
+
+/// A pilot flagging a post or a comment for an admin to look at. Exactly one
+/// of post_id and comment_id, by a CHECK in the migration; goes with what it
+/// is about, and with its reporter. One per reporter per post or comment:
+/// reporting again reopens it with the new reason.
+model Report {
+  id           String       @id @default(uuid()) @db.Uuid
+  reporterId   String       @map("reporter_id") @db.Uuid
+  postId       String?      @map("post_id") @db.Uuid
+  commentId    String?      @map("comment_id") @db.Uuid
+  reason       ReportReason
+  details      String?
+  createdAt    DateTime     @default(now()) @map("created_at")
+  /// When an admin closed it; null while it is open.
+  resolvedAt   DateTime?    @map("resolved_at")
+  resolvedById String?      @map("resolved_by_id") @db.Uuid
+
+  reporter   User     @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy User?    @relation("ReportsResolved", fields: [resolvedById], references: [id], onDelete: SetNull)
+  post       Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment    Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterId, postId])
+  @@unique([reporterId, commentId])
+  @@index([resolvedAt, createdAt])
+  @@map("reports")
+}
+
+// ------------------------------------------------------------ pilot blocks
+
+/// One pilot keeping another away: the blocked pilot can no longer comment on
+/// anything the blocker owns, and the blocker no longer sees their comments.
+/// Never oneself, by a CHECK in the migration; goes with either pilot.
+model PilotBlock {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  blocker User @relation("Blocking", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("pilot_blocks")
 }
 
 // ------------------------------------------------------------ app settings

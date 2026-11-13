@@ -1,23 +1,26 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   type CreatePostDto,
+  type HiddenCountDto,
+  type HiddenPostDto,
   type ListPublishedPostsQuery,
   NO_LIKES,
   type PostDto,
   type PostSummaryDto,
+  referencedImageIds,
+  type ResponsiveImageDto,
+  type SetHiddenDto,
   type UpdatePostDto,
   Visibility,
-  postImageUrl,
-  referencedImageIds,
 } from '@spothub/shared';
 
 import { BuildsFacade } from '../builds';
-import { uniqueSlug } from '../common';
+import { type AuthenticatedUser, assertAdmin, uniqueSlug } from '../common';
 import { LikesFacade } from '../likes';
 import { MediaFacade } from '../media';
 import { PostsRepository } from './abstract/posts.repository';
 import type { PostEntity, UpdatePostData } from './post.entity';
-import { toPostDto, toPostSummaryDto, toPostTag } from './posts.mapper';
+import { toHiddenPostDto, toPostDto, toPostSummaryDto, toPostTag } from './posts.mapper';
 
 /**
  * Business rules for blog posts. Knows nothing about HTTP or Prisma.
@@ -149,10 +152,59 @@ export class PostsService {
     }
   }
 
+  /** What an admin has hidden, for the Admin page to show again or delete. */
+  async listHidden(viewer: AuthenticatedUser): Promise<HiddenPostDto[]> {
+    assertAdmin(viewer);
+    return (await this.posts.findHidden()).map(toHiddenPostDto);
+  }
+
   /**
-   * Summaries with their cover thumbnails — an address each, not a signature,
-   * so nothing here has to be signed — and their tags, the linked builds this
-   * viewer may open, asked for once for the whole list.
+   * An admin hides any post, or shows it again. Its author still reads and
+   * edits it — the owner's rules are untouched — but nobody else can open it,
+   * and choosing a visibility does not bring it back.
+   */
+  async setHidden(
+    viewer: AuthenticatedUser,
+    id: string,
+    input: SetHiddenDto,
+  ): Promise<void> {
+    assertAdmin(viewer);
+
+    if (!(await this.posts.setHidden(id, input.hidden))) {
+      throw new NotFoundException('Post not found');
+    }
+  }
+
+  /** Every post a pilot wrote, hidden or shown again at once — for a spammer. */
+  async setHiddenForAuthor(
+    viewer: AuthenticatedUser,
+    authorId: string,
+    input: SetHiddenDto,
+  ): Promise<HiddenCountDto> {
+    assertAdmin(viewer);
+    return { count: await this.posts.setHiddenForAllBy(authorId, input.hidden) };
+  }
+
+  /** An admin deletes any post, its images first, as its author's own delete does. */
+  async removeAny(viewer: AuthenticatedUser, id: string): Promise<void> {
+    assertAdmin(viewer);
+
+    const post = await this.posts.findAnyById(id);
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    await this.media.deletePostImages(post.authorId, id, []);
+
+    if (!(await this.posts.deleteAny(id))) {
+      throw new NotFoundException('Post not found');
+    }
+  }
+
+  /**
+   * Summaries with their covers and their tags — the linked builds this
+   * viewer may open — each asked for once for the whole list.
    */
   private async summaries(
     posts: readonly PostEntity[],
@@ -163,7 +215,7 @@ export class PostsService {
       posts.map((post) => post.id),
     );
 
-    const draftCovers = await this.signedDraftCovers(posts);
+    const covers = await this.coverImages(posts);
 
     const buildIds = [...new Set(posts.flatMap((post) => post.buildIds))];
     const tags = new Map(
@@ -177,14 +229,7 @@ export class PostsService {
       toPostSummaryDto(
         post,
         viewerId,
-        // The full image, not the thumbnail: a feed card is the width of the
-        // page, and a thumbnail is 640px on its long edge — a portrait photo
-        // came out 360px wide, stretched four times over and blurred.
-        post.coverAssetId === null
-          ? null
-          : isDraft(post)
-            ? (draftCovers.get(post.coverAssetId) ?? null)
-            : postImageUrl(post.id, post.coverAssetId),
+        post.coverAssetId === null ? null : (covers.get(post.coverAssetId) ?? null),
         post.buildIds.flatMap((buildId) => {
           const tag = tags.get(buildId);
           return tag ? [tag] : [];
@@ -195,28 +240,31 @@ export class PostsService {
   }
 
   /**
-   * Presigned covers for the drafts in a list, by asset id. Only an author's
-   * own list holds drafts, so this is one batch per author — in practice one.
+   * The covers of a list, by asset id, in the sizes a card's `srcset` picks
+   * from: the display version — a feed card is the width of the page, more
+   * than a 640px thumbnail, and 1600px is enough at a fraction of a camera
+   * original's bytes — with the thumbnail for a phone. A published post's
+   * are lasting addresses; a draft's are presigned, since only its author
+   * lists it and an `<img>` carries no token. One batch per author.
    */
-  private async signedDraftCovers(
+  private async coverImages(
     posts: readonly PostEntity[],
-  ): Promise<ReadonlyMap<string, string>> {
-    const byAuthor = new Map<string, string[]>();
+  ): Promise<ReadonlyMap<string, ResponsiveImageDto>> {
+    const byAuthor = new Map<string, Map<string, string | null>>();
 
     for (const post of posts) {
-      if (isDraft(post) && post.coverAssetId !== null) {
-        byAuthor.set(post.authorId, [
-          ...(byAuthor.get(post.authorId) ?? []),
-          post.coverAssetId,
-        ]);
+      if (post.coverAssetId !== null) {
+        const covers = byAuthor.get(post.authorId) ?? new Map<string, string | null>();
+        covers.set(post.coverAssetId, isDraft(post) ? null : post.id);
+        byAuthor.set(post.authorId, covers);
       }
     }
 
-    const signed = await Promise.all(
-      [...byAuthor].map(([authorId, ids]) => this.media.urlsFor(authorId, ids)),
+    const found = await Promise.all(
+      [...byAuthor].map(([authorId, covers]) => this.media.coverImages(authorId, covers)),
     );
 
-    return new Map(signed.flatMap((urls) => [...urls]));
+    return new Map(found.flatMap((covers) => [...covers]));
   }
 
   /** A post may only point at its author's own builds — never at someone else's, shared or not. */

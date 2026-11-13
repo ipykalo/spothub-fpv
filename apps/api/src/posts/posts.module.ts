@@ -5,7 +5,8 @@ import { LikesModule } from '../likes';
 import { MediaModule } from '../media';
 import { PostsFacade } from './abstract/posts.facade';
 import { PostsRepository } from './abstract/posts.repository';
-import { PostsController } from './posts.controller';
+import { PostsAdminController } from './controllers/posts-admin.controller';
+import { PostsController } from './controllers/posts.controller';
 import { PostsFacadeImpl } from './posts.facade.impl';
 import { PostsService } from './posts.service';
 import { PrismaPostsRepository } from './prisma-posts.repository';
@@ -22,7 +23,7 @@ import { PrismaPostsRepository } from './prisma-posts.repository';
  */
 @Module({
   imports: [BuildsModule, MediaModule, LikesModule],
-  controllers: [PostsController],
+  controllers: [PostsController, PostsAdminController],
   providers: [
     PostsService,
     { provide: PostsRepository, useClass: PrismaPostsRepository },

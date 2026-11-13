@@ -2,6 +2,13 @@ import { Injector, runInInjectionContext } from '@angular/core';
 import {
   type AdminUserDto,
   type AppSettingsDto,
+  type HiddenCommentDto,
+  type HiddenCountDto,
+  type HiddenPostDto,
+  type ReportDto,
+  ReportPlaceKind,
+  ReportReason,
+  ReportSubject,
   Role,
   type UpdateAdminUserDto,
   type UpdateAppSettingsDto,
@@ -42,9 +49,96 @@ describe('AdminStore', () => {
         storageLimitBytes: 2048,
         storageQuotaBytes: null,
         lastSignInCountry: null,
+        postCount: 2,
+        hiddenPostCount: 0,
       },
     ];
+    posts: HiddenPostDto[] = [
+      {
+        id: 'p1',
+        title: 'Spam',
+        slug: 'spam',
+        authorName: 'Pilot',
+        hiddenAt: '2026-11-12T00:00:00.000Z',
+      },
+    ];
+    comments: HiddenCommentDto[] = [
+      {
+        id: 'c1',
+        excerpt: 'Buy now',
+        authorName: 'Pilot',
+        place: { kind: ReportPlaceKind.Spot, id: 's1', slug: null },
+        hiddenAt: '2026-11-12T00:00:00.000Z',
+      },
+    ];
+    moderated: string[] = [];
+    openReports: ReportDto[] = [
+      report('r1', 'c1'),
+      report('r2', 'c1'),
+      report('r3', 'c2'),
+    ];
     fails = false;
+
+    reports(): Observable<ReportDto[]> {
+      return of(this.openReports);
+    }
+
+    resolveReport(id: string): Observable<ReportDto[]> {
+      if (this.fails) {
+        return throwError(() => new Error('forbidden'));
+      }
+
+      const about = this.openReports.find((entry) => entry.id === id)?.excerpt;
+      this.openReports = this.openReports.filter((entry) => entry.excerpt !== about);
+      return of(this.openReports);
+    }
+
+    hiddenPosts(): Observable<HiddenPostDto[]> {
+      return of(this.posts);
+    }
+
+    hiddenComments(): Observable<HiddenCommentDto[]> {
+      return of(this.comments);
+    }
+
+    setPostHidden(id: string, hidden: boolean): Observable<unknown> {
+      return this.record(`post ${id} ${String(hidden)}`);
+    }
+
+    deletePost(id: string): Observable<unknown> {
+      return this.record(`delete post ${id}`);
+    }
+
+    setCommentHidden(id: string, hidden: boolean): Observable<unknown> {
+      return this.record(`comment ${id} ${String(hidden)}`);
+    }
+
+    deleteComment(id: string): Observable<unknown> {
+      return this.record(`delete comment ${id}`);
+    }
+
+    setPilotPostsHidden(userId: string, hidden: boolean): Observable<HiddenCountDto> {
+      if (this.fails) {
+        return throwError(() => new Error('forbidden'));
+      }
+
+      this.moderated.push(`pilot ${userId} ${String(hidden)}`);
+      this.pilots = this.pilots.map((user) =>
+        user.id === userId
+          ? { ...user, hiddenPostCount: hidden ? user.postCount : 0 }
+          : user,
+      );
+      return of({ count: 2 });
+    }
+
+    private record(call: string): Observable<unknown> {
+      if (this.fails) {
+        return throwError(() => new Error('forbidden'));
+      }
+
+      this.moderated.push(call);
+      return of(null);
+    }
 
     settings(): Observable<AppSettingsDto> {
       return this.fails ? throwError(() => new Error('offline')) : of(this.stored);
@@ -175,4 +269,72 @@ describe('AdminStore', () => {
     expect(store.settings()?.allowedEmails).toEqual(['pilot@example.com']);
     expect(store.saving()).toBe(false);
   });
+
+  describe('reports', () => {
+    it('loads the open reports with the rest of the page', async () => {
+      await store.load();
+      expect(store.reports().map((entry) => entry.id)).toEqual(['r1', 'r2', 'r3']);
+    });
+
+    it('closing one drops every report about the same thing, as the API answered', async () => {
+      await store.load();
+      expect(await store.resolveReport('r1')).toBe(true);
+      expect(store.reports().map((entry) => entry.id)).toEqual(['r3']);
+    });
+
+    it('a failed close leaves the list as it was', async () => {
+      await store.load();
+      api.fails = true;
+      expect(await store.resolveReport('r1')).toBe(false);
+      expect(store.reports()).toHaveLength(3);
+    });
+  });
+
+  describe('hidden posts and comments', () => {
+    it('load with the rest of the page', () => {
+      expect(store.hiddenPosts().map((post) => post.id)).toEqual(['p1']);
+      expect(store.hiddenComments().map((comment) => comment.id)).toEqual(['c1']);
+    });
+
+    it('leave the list once shown again or deleted', async () => {
+      expect(await store.showPost('p1')).toBe(true);
+      expect(await store.deleteComment('c1')).toBe(true);
+
+      expect(api.moderated).toEqual(['post p1 false', 'delete comment c1']);
+      expect(store.hiddenPosts()).toEqual([]);
+      expect(store.hiddenComments()).toEqual([]);
+    });
+
+    it('stay on the list when the call fails', async () => {
+      api.fails = true;
+
+      expect(await store.deletePost('p1')).toBe(false);
+      expect(await store.showComment('c1')).toBe(false);
+      expect(store.hiddenPosts()).toHaveLength(1);
+      expect(store.hiddenComments()).toHaveLength(1);
+      expect(store.saving()).toBe(false);
+    });
+
+    it('hiding every post a pilot wrote reads the pilots again, with their new count', async () => {
+      expect(await store.setPilotPostsHidden('u1', true)).toBe(2);
+      expect(store.users()[0].hiddenPostCount).toBe(2);
+
+      api.fails = true;
+      expect(await store.setPilotPostsHidden('u1', false)).toBeNull();
+    });
+  });
 });
+
+function report(id: string, about: string): ReportDto {
+  return {
+    id,
+    subject: ReportSubject.Comment,
+    reason: ReportReason.Spam,
+    details: null,
+    reporterName: 'Reporter R.',
+    authorName: 'Author A.',
+    excerpt: about,
+    place: { kind: ReportPlaceKind.Post, id: 'p1', slug: 'a-post' },
+    createdAt: '2026-11-13T00:00:00.000Z',
+  };
+}

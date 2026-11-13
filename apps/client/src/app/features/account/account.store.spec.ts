@@ -2,9 +2,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injector, runInInjectionContext } from '@angular/core';
 import type {
   PilotNameDto,
+  PilotPhotoDto,
+  RequestUploadDto,
   StorageUsageDto,
   UpdateHomeCurrencyDto,
   UpdatePilotNameDto,
+  UploadTicketDto,
 } from '@spothub/shared';
 import { type Observable, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -39,6 +42,36 @@ describe('AccountStore', () => {
 
     setHomeCurrency(body: UpdateHomeCurrencyDto): Observable<UpdateHomeCurrencyDto> {
       return this.currencyFails ? throwError(() => new Error('offline')) : of(body);
+    }
+
+    photoFails: HttpErrorResponse | null = null;
+    photoCalls: string[] = [];
+
+    requestPhotoUpload(body: RequestUploadDto): Observable<UploadTicketDto> {
+      this.photoCalls.push(`ticket ${body.mime} ${String(body.sizeBytes)}`);
+      return of({
+        assetId: 'a1',
+        uploadUrl: 'https://storage/put',
+        contentType: body.mime,
+        expiresInSeconds: 300,
+      });
+    }
+
+    putPhoto(ticket: UploadTicketDto): Observable<null> {
+      this.photoCalls.push(`put ${ticket.uploadUrl}`);
+      return of(null);
+    }
+
+    commitPhoto(assetId: string): Observable<PilotPhotoDto> {
+      this.photoCalls.push(`commit ${assetId}`);
+      return this.photoFails
+        ? throwError(() => this.photoFails)
+        : of({ photoUrl: `/api/users/u1/photo?v=${assetId}` });
+    }
+
+    removePhoto(): Observable<PilotPhotoDto> {
+      this.photoCalls.push('remove');
+      return of({ photoUrl: null });
     }
 
     deleteAccount(): Observable<void> {
@@ -126,5 +159,42 @@ describe('AccountStore', () => {
 
     expect(await store.deleteAccount()).toBe(false);
     expect(store.error()).toBe('You are the only admin.');
+  });
+
+  describe('profile photo', () => {
+    const file = (type: string): File => new File(['bytes'], 'me.jpg', { type });
+
+    it('asks for a ticket, puts the bytes straight to storage, then commits', async () => {
+      expect(await store.uploadPhoto(file('image/jpeg'))).toEqual({
+        photoUrl: '/api/users/u1/photo?v=a1',
+      });
+      expect(api.photoCalls).toEqual([
+        'ticket image/jpeg 5',
+        'put https://storage/put',
+        'commit a1',
+      ]);
+      expect(store.savingPhoto()).toBe(false);
+    });
+
+    it('refuses what is not an image before sending anything', async () => {
+      expect(await store.uploadPhoto(file('application/pdf'))).toBeNull();
+      expect(store.photoError()).toBe('Choose a JPEG, PNG, WebP or AVIF image.');
+      expect(api.photoCalls).toEqual([]);
+    });
+
+    it('says why the server refused, in its words', async () => {
+      api.photoFails = new HttpErrorResponse({
+        status: 413,
+        error: { message: 'Your storage is full' },
+      });
+
+      expect(await store.uploadPhoto(file('image/png'))).toBeNull();
+      expect(store.photoError()).toBe('Your storage is full');
+    });
+
+    it('removes it', async () => {
+      expect(await store.removePhoto()).toEqual({ photoUrl: null });
+      expect(api.photoCalls).toEqual(['remove']);
+    });
   });
 });

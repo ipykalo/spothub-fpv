@@ -1,0 +1,44 @@
+@if (reports().length === 0) {
+  <p class="m-0 text-sm text-muted">No open reports.</p>
+} @else {
+  <ul class="m-0 grid list-none gap-3 p-0">
+    @for (report of reports(); track report.id) {
+      <li class="tone-stop grid gap-1.5 rounded-lg border border-l-4 border-outline-variant border-l-(--tone) p-3">
+        <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <span
+            class="rounded-full bg-(--tone-surface) px-2 py-0.5 text-xs font-bold tracking-wide text-(--tone) uppercase"
+            >{{ reasons[report.reason] }}</span
+          >
+          <span class="font-semibold">{{ what(report) }} by {{ report.authorName }}</span>
+          <span class="text-muted">
+            · reported by {{ report.reporterName }},
+            <time [attr.datetime]="report.createdAt">{{ report.createdAt | date: 'd MMM y, HH:mm' }}</time>
+          </span>
+        </p>
+
+        @if (report.excerpt) {
+          <blockquote class="m-0 border-l-2 border-outline-variant pl-3 text-base whitespace-pre-wrap wrap-anywhere">
+            {{ report.excerpt }}
+          </blockquote>
+        } @else {
+          <p class="m-0 text-sm text-muted italic">Deleted by its author since.</p>
+        }
+
+        @if (report.details; as details) {
+          <p class="m-0 text-sm wrap-anywhere"><span class="text-muted">Their words:</span> {{ details }}</p>
+        }
+
+        <div class="-ml-2 flex flex-wrap gap-0.5">
+          <a matButton [routerLink]="link(report.place)">
+            <mat-icon>open_in_new</mat-icon>
+            Open
+          </a>
+          <button matButton type="button" [disabled]="saving()" (click)="dismissed.emit(report)">
+            <mat-icon>done</mat-icon>
+            Dismiss
+          </button>
+        </div>
+      </li>
+    }
+  </ul>
+}

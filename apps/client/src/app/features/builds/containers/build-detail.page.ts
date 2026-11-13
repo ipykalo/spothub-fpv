@@ -67,6 +67,7 @@ import { BUILD_STATUS_STYLES } from '../build-status';
 import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
 import { BuildsApi } from '../builds.api';
 import { BuildsStore } from '../builds.store';
+import { Avatar } from '../../../core/components/avatar/avatar';
 
 /**
  * Container: the build page. Owns the stores and the side effects; every
@@ -80,6 +81,7 @@ import { BuildsStore } from '../builds.store';
   selector: 'sh-build-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Avatar,
     CollapseAll,
     MatButtonModule,
     MatIconModule,
@@ -119,10 +121,15 @@ export class BuildDetailPage {
   protected readonly auth = inject(AuthStore);
   protected readonly flights = inject(FlightsStore);
   private readonly builds = inject(BuildsStore);
-  /** Fresh photo addresses for a page left open past their signature. */
-  protected readonly photoFailed = refreshSignedLinks(
-    () => void this.photos.refresh(this.id()),
-  );
+  /**
+   * Fresh photo and video cover addresses for a page left open past their
+   * signature. A cover is a painted background, which reports no error of its
+   * own, so it is renewed whenever the photos are.
+   */
+  protected readonly photoFailed = refreshSignedLinks(() => {
+    void this.photos.refresh(this.id());
+    void this.videos.refresh(this.id());
+  });
   private readonly api = inject(BuildsApi);
   private readonly configsApi = inject(ConfigsApi);
   private readonly document = inject(DOCUMENT);

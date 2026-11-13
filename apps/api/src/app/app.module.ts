@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 import { AuthModule } from '../auth';
+import { BlocksModule } from '../blocks';
 import { BuildPartsModule } from '../build-parts';
 import { BuildsModule } from '../builds';
 import { CommentsModule } from '../comments';
@@ -15,6 +16,7 @@ import { FlightsModule } from '../flights';
 import { HealthModule } from '../health';
 import { JobsModule } from '../jobs';
 import { LikesModule } from '../likes';
+import { ReportsModule } from '../reports';
 import { MediaModule } from '../media';
 import { PartsModule } from '../parts';
 import { PostsModule } from '../posts';
@@ -26,6 +28,7 @@ import { SettingsModule } from '../settings';
 import { SpotsModule } from '../spots';
 import { StorageModule } from '../storage';
 import { UsersModule } from '../users';
+import { YouTubeModule } from '../youtube';
 
 /**
  * Every feature module is listed here even where one arrives transitively —
@@ -44,6 +47,7 @@ import { UsersModule } from '../users';
     ThrottlerModule.forRootAsync({ inject: [ConfigService], useFactory: rateLimits }),
     PrismaModule,
     StorageModule,
+    YouTubeModule,
     JobsModule,
     UsersModule,
     AuthModule,
@@ -61,6 +65,8 @@ import { UsersModule } from '../users';
     CommentsModule,
     PostsModule,
     LikesModule,
+    BlocksModule,
+    ReportsModule,
     SettingsModule,
     HealthModule,
   ],

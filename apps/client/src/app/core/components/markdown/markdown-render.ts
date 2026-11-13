@@ -105,7 +105,8 @@ function markedFor(images: readonly PostImageDto[]): Marked {
               ? ` width="${String(image.width)}" height="${String(image.height)}"`
               : '';
 
-          return `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(token.text)}"${size}>`;
+          // The display version: a post body never needs the camera original.
+          return `<img src="${escapeHtml(image.displayUrl ?? image.url)}" alt="${escapeHtml(token.text)}"${size}>`;
         }
 
         return outsideLink(token.href, token.text || token.href);

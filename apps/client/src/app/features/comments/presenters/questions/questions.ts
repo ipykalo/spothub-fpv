@@ -9,9 +9,17 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import type { CommentDto, ConversationDto } from '@spothub/shared';
+import type { CommentDto, ConversationDto, ReportWordsDto } from '@spothub/shared';
 
+import { ReportForm } from '../../../reports/presenters/report-form/report-form';
 import { CommentForm } from '../comment-form/comment-form';
+import { Avatar } from '../../../../core/components/avatar/avatar';
+
+/** Why someone else's comment should not be here. */
+export interface CommentReport {
+  readonly commentId: string;
+  readonly words: ReportWordsDto;
+}
 
 export interface CommentReply {
   readonly questionId: string;
@@ -41,7 +49,15 @@ export interface AnswerMark {
 @Component({
   selector: 'sh-questions',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommentForm, DatePipe, MatButtonModule, MatIconModule, NgTemplateOutlet],
+  imports: [
+    Avatar,
+    CommentForm,
+    DatePipe,
+    MatButtonModule,
+    MatIconModule,
+    NgTemplateOutlet,
+    ReportForm,
+  ],
   templateUrl: './questions.html',
   styleUrl: './questions.scss',
 })
@@ -52,11 +68,20 @@ export class Questions {
   readonly saving = input(false);
   /** For a signed-out reader: the conversation, with nothing to reply with. */
   readonly readOnly = input(false);
+  /** An admin: Hide on anyone's comment, and Delete where the owner's rules would not give it. */
+  readonly moderator = input(false);
 
   readonly replied = output<CommentReply>();
   readonly edited = output<CommentEdit>();
   readonly deleted = output<CommentDto>();
   readonly answerMarked = output<AnswerMark>();
+  /** Someone else's comment, reported; the container sends it. */
+  readonly reported = output<CommentReport>();
+  /** An admin's intents, sent to the admin routes rather than the owner's. */
+  readonly hiddenAsAdmin = output<CommentDto>();
+  readonly deletedAsAdmin = output<CommentDto>();
+  /** Block the comment's author: offered on anyone else's words, to a signed-in reader. */
+  readonly authorBlocked = output<CommentDto>();
 
   /** Comments under a post rather than questions: different words, the same thread. */
   protected readonly isPost = computed(() => this.subjectLabel() === 'post');
@@ -67,6 +92,12 @@ export class Questions {
   });
 
   protected readonly editing = linkedSignal<ConversationDto, string | null>({
+    source: this.comments,
+    computation: () => null,
+  });
+
+  /** The comment whose report form is open. */
+  protected readonly reporting = linkedSignal<ConversationDto, string | null>({
     source: this.comments,
     computation: () => null,
   });
@@ -83,5 +114,9 @@ export class Questions {
   protected startEdit(commentId: string): void {
     this.replyingTo.set(null);
     this.editing.set(commentId);
+  }
+
+  protected startReport(commentId: string): void {
+    this.reporting.set(commentId);
   }
 }

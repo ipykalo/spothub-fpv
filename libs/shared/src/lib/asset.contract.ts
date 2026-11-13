@@ -81,6 +81,11 @@ export interface AssetDto {
   readonly url: string | null;
   /** Short-lived presigned GET for the thumbnail, when one exists. */
   readonly thumbUrl: string | null;
+  /**
+   * Short-lived presigned GET for the display version — at most 1600 px, what
+   * a gallery and a viewer show. Null until one is made; show `url` then.
+   */
+  readonly displayUrl: string | null;
   readonly sortOrder: number;
   readonly createdAt: string;
 }

@@ -8,7 +8,7 @@ import {
   type UnreadCommentsDto,
   type UpdateCommentDto,
 } from '@spothub/shared';
-import type { Observable } from 'rxjs';
+import { type Observable, switchMap } from 'rxjs';
 
 import { API_BASE_URL } from '../../core/api/api.tokens';
 
@@ -72,6 +72,31 @@ export class CommentsApi {
       `${this.url(subject, subjectId)}/${commentId}/answer`,
       body,
     );
+  }
+
+  /**
+   * An admin hides anyone's comment. The admin route answers with nothing, so
+   * the conversation is read again to answer like every other change.
+   */
+  hideAsAdmin(
+    subject: CommentSubject,
+    subjectId: string,
+    commentId: string,
+  ): Observable<ConversationDto> {
+    return this.http
+      .patch(`${this.baseUrl}/admin/comments/${commentId}`, { hidden: true })
+      .pipe(switchMap(() => this.list(subject, subjectId)));
+  }
+
+  /** An admin deletes anyone's comment, a question's replies with it. */
+  removeAsAdmin(
+    subject: CommentSubject,
+    subjectId: string,
+    commentId: string,
+  ): Observable<ConversationDto> {
+    return this.http
+      .delete(`${this.baseUrl}/admin/comments/${commentId}`)
+      .pipe(switchMap(() => this.list(subject, subjectId)));
   }
 
   /** The owner has read everything on the spot or build. The 204 carries no body. */

@@ -59,21 +59,44 @@
         (keydown.arrowright)="step(1)"
       >
         <!-- contain, not cover: cropping a quad's arms off to fill a box loses the subject. -->
+        <!--
+          Until the photo paints, its thumbnail — already fetched for the strip —
+          sits blurred in the same place, so a slow photo arrives as a picture
+          sharpening rather than an empty box filling in.
+        -->
+        @if (!loaded().has('box:' + photo.id) && placeholder(photo); as thumb) {
+          <img class="absolute inset-0 h-full w-full object-contain blur-lg" [src]="thumb" alt="" aria-hidden="true" />
+        }
+        <!-- The box is at most 46rem wide: a phone takes the thumbnail, a large screen the display version. -->
         <img
-          class="block h-full w-full object-contain"
-          [src]="photo.url ?? photo.thumbUrl"
+          class="relative block h-full w-full object-contain"
+          [src]="photo.displayUrl ?? photo.url ?? photo.thumbUrl"
+          [attr.srcset]="srcset(photo)"
+          [attr.sizes]="gallerySizes"
           [alt]="photo.fileName ?? 'Build photo'"
+          (load)="markLoaded('box:' + photo.id)"
           (error)="imageFailed.emit()"
         />
       </button>
 
       <!--
-        The photos either side, fetched now so next and previous show at once
-        rather than when they are asked for. Never shown; the browser keeps
-        them, and the viewer below uses the same addresses.
+        The photos either side, two each way, fetched now so next and previous
+        show at once rather than when they are asked for. Never shown. Each
+        carries the srcset and sizes of where it will appear — the box, or the
+        viewer while it is open — so the browser fetches exactly the file it
+        will show, and keeps it.
       -->
-      @for (url of neighbourUrls(); track url) {
-        <img class="preload" [src]="url" alt="" aria-hidden="true" fetchpriority="low" (error)="imageFailed.emit()" />
+      @for (neighbour of neighbours(); track neighbour.id) {
+        <img
+          class="preload"
+          [src]="neighbour.displayUrl ?? neighbour.url ?? neighbour.thumbUrl"
+          [attr.srcset]="srcset(neighbour)"
+          [attr.sizes]="viewerOpen() ? viewerSizes : gallerySizes"
+          alt=""
+          aria-hidden="true"
+          fetchpriority="low"
+          (error)="imageFailed.emit()"
+        />
       }
 
       @if (photo.id === coverAssetId()) {
@@ -245,10 +268,22 @@
         </button>
       }
 
+      <!-- The thumbnail, blurred, in the photo's own place until it paints. -->
+      @if (!loaded().has('viewer:' + photo.id) && placeholder(photo); as thumb) {
+        <img
+          class="absolute inset-x-18 top-14 bottom-12 m-auto h-[calc(100%-6.5rem)] w-[calc(100%-9rem)] object-contain blur-xl max-[32rem]:inset-x-0 max-[32rem]:w-full"
+          [src]="thumb"
+          alt=""
+          aria-hidden="true"
+        />
+      }
       <img
         class="absolute inset-x-18 top-14 bottom-12 m-auto h-[calc(100%-6.5rem)] w-[calc(100%-9rem)] touch-pan-y object-contain max-[32rem]:inset-x-0 max-[32rem]:h-[calc(100%-6.5rem)] max-[32rem]:w-full"
-        [src]="photo.url ?? photo.thumbUrl"
+        [src]="photo.displayUrl ?? photo.url ?? photo.thumbUrl"
+        [attr.srcset]="srcset(photo)"
+        [attr.sizes]="viewerSizes"
         [alt]="photo.fileName ?? 'Build photo'"
+        (load)="markLoaded('viewer:' + photo.id)"
         (error)="imageFailed.emit()"
       />
 

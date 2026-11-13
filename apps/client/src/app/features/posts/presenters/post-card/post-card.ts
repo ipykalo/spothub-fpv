@@ -11,6 +11,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { type PostSummaryDto, VISIBILITY_LABELS, Visibility } from '@spothub/shared';
 
+import { coverSrcset, placeholderUrl } from '../../../../core/images/srcset';
+import { Avatar } from '../../../../core/components/avatar/avatar';
+
 /**
  * Presenter: one post in a feed — the blog, a build's posts, or the author's
  * own. A full-width row: cover, author and date, a large title, the builds it
@@ -20,7 +23,7 @@ import { type PostSummaryDto, VISIBILITY_LABELS, Visibility } from '@spothub/sha
 @Component({
   selector: 'sh-post-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatButtonModule, MatIconModule, RouterLink],
+  imports: [Avatar, DatePipe, MatButtonModule, MatIconModule, RouterLink],
   templateUrl: './post-card.html',
   styleUrl: './post-card.scss',
 })
@@ -37,15 +40,22 @@ export class PostCard {
   protected readonly visibilityLabels = VISIBILITY_LABELS;
 
   /** A draft has no public page yet, so its title opens the editor instead. */
+  /** The cover's thumbnail and display version, for the browser to pick between. */
+  protected readonly coverSrcset = computed(() => {
+    const cover = this.post().coverImage;
+    return cover ? coverSrcset(cover) : null;
+  });
+
+  /** The cover's thumbnail, shown blurred behind it while it loads. */
+  protected readonly placeholder = computed(() => {
+    const cover = this.post().coverImage;
+    return cover ? placeholderUrl(cover.thumbUrl, cover.url) : null;
+  });
+
   protected readonly link = computed(() => {
     const post = this.post();
     return post.visibility === Visibility.Private
       ? ['/posts', post.id, 'edit']
       : ['/blog', post.id, post.slug];
   });
-
-  /** The author's initial, in place of a picture — a profile photo would load from Google. */
-  protected readonly initial = computed(() =>
-    (this.post().authorName ?? 'Pilot').trim().charAt(0).toUpperCase(),
-  );
 }

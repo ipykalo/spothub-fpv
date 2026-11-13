@@ -1,4 +1,4 @@
-import { publicName } from '@spothub/shared';
+import { pilotPhotoUrl, publicName } from '@spothub/shared';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
@@ -12,7 +12,7 @@ import { BuildFilter, BuildsRepository } from './abstract/builds.repository';
  * table through here.
  */
 const WITH_OWNER_NAME = {
-  owner: { select: { displayName: true, pilotName: true } },
+  owner: { select: { displayName: true, pilotName: true, photoAssetId: true } },
 } satisfies Prisma.BuildInclude;
 
 type BuildRow = Prisma.BuildGetPayload<{ include: typeof WITH_OWNER_NAME }>;
@@ -167,6 +167,7 @@ function toEntity(build: BuildRow): BuildEntity {
     id: build.id,
     ownerId: build.ownerId,
     ownerName: publicName(build.owner.pilotName, build.owner.displayName),
+    ownerPhotoUrl: pilotPhotoUrl(build.ownerId, build.owner.photoAssetId),
     name: build.name,
     slug: build.slug,
     buildClass: build.buildClass,

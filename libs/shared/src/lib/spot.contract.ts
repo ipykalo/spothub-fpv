@@ -212,6 +212,8 @@ export const spotSchema = z.object({
   ownedByViewer: z.boolean(),
   /** The owner's display name, for people opening a shared spot. Never their email. */
   ownerName: z.string().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  ownerPhotoUrl: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

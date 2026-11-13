@@ -15,7 +15,10 @@ export const currentUserSchema = z.object({
   publicName: z.string().nullable(),
   /** The currency their totals are shown in, besides USD; new prices start in it. */
   homeCurrency: z.string(),
+  /** The photo Google gave. Kept, never shown: this site loads nothing from Google. */
   avatarUrl: z.url().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  photoUrl: z.string().nullable(),
   role: z.enum(Role),
   /** Read-only accounts see a banner saying so; the API refuses their writes. */
   status: z.enum(UserStatus),
@@ -40,6 +43,8 @@ export const adminUserSchema = z.object({
   /** The name they go by on the site, when they chose one. */
   pilotName: z.string().nullable(),
   avatarUrl: z.string().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  photoUrl: z.string().nullable(),
   role: z.enum(Role),
   status: z.enum(UserStatus),
   /** Whether this row is the admin looking at the list, whose own status cannot be changed. */
@@ -54,6 +59,10 @@ export const adminUserSchema = z.object({
   storageQuotaBytes: z.number().nullable(),
   /** ISO code of the country their last sign-in came from, refused or not. */
   lastSignInCountry: z.string().nullable(),
+  /** Posts they wrote, drafts included. */
+  postCount: z.number().int(),
+  /** How many of those an admin has hidden. */
+  hiddenPostCount: z.number().int(),
 });
 
 /**

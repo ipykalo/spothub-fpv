@@ -46,11 +46,33 @@
 
 <!-- One comment, question or reply: who, when, what was said, and what the viewer may do. -->
 <ng-template #entry let-comment let-isReply="isReply">
-  @if (comment.deleted) {
-    <!-- Its asker deleted it after others replied: no words, no name, the replies kept below. -->
-    <article class="grid gap-1.5" [attr.aria-label]="isPost() ? 'Deleted comment' : 'Deleted question'">
+  @if (comment.deleted || comment.hidden || comment.blocked) {
+    <!--
+      Its asker deleted it, an admin hid it, or the reader blocked who wrote it, after others
+      replied: no words, no name, the replies kept below.
+    -->
+    <article
+      class="grid gap-1.5"
+      [attr.aria-label]="
+        comment.hidden
+          ? 'Hidden by an admin'
+          : comment.blocked
+            ? 'From a pilot you blocked'
+            : isPost()
+              ? 'Deleted comment'
+              : 'Deleted question'
+      "
+    >
       <header class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <span class="text-muted italic">{{ isPost() ? 'Comment deleted' : 'Question deleted' }}</span>
+        <span class="text-muted italic">
+          @if (comment.hidden) {
+            Hidden by an admin
+          } @else if (comment.blocked) {
+            From a pilot you blocked
+          } @else {
+            {{ isPost() ? 'Comment deleted' : 'Question deleted' }}
+          }
+        </span>
 
         @if (comment.answered) {
           <span
@@ -73,6 +95,7 @@
       [attr.aria-label]="(isReply ? 'Reply by ' : isPost() ? 'Comment by ' : 'Question by ') + author(comment)"
     >
       <header class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <sh-avatar size="sm" [name]="comment.authorName" [photoUrl]="comment.authorPhotoUrl" />
         <span class="font-semibold">{{ author(comment) }}</span>
 
         @if (comment.byOwner) {
@@ -149,7 +172,43 @@
         @if (comment.canDelete) {
           <button matButton type="button" [disabled]="saving()" (click)="deleted.emit(comment)">Delete</button>
         }
+
+        @if (moderator() && !comment.byViewer) {
+          <button matButton type="button" [disabled]="saving()" (click)="hiddenAsAdmin.emit(comment)">
+            <mat-icon>visibility_off</mat-icon>
+            Hide
+          </button>
+          @if (!comment.canDelete) {
+            <button matButton type="button" [disabled]="saving()" (click)="deletedAsAdmin.emit(comment)">
+              <mat-icon>delete</mat-icon>
+              Delete
+            </button>
+          }
+        }
+
+        @if (!comment.byViewer && !readOnly() && reporting() !== comment.id) {
+          <button matButton type="button" (click)="startReport(comment.id)">
+            <mat-icon>flag</mat-icon>
+            Report
+          </button>
+        }
+
+        @if (!comment.byViewer && comment.authorId && !readOnly()) {
+          <button matButton type="button" [disabled]="saving()" (click)="authorBlocked.emit(comment)">
+            <mat-icon>block</mat-icon>
+            Block
+          </button>
+        }
       </div>
+
+      @if (reporting() === comment.id) {
+        <sh-report-form
+          noun="comment"
+          [saving]="saving()"
+          (submitted)="reported.emit({ commentId: comment.id, words: $event }); reporting.set(null)"
+          (cancelled)="reporting.set(null)"
+        />
+      }
     </article>
   }
 </ng-template>

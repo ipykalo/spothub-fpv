@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { buildSchema } from './build.contract';
 import { Visibility } from './enums';
 import { likesSchema } from './like.contract';
+import { responsiveImageSchema } from './image-versions';
 
 /**
  * Blog posts, defined once for both sides of the wire.
@@ -46,9 +47,10 @@ export function postImageMarkdown(caption: string, assetId: string): string {
 export function postImageUrl(
   postId: string,
   assetId: string,
-  variant: 'full' | 'thumb' = 'full',
+  variant: 'full' | 'display' | 'thumb' = 'full',
 ): string {
-  return `/api/posts/${postId}/images/${assetId}/${variant === 'thumb' ? 'thumb' : 'file'}`;
+  const path = variant === 'full' ? 'file' : variant;
+  return `/api/posts/${postId}/images/${assetId}/${path}`;
 }
 
 /** Minutes to read a body at about 200 words a minute; never less than one. */
@@ -124,6 +126,8 @@ export const postImageSchema = z.object({
   id: z.uuid(),
   url: z.string(),
   thumbUrl: z.string().nullable(),
+  /** What a post's body shows: at most 1600 px. Null only for a draft's image not yet given one. */
+  displayUrl: z.string().nullable(),
   width: z.number().int().nullable(),
   height: z.number().int().nullable(),
 });
@@ -146,15 +150,25 @@ export const postSummarySchema = z.object({
   publishedAt: z.string().nullable(),
   /** The author's display name. Never their email. */
   authorName: z.string().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  authorPhotoUrl: z.string().nullable(),
   /** Whether the person asking wrote it. Only its author can change it. */
   ownedByViewer: z.boolean(),
   /**
-   * The cover image for a list. The full image rather than its thumbnail, since a
-   * feed card is the width of the page. A lasting address, so a card may be
-   * shared — except on a draft, which only its author lists: that one is a
-   * presigned URL, because an `<img>` carries no token to prove who is asking.
+   * An admin hid it: nobody but its author can open it, whatever its
+   * visibility says. Only ever true for the author, since nobody else gets it.
+   */
+  hidden: z.boolean(),
+  /**
+   * The cover image for a list: its display version rather than its
+   * thumbnail, since a feed card is the width of the page. A lasting address,
+   * so a card may be shared — except on a draft, which only its author lists:
+   * that one is a presigned URL, because an `<img>` carries no token to prove
+   * who is asking.
    */
   coverUrl: z.string().nullable(),
+  /** The same cover in the sizes a card's `srcset` chooses between. */
+  coverImage: responsiveImageSchema.nullable(),
   /** Minutes to read the body. */
   readingMinutes: z.number().int(),
   /** The linked builds the person asking may open, as tags, in the author's order. */
@@ -170,7 +184,7 @@ export const postSchema = postSummarySchema.extend({
   bodyMd: z.string(),
   /** The cover the author chose, one of the post's own images. */
   coverAssetId: z.uuid().nullable(),
-  /** The cover at full size, for the top of the post. */
+  /** The cover's display version, for the top of the post and link previews. */
   coverImageUrl: z.string().nullable(),
   /** The post's own images, which `image:` references in the body resolve to. */
   images: z.array(postImageSchema),

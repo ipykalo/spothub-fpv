@@ -6,7 +6,16 @@ export interface BuildVideoEntity {
   readonly youtubeId: string;
   readonly startS: number | null;
   readonly title: string | null;
+  /** Where its cover is stored; null until the cover job has made it. */
+  readonly coverStorageKey: string | null;
   readonly createdAt: Date;
+}
+
+/** A video still waiting for its cover, and whose it is. */
+export interface CoverlessVideo {
+  readonly id: string;
+  readonly ownerId: string;
+  readonly buildId: string;
 }
 
 /** Fields the persistence layer accepts on create. */

@@ -11,10 +11,24 @@
   class="group relative flex flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface transition-colors hover:border-primary hover:bg-surface-low has-[.post-link:focus-visible]:outline-2 has-[.post-link:focus-visible]:outline-primary min-[40rem]:flex-row"
 >
   @if (post().coverUrl; as cover) {
-    <div class="relative aspect-video shrink-0 min-[40rem]:aspect-auto min-[40rem]:min-h-44 min-[40rem]:w-64 lg:w-72">
+    <div
+      class="relative aspect-video shrink-0 overflow-hidden min-[40rem]:aspect-auto min-[40rem]:min-h-44 min-[40rem]:w-64 lg:w-72"
+    >
+      <!-- The thumbnail, blurred, until the cover paints over it. -->
+      @if (placeholder(); as thumb) {
+        <img
+          class="absolute inset-0 size-full scale-110 object-cover blur-lg"
+          [src]="thumb"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+        />
+      }
       <img
         class="absolute inset-0 size-full object-cover"
         [src]="cover"
+        [attr.srcset]="coverSrcset()"
+        sizes="(max-width: 40rem) 100vw, 18rem"
         alt=""
         loading="lazy"
         (error)="coverFailed.emit()"
@@ -24,12 +38,7 @@
 
   <div class="min-w-0 flex-1 p-4 sm:px-6 sm:py-5">
     <div class="flex items-center gap-2.5">
-      <span
-        class="grid size-9 shrink-0 place-items-center rounded-full bg-(--mat-sys-primary) text-sm font-bold text-(--mat-sys-on-primary)"
-        aria-hidden="true"
-      >
-        {{ initial() }}
-      </span>
+      <sh-avatar [name]="post().authorName" [photoUrl]="post().authorPhotoUrl" />
       <div class="min-w-0 leading-tight">
         <p class="m-0 truncate text-sm font-semibold">{{ post().authorName ?? 'A pilot' }}</p>
         <p class="m-0 text-xs text-muted">
@@ -40,6 +49,9 @@
           }
           @if (manage()) {
             · {{ visibilityLabels[post().visibility] }}
+            @if (post().hidden) {
+              · <span class="tone-stop font-semibold text-(--tone)">Hidden by an admin</span>
+            }
           }
         </p>
       </div>

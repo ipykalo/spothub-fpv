@@ -1,18 +1,13 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import sharp from 'sharp';
 import { z } from 'zod';
 
 import { JobQueue } from '../jobs';
 import { StorageGateway } from '../storage';
+import { VideoCovers } from '../youtube';
 import { SpotsRepository } from './abstract/spots.repository';
-import { YouTubeThumbnails } from './abstract/youtube-thumbnails';
 
 /** The job that makes a spot's cover image from its video's thumbnail. */
 export const SPOT_COVER_JOB = 'spot.cover';
-
-/** 16:9 like the player, and wide enough for a card on a large screen. */
-const COVER_WIDTH = 640;
-const COVER_HEIGHT = 360;
 
 const payloadSchema = z.object({
   ownerId: z.uuid(),
@@ -40,7 +35,7 @@ export class SpotCoverJob implements OnModuleInit {
     private readonly jobs: JobQueue,
     private readonly spots: SpotsRepository,
     private readonly storage: StorageGateway,
-    private readonly thumbnails: YouTubeThumbnails,
+    private readonly covers: VideoCovers,
   ) {}
 
   onModuleInit(): void {
@@ -63,21 +58,14 @@ export class SpotCoverJob implements OnModuleInit {
       return;
     }
 
-    const original = await this.thumbnails.fetch(youtubeId);
+    const cover = await this.covers.make(youtubeId);
 
-    if (!original) {
+    if (!cover) {
       this.logger.log(
         `YouTube has no thumbnail for ${youtubeId}; spot ${spotId} keeps no cover`,
       );
       return;
     }
-
-    // Re-encoded rather than copied: a fixed small WebP whatever YouTube sent,
-    // and `cover` crops hqdefault's black letterbox bars away.
-    const cover = await sharp(original, { failOn: 'error' })
-      .resize(COVER_WIDTH, COVER_HEIGHT, { fit: 'cover' })
-      .webp({ quality: 72 })
-      .toBuffer();
 
     await this.storage.put(key, cover, 'image/webp');
 

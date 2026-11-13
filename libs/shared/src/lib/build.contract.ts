@@ -4,6 +4,7 @@ import { BuildClass, BuildStatus, Visibility } from './enums';
 import { likesSchema } from './like.contract';
 import { optionalCurrencySchema } from './currency';
 import { optionalWebLinkSchema } from './web-link';
+import { responsiveImageSchema } from './image-versions';
 
 /**
  * The build contract, defined once.
@@ -163,7 +164,10 @@ export const buildSchema = z.object({
    * render now, never as an identifier to store.
    */
   coverAssetId: z.uuid().nullable(),
+  /** The cover's display version (the original until one is made), presigned. */
   coverUrl: z.string().nullable(),
+  /** The cover in the sizes a card's `srcset` chooses between. */
+  coverImage: responsiveImageSchema.nullable(),
   builtOn: z.string().nullable(),
   retiredOn: z.string().nullable(),
   boughtComplete: z.boolean(),
@@ -176,6 +180,8 @@ export const buildSchema = z.object({
   ownedByViewer: z.boolean(),
   /** The owner's display name, for people opening a shared build. Never their email. */
   ownerName: z.string().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  ownerPhotoUrl: z.string().nullable(),
   likes: likesSchema,
   createdAt: z.string(),
   updatedAt: z.string(),

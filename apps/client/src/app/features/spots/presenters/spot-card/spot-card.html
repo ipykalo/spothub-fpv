@@ -22,10 +22,16 @@
       terrainIcon()
     }}</mat-icon>
     <div class="min-w-0 flex-auto">
-      <h3 class="m-0 truncate text-base leading-snug font-semibold" [title]="spot().name">{{ spot().name }}</h3>
+      <!-- The whole card opens the spot: this link is stretched over it (the .scss). -->
+      <h3 class="m-0 truncate text-base leading-snug font-semibold" [title]="spot().name">
+        <a class="card-link" [routerLink]="['/spots', spot().id]">{{ spot().name }}</a>
+      </h3>
       <p class="m-0 truncate text-sm text-muted tabular-nums" [title]="whereabouts()">{{ whereabouts() }}</p>
       @if (!spot().ownedByViewer) {
-        <p class="m-0 truncate text-xs text-muted">Shared by {{ spot().ownerName ?? 'another pilot' }}</p>
+        <p class="m-0 flex min-w-0 items-center gap-1.5 text-xs text-muted">
+          <sh-avatar size="sm" [name]="spot().ownerName" [photoUrl]="spot().ownerPhotoUrl" />
+          <span class="truncate">Shared by {{ spot().ownerName ?? 'another pilot' }}</span>
+        </p>
       }
     </div>
   </div>
@@ -76,17 +82,17 @@
     }
   </div>
 
-  <div class="-ml-2 mt-auto flex flex-wrap gap-0.5">
+  <!-- Above the stretched link, so each keeps its own click. -->
+  <div class="card-action -ml-2 mt-auto flex flex-wrap gap-0.5">
     <button matButton type="button" (click)="showOnMap.emit(spot())">
       <mat-icon>my_location</mat-icon>
       Map
     </button>
-    <a matButton [routerLink]="['/spots', spot().id]">Open</a>
     <!-- Only its owner changes a spot; a shared one is read-only. -->
     @if (spot().ownedByViewer) {
       <a matButton [routerLink]="['/spots', spot().id, 'edit']">Edit</a>
     }
-    <!-- Icon only: a fifth labelled button wraps the row at card width. -->
+    <!-- Icon only: another labelled button wraps the row at card width. -->
     <a
       matIconButton
       [href]="directionsUrl()"

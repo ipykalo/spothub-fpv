@@ -1,4 +1,4 @@
-import type { BuildDto, LikesDto } from '@spothub/shared';
+import type { BuildDto, LikesDto, ResponsiveImageDto } from '@spothub/shared';
 
 import { toNullableDateOnly } from '../common';
 import type { BuildEntity } from './build.entity';
@@ -22,7 +22,7 @@ import type { BuildEntity } from './build.entity';
  */
 export function toBuildDto(
   build: BuildEntity,
-  coverUrl: string | null,
+  cover: ResponsiveImageDto | null,
   viewerId: string | null,
   likes: LikesDto,
 ): BuildDto {
@@ -42,7 +42,8 @@ export function toBuildDto(
     shareNotes: build.shareNotes,
     descriptionMd: build.descriptionMd,
     coverAssetId: build.coverAssetId,
-    coverUrl,
+    coverUrl: cover?.url ?? null,
+    coverImage: cover,
     builtOn: toNullableDateOnly(build.builtOn),
     retiredOn: toNullableDateOnly(build.retiredOn),
     boughtComplete: build.boughtComplete,
@@ -52,6 +53,7 @@ export function toBuildDto(
     purchaseUrl: costs ? build.purchaseUrl : null,
     ownedByViewer: owned,
     ownerName: build.ownerName,
+    ownerPhotoUrl: build.ownerPhotoUrl,
     likes,
     createdAt: build.createdAt.toISOString(),
     updatedAt: build.updatedAt.toISOString(),
