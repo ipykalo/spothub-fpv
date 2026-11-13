@@ -20,7 +20,18 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ALLOWED_IMAGE_MIME, type AssetDto } from '@spothub/shared';
 
 import type { PendingUpload } from '../../photos.store';
-import { neighbourPhotoUrls } from './neighbour-photos';
+import { neighbourPhotos } from './neighbour-photos';
+
+/** How wide the gallery box is: the whole screen on a phone, at most 46rem. */
+const GALLERY_SIZES = '(max-width: 46rem) 100vw, 46rem';
+/** The full-screen viewer fills the screen. */
+const VIEWER_SIZES = '100vw';
+/**
+ * The longest a step waits for its photo to decode before swapping anyway.
+ * A preloaded photo decodes well inside it; a slow network must not make the
+ * buttons feel stuck.
+ */
+const DECODE_WAIT_MS = 250;
 import { photoSrcset } from '../../../../core/images/srcset';
 import { swipeStep } from './swipe';
 
@@ -91,12 +102,17 @@ export class PhotoGallery {
 
   protected readonly hasMany = computed(() => this.photos().length > 1);
 
-  /** The photos either side of the one showing, fetched ahead so next and previous are instant. */
   /** The sizes a browser may choose a photo in (`core/images/srcset.ts`). */
   protected readonly srcset = photoSrcset;
+  protected readonly gallerySizes = GALLERY_SIZES;
+  protected readonly viewerSizes = VIEWER_SIZES;
 
-  protected readonly neighbourUrls = computed(() =>
-    neighbourPhotoUrls(this.photos(), this.activeIndex()),
+  /**
+   * The photos either side of the one showing, two each way, fetched ahead
+   * so next and previous — even two quick steps — show at once.
+   */
+  protected readonly neighbours = computed(() =>
+    neighbourPhotos(this.photos(), this.activeIndex()),
   );
 
   protected readonly isEmpty = computed(
@@ -115,7 +131,7 @@ export class PhotoGallery {
   protected readonly viewerOpen = signal(false);
 
   protected show(position: number): void {
-    this.index.set(position);
+    void this.goTo(position);
   }
 
   protected openViewer(): void {
@@ -143,13 +159,68 @@ export class PhotoGallery {
     }
   }
 
+  /**
+   * Where the latest step is going while its photo decodes. Steps add up from
+   * there, so three quick presses move three photos, not one.
+   */
+  private target: number | null = null;
+
   /** Wraps, so pressing at either end keeps moving rather than dead-ending. */
   protected step(delta: number): void {
     const count = this.photos().length;
 
     if (count > 0) {
-      this.index.set((this.activeIndex() + delta + count) % count);
+      const from = this.target ?? this.activeIndex();
+      void this.goTo((from + delta + count) % count);
     }
+  }
+
+  /**
+   * Decodes the photo first, then swaps it in, so the switch shows a ready
+   * picture rather than an empty box that paints in. Only the latest of
+   * several quick steps lands.
+   */
+  private async goTo(position: number): Promise<void> {
+    this.target = position;
+
+    const photo = this.photos()[position] as AssetDto | undefined;
+
+    if (photo) {
+      await this.decoded(photo);
+    }
+
+    if (this.target === position) {
+      this.index.set(position);
+      this.target = null;
+    }
+  }
+
+  /**
+   * The photo decoded, in the size the box it is going into will choose —
+   * which the preloads have usually fetched already — or after
+   * DECODE_WAIT_MS, whichever comes first. Never fails: a photo that will not
+   * decode is shown, broken, as it would have been.
+   */
+  private decoded(photo: AssetDto): Promise<void> {
+    const src = photo.displayUrl ?? photo.url ?? photo.thumbUrl;
+
+    if (!src || typeof Image === 'undefined') {
+      return Promise.resolve();
+    }
+
+    const image = new Image();
+    const srcset = photoSrcset(photo);
+
+    image.sizes = this.viewerOpen() ? VIEWER_SIZES : GALLERY_SIZES;
+    if (srcset) {
+      image.srcset = srcset;
+    }
+    image.src = src;
+
+    return Promise.race([
+      image.decode().catch(() => undefined),
+      new Promise<void>((done) => setTimeout(done, DECODE_WAIT_MS)),
+    ]);
   }
 
   /** Where and when the finger went down, until it lifts. */

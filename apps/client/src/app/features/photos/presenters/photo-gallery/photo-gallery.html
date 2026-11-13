@@ -64,19 +64,30 @@
           class="block h-full w-full object-contain"
           [src]="photo.displayUrl ?? photo.url ?? photo.thumbUrl"
           [attr.srcset]="srcset(photo)"
-          sizes="(max-width: 46rem) 100vw, 46rem"
+          [attr.sizes]="gallerySizes"
           [alt]="photo.fileName ?? 'Build photo'"
           (error)="imageFailed.emit()"
         />
       </button>
 
       <!--
-        The photos either side, fetched now so next and previous show at once
-        rather than when they are asked for. Never shown; the browser keeps
-        them, and the viewer below uses the same addresses.
+        The photos either side, two each way, fetched now so next and previous
+        show at once rather than when they are asked for. Never shown. Each
+        carries the srcset and sizes of where it will appear — the box, or the
+        viewer while it is open — so the browser fetches exactly the file it
+        will show, and keeps it.
       -->
-      @for (url of neighbourUrls(); track url) {
-        <img class="preload" [src]="url" alt="" aria-hidden="true" fetchpriority="low" (error)="imageFailed.emit()" />
+      @for (neighbour of neighbours(); track neighbour.id) {
+        <img
+          class="preload"
+          [src]="neighbour.displayUrl ?? neighbour.url ?? neighbour.thumbUrl"
+          [attr.srcset]="srcset(neighbour)"
+          [attr.sizes]="viewerOpen() ? viewerSizes : gallerySizes"
+          alt=""
+          aria-hidden="true"
+          fetchpriority="low"
+          (error)="imageFailed.emit()"
+        />
       }
 
       @if (photo.id === coverAssetId()) {
@@ -252,7 +263,7 @@
         class="absolute inset-x-18 top-14 bottom-12 m-auto h-[calc(100%-6.5rem)] w-[calc(100%-9rem)] touch-pan-y object-contain max-[32rem]:inset-x-0 max-[32rem]:h-[calc(100%-6.5rem)] max-[32rem]:w-full"
         [src]="photo.displayUrl ?? photo.url ?? photo.thumbUrl"
         [attr.srcset]="srcset(photo)"
-        sizes="100vw"
+        [attr.sizes]="viewerSizes"
         [alt]="photo.fileName ?? 'Build photo'"
         (error)="imageFailed.emit()"
       />
