@@ -1,1 +1,70 @@
-/* Laid out with Tailwind utilities in the template. */
+/* Laid out with Tailwind utilities in the template; only the stretched link is here. */
+
+/*
+ * The whole row opens its part, as a build or part card does: the name is the
+ * one real link, and its ::after is stretched over the row, so a tap anywhere
+ * lands on it while a long press, middle-click and the keyboard still treat
+ * it as a link. Remove sits above that layer (`row-action`) and keeps its own
+ * click. On a phone the name alone was a small target in a big row that
+ * looked tappable and did nothing.
+ *
+ * A pseudo-element and :has() cannot be utilities, hence this file. `row` is
+ * not used as a class name: it once was one and now means something to
+ * Tailwind.
+ */
+.part-row {
+  position: relative;
+  cursor: pointer;
+  outline: 1px solid transparent;
+  transition:
+    background-color 150ms ease,
+    outline-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.row-link {
+  color: inherit;
+  text-decoration: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.row-action {
+  position: relative;
+  z-index: 1;
+}
+
+// Outlined in the theme's amber, like the cards, so the row under the pointer is unmistakable.
+.part-row:hover,
+.part-row:has(.row-link:focus-visible) {
+  outline-color: var(--mat-sys-primary);
+  box-shadow: var(--mat-sys-level1);
+
+  .row-link {
+    text-decoration: underline;
+  }
+}
+
+.part-row:has(.row-link:focus-visible) {
+  outline-width: 2px;
+}
+
+// Pressed: a touch has no hover, so this is the feedback a phone gets.
+.part-row:active:not(:has(.row-action:active)) {
+  background-color: var(--mat-sys-surface-container-highest);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .part-row {
+    transition: none;
+  }
+}
