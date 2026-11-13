@@ -1,4 +1,4 @@
-import type { AdminUserDto, StorageUsageDto } from '@spothub/shared';
+import { type AdminUserDto, type StorageUsageDto, pilotPhotoUrl } from '@spothub/shared';
 
 import type { PostCounts, UserEntity } from './user.entity';
 
@@ -19,6 +19,7 @@ export function toAdminUserDto(
     displayName: user.displayName,
     pilotName: user.pilotName,
     avatarUrl: user.avatarUrl,
+    photoUrl: pilotPhotoUrl(user.id, user.photoAssetId),
     role: user.role,
     status: user.status,
     isViewer: user.id === viewerId,

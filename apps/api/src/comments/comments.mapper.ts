@@ -106,6 +106,7 @@ function toCommentDto(
     id: comment.id,
     body: gone ? '' : comment.body,
     authorName: gone ? null : comment.authorName,
+    authorPhotoUrl: gone ? null : comment.authorPhotoUrl,
     // A signed-out visitor can block nobody, so is told nobody's id.
     authorId: gone || context.viewerId === null ? null : comment.authorId,
     byOwner: !gone && comment.authorId === context.ownerId,

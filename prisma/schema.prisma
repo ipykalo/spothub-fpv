@@ -47,7 +47,11 @@ model User {
   /// The country of the IP their last sign-in came from, refused or not — for
   /// the Admin page. Null when it could not be placed.
   lastSignInCountry String?    @map("last_sign_in_country") @db.VarChar(2)
+  /// The photo Google gave. Kept, never shown: this site loads nothing from Google.
   avatarUrl         String?    @map("avatar_url")
+  /// The profile photo they uploaded: one asset, a 256 px square WebP stored
+  /// under `<id>/photo/`. Shown beside their name wherever others see it.
+  photoAssetId      String?    @unique @map("photo_asset_id") @db.Uuid
   role              Role       @default(USER)
   status            UserStatus @default(ACTIVE)
   /// Stamped by a Google sign-in, not by a token refresh: when the person last
@@ -59,6 +63,7 @@ model User {
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
+  photo         Asset?         @relation("UserPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
   identities    AuthIdentity[]
   refreshTokens RefreshToken[]
   builds        Build[]
@@ -482,6 +487,7 @@ model Asset {
   displayOf    Asset?      @relation("AssetDisplay")
   links        AssetLink[]
   coverFor     Build[]     @relation("BuildCover")
+  photoOf      User?       @relation("UserPhoto")
   /// Posts this image is the cover of.
   postCoverFor Post[]      @relation("PostCover")
 

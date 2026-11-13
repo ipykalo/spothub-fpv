@@ -17,6 +17,7 @@ import {
   formatCoordinates,
   googleDirectionsUrl,
 } from '../../spot-style';
+import { Avatar } from '../../../../core/components/avatar/avatar';
 
 /**
  * Presenter: one spot in the collection. Renders and announces intent — it
@@ -25,7 +26,7 @@ import {
 @Component({
   selector: 'sh-spot-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatCardModule, MatIconModule, RouterLink],
+  imports: [Avatar, MatButtonModule, MatCardModule, MatIconModule, RouterLink],
   templateUrl: './spot-card.html',
   styleUrl: './spot-card.scss',
 })

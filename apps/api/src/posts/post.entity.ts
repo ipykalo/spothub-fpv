@@ -6,6 +6,8 @@ export interface PostEntity {
   readonly authorId: string;
   /** The author's display name, joined from users. Never their email. */
   readonly authorName: string | null;
+  /** Their profile photo's lasting address, or null without one. */
+  readonly authorPhotoUrl: string | null;
   readonly title: string;
   readonly slug: string;
   readonly summary: string | null;

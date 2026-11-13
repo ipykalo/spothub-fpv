@@ -382,8 +382,9 @@ The rules that keep Tailwind and Angular Material from fighting:
   `JwtAuthGuard`: anything but GET/HEAD/OPTIONS answers 403 unless the route
   is `@AllowedWhenReadOnly()` — kept for leaving the app. A refused Google
   sign-in redirects to `/login?denied=1` rather than showing the browser a
-  JSON 403 (`apps/api/e2e/admin-users.e2e.spec.ts`). Avatars are not shown on
-  the Admin page: they are Google URLs, and this site never calls Google.
+  JSON 403 (`apps/api/e2e/admin-users.e2e.spec.ts`). Google's photo
+  (`users.avatar_url`) is never shown anywhere — this site never calls Google;
+  the Pilots table shows the photo a pilot uploaded.
 - **Each pilot has a storage limit**: `app_settings.default_storage_quota_bytes`
   (512 MiB to start, set on the Admin page) unless `users.storage_quota_bytes` gives them
   their own. Usage is photos, post images and flight logs, summed in SQL in
@@ -501,6 +502,20 @@ The rules that keep Tailwind and Angular Material from fighting:
   set on `/account` (`PATCH /users/me/name`), else "First L.". A repository
   that selects `displayName` for someone else's eyes must select `pilotName`
   beside it and call `publicName` (`apps/api/e2e/pilot-name.e2e.spec.ts`).
+- **A pilot's face is a photo they upload, never Google's.** `/account`
+  uploads it through the presigned rails (`POST /users/me/photo/uploads`, then
+  `…/:assetId/commit`); commit keeps only a 256 px square WebP with no EXIF
+  at `<id>/photo/<uuid>.webp`, deletes the upload and any photo it replaces,
+  and points `users.photo_asset_id` at the asset — one row, so it counts
+  toward the storage limit, and the display backfill skips it. Its address
+  never expires: `pilotPhotoUrl` (`libs/shared`) builds
+  `/api/users/:id/photo?v=<asset id>`, a public route redirecting to a fresh
+  signature like a post's images, so a repository that already joins `users`
+  for a name selects `photoAssetId` beside it and hands out
+  `ownerPhotoUrl` / `authorPhotoUrl` without asking `media`. `sh-avatar`
+  (`core/components/avatar`) draws it, or the name's first letter, beside
+  "Shared by", post authors, comments and the Pilots table
+  (`pilot-photo.e2e.spec.ts`).
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed
   3000 too and nothing bound 4200 — and on Windows the second bind _succeeds_

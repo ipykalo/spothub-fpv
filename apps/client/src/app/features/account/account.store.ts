@@ -1,5 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
-import type { Currency, PilotNameDto, StorageUsageDto } from '@spothub/shared';
+import {
+  ALLOWED_IMAGE_MIME,
+  type Currency,
+  type PilotNameDto,
+  type PilotPhotoDto,
+  type StorageUsageDto,
+} from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
 
 import { apiMessage } from '../../core/api/api-error';
@@ -25,6 +31,61 @@ export class AccountStore {
 
   private readonly currencyFailure = signal<string | null>(null);
   readonly currencyError = this.currencyFailure.asReadonly();
+
+  private readonly photographing = signal(false);
+  private readonly photoFailure = signal<string | null>(null);
+  readonly savingPhoto = this.photographing.asReadonly();
+  readonly photoError = this.photoFailure.asReadonly();
+
+  /**
+   * Uploads a new profile photo: a ticket, the bytes straight to storage, then
+   * commit. The new address on success; null with the reason in `photoError`.
+   */
+  async uploadPhoto(file: File): Promise<PilotPhotoDto | null> {
+    if (!(ALLOWED_IMAGE_MIME as readonly string[]).includes(file.type)) {
+      this.photoFailure.set('Choose a JPEG, PNG, WebP or AVIF image.');
+      return null;
+    }
+
+    return this.photoCall(async () => {
+      const ticket = await firstValueFrom(
+        this.api.requestPhotoUpload({
+          fileName: file.name,
+          mime: file.type as (typeof ALLOWED_IMAGE_MIME)[number],
+          sizeBytes: file.size,
+        }),
+      );
+      await firstValueFrom(this.api.putPhoto(ticket, file));
+      return firstValueFrom(this.api.commitPhoto(ticket.assetId));
+    }, 'Your photo could not be saved. Try again.');
+  }
+
+  removePhoto(): Promise<PilotPhotoDto | null> {
+    return this.photoCall(
+      () => firstValueFrom(this.api.removePhoto()),
+      'Your photo could not be removed. Try again.',
+    );
+  }
+
+  private async photoCall(
+    call: () => Promise<PilotPhotoDto>,
+    fallback: string,
+  ): Promise<PilotPhotoDto | null> {
+    this.photographing.set(true);
+    this.photoFailure.set(null);
+
+    try {
+      const saved = await call();
+      // A new photo changes what the storage meter says.
+      void this.load();
+      return saved;
+    } catch (error) {
+      this.photoFailure.set(apiMessage(error, fallback));
+      return null;
+    } finally {
+      this.photographing.set(false);
+    }
+  }
 
   /** The saved currency on success; null on failure, with the reason in `currencyError`. */
   async setHomeCurrency(homeCurrency: Currency): Promise<Currency | null> {

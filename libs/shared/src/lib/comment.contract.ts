@@ -47,6 +47,8 @@ export const commentSchema = z.object({
   body: z.string(),
   /** The author's display name, or null when they never set one. Never an email. */
   authorName: z.string().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  authorPhotoUrl: z.string().nullable(),
   /**
    * Who wrote it, so a signed-in reader can block them. Null for a signed-out
    * visitor, and wherever the name is gone too.

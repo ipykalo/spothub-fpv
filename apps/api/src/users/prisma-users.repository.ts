@@ -249,6 +249,7 @@ export class PrismaUsersRepository extends UsersRepository {
       pilotName: user.pilotName,
       homeCurrency: user.homeCurrency,
       avatarUrl: user.avatarUrl,
+      photoAssetId: user.photoAssetId,
       role: user.role,
       status: user.status,
       createdAt: user.createdAt,
