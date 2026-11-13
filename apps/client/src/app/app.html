@@ -22,7 +22,11 @@
           <span class="nav-dot" aria-hidden="true"></span>
         }
       </span>
-      <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/hangar">SpotHub FPV</a>
+      <a class="flex shrink-0 items-center gap-2 font-semibold text-inherit no-underline" routerLink="/hangar">
+        <!-- The mark alone on a phone; the name stays for a screen reader. -->
+        <img class="block size-7" src="/favicon.svg" alt="" width="28" height="28" />
+        <span class="max-[30rem]:sr-only">SpotHub FPV</span>
+      </a>
 
       <nav class="ml-6 flex min-w-0 gap-1 max-[60rem]:hidden">
         <a matButton routerLink="/hangar">
@@ -159,7 +163,11 @@
           <mat-icon>{{ openMenu() === 'nav' ? 'close' : 'menu' }}</mat-icon>
         </button>
       </span>
-      <a class="shrink-0 font-semibold text-inherit no-underline" routerLink="/">SpotHub FPV</a>
+      <a class="flex shrink-0 items-center gap-2 font-semibold text-inherit no-underline" routerLink="/">
+        <!-- The mark alone on a phone; the name stays for a screen reader. -->
+        <img class="block size-7" src="/favicon.svg" alt="" width="28" height="28" />
+        <span class="max-[30rem]:sr-only">SpotHub FPV</span>
+      </a>
       <nav class="ml-6 flex min-w-0 gap-1 max-[30rem]:hidden">
         <a matButton routerLink="/">Blog</a>
         <a matButton routerLink="/about">About</a>
