@@ -46,9 +46,10 @@ export function postImageMarkdown(caption: string, assetId: string): string {
 export function postImageUrl(
   postId: string,
   assetId: string,
-  variant: 'full' | 'thumb' = 'full',
+  variant: 'full' | 'display' | 'thumb' = 'full',
 ): string {
-  return `/api/posts/${postId}/images/${assetId}/${variant === 'thumb' ? 'thumb' : 'file'}`;
+  const path = variant === 'full' ? 'file' : variant;
+  return `/api/posts/${postId}/images/${assetId}/${path}`;
 }
 
 /** Minutes to read a body at about 200 words a minute; never less than one. */
@@ -124,6 +125,8 @@ export const postImageSchema = z.object({
   id: z.uuid(),
   url: z.string(),
   thumbUrl: z.string().nullable(),
+  /** What a post's body shows: at most 1600 px. Null only for a draft's image not yet given one. */
+  displayUrl: z.string().nullable(),
   width: z.number().int().nullable(),
   height: z.number().int().nullable(),
 });

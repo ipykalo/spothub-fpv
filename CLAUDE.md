@@ -1268,6 +1268,18 @@ have done it and a photo taken at a home field is a home address. `sharp`
 re-encodes rather than copying, which is what drops the metadata; `rotate()`
 runs first so the orientation tag is applied before it is discarded.
 
+**Every image has three versions**, each its own `assets` row: the original,
+a 640 px `THUMB`, and a `DISPLAY` version — at most 1600 px, WebP, never
+enlarged (`display-version.ts`, shared by commit and backfill). The gallery,
+the viewer, a post's body and the blog's cover cards show the display
+version and fall back to the original; the original stays for a later
+"download original". Unlike a thumbnail, a display version's size is
+recorded, so it counts toward the storage limit. Deleting an image takes all
+three. Post images have a lasting `/display` address beside `/file` and
+`/thumb`. Images from before this got theirs from `DisplayBackfillJob`,
+queued at start-up only while something is missing; until then every
+display address serves the original (`display-photos.e2e.spec.ts`).
+
 The `assets` table is polymorphic on `subject_type`, so parts and repairs get
 photos later with a row rather than a table. `build` and `post` exist today;
 a subject added to `AssetSubject` without its ownership and visibility

@@ -20,7 +20,8 @@ import { StorageGateway } from '../storage';
 import { UsersFacade } from '../users';
 import { AssetsRepository } from './abstract/assets.repository';
 import { type AssetEntity, AssetSubject } from './asset.entity';
-import { toAssetDto } from './assets.mapper';
+import { type SignedUrls, toAssetDto } from './assets.mapper';
+import { makeDisplayVersion } from './display-version';
 
 /** The longest edge of a generated thumbnail, in pixels. */
 const THUMB_EDGE = 640;
@@ -191,7 +192,7 @@ export class AssetsService {
     viewerId: string | null,
     postId: string,
     assetId: string,
-    variant: 'full' | 'thumb',
+    variant: 'full' | 'display' | 'thumb',
   ): Promise<string> {
     const ownerId = await this.assets.findSubjectOwnerVisibleToViewer(
       viewerId,
@@ -217,8 +218,14 @@ export class AssetsService {
       throw new NotFoundException('Image not found');
     }
 
+    // A version not made yet falls back to the original, so an address is
+    // never a dead end while the backfill catches up.
     const key =
-      variant === 'thumb' ? (asset.thumbKey ?? asset.storageKey) : asset.storageKey;
+      variant === 'thumb'
+        ? (asset.thumbKey ?? asset.storageKey)
+        : variant === 'display'
+          ? (asset.displayKey ?? asset.storageKey)
+          : asset.storageKey;
 
     return this.storage.presignGet(key, this.downloadTtl);
   }
@@ -279,7 +286,7 @@ export class AssetsService {
     }
   }
 
-  /** Strip, thumbnail, store both, record what was learned. */
+  /** Strip, thumbnail, make a display version, store all three, record what was learned. */
   private async process(
     ownerId: string,
     subject: AssetSubject,
@@ -311,12 +318,18 @@ export class AssetsService {
       .webp({ quality: 80 })
       .toBuffer();
 
+    // Under the owner's own prefix like the rest, so deleting the account
+    // finds it.
+    const displayKey = `${ownerId}/${randomUUID()}.webp`;
+    const display = await makeDisplayVersion(stored.body);
+
     await this.storage.put(
       asset.storageKey,
       stripped,
       asset.mime ?? 'application/octet-stream',
     );
     await this.storage.put(thumbKey, thumbnail, 'image/webp');
+    await this.storage.put(displayKey, display.bytes, 'image/webp');
 
     const committed = await this.assets.commitForOwner(ownerId, asset.id, {
       sizeBytes: stripped.byteLength || sizeBytes,
@@ -325,6 +338,12 @@ export class AssetsService {
       mime: asset.mime ?? 'application/octet-stream',
       thumbKey,
       thumbStorageKey: thumbKey,
+      display: {
+        storageKey: displayKey,
+        sizeBytes: display.bytes.byteLength,
+        width: display.width,
+        height: display.height,
+      },
     });
 
     if (!committed) {
@@ -347,17 +366,17 @@ export class AssetsService {
     await this.storage.delete(keys);
   }
 
-  private async signUrls(
-    asset: AssetEntity,
-  ): Promise<{ url: string | null; thumbUrl: string | null }> {
-    const [url, thumbUrl] = await Promise.all([
-      this.storage.presignGet(asset.storageKey, this.downloadTtl),
-      asset.thumbKey
-        ? this.storage.presignGet(asset.thumbKey, this.downloadTtl)
-        : Promise.resolve(null),
+  private async signUrls(asset: AssetEntity): Promise<SignedUrls> {
+    const sign = (key: string | null): Promise<string | null> =>
+      key ? this.storage.presignGet(key, this.downloadTtl) : Promise.resolve(null);
+
+    const [url, thumbUrl, displayUrl] = await Promise.all([
+      sign(asset.storageKey),
+      sign(asset.thumbKey),
+      sign(asset.displayKey),
     ]);
 
-    return { url, thumbUrl };
+    return { url, thumbUrl, displayUrl };
   }
 
   private async assertSubject(

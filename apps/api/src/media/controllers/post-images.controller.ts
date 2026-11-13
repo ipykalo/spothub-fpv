@@ -76,6 +76,21 @@ export class PostImagesController {
     };
   }
 
+  /** The same, for the display version — what a post's body shows. */
+  @Public()
+  @Get(':assetId/display')
+  @Header('Cache-Control', 'public, max-age=300')
+  @Redirect()
+  async display(
+    @CurrentViewer() viewer: AuthenticatedUser | null,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Param('assetId', ParseUUIDPipe) assetId: string,
+  ): Promise<{ url: string }> {
+    return {
+      url: await this.assets.storageUrl(viewer?.id ?? null, postId, assetId, 'display'),
+    };
+  }
+
   /** The same, for the thumbnail — the size a feed row shows. */
   @Public()
   @Get(':assetId/thumb')

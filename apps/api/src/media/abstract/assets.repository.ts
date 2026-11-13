@@ -3,6 +3,8 @@ import type {
   AssetSubject,
   CommitAssetData,
   CreateAssetData,
+  DisplayCandidate,
+  DisplayVersion,
 } from '../asset.entity';
 
 /**
@@ -102,6 +104,27 @@ export abstract class AssetsRepository {
   ): Promise<boolean>;
 
   /** Storage keys for a set of asset ids, for batch URL signing. */
+  /**
+   * Ready images with no display version yet, after `afterId` in id order —
+   * the backfill's pages. Ordered by id so a page that failed is not asked
+   * for again in the same run.
+   */
+  abstract findMissingDisplays(
+    afterId: string | null,
+    limit: number,
+  ): Promise<readonly DisplayCandidate[]>;
+
+  /**
+   * Records a display version made for an image, unless it gained one in the
+   * meantime. Answers whether it was recorded; when not, the caller deletes
+   * what it stored.
+   */
+  abstract attachDisplayForOwner(
+    ownerId: string,
+    assetId: string,
+    display: DisplayVersion,
+  ): Promise<boolean>;
+
   abstract findKeysForOwner(
     ownerId: string,
     assetIds: readonly string[],

@@ -94,8 +94,8 @@ describe('delete my account', () => {
     ];
     const storage = testApp.app.get(StorageGateway);
 
-    // The photo, its thumbnail and the log are all really there.
-    expect(keys).toHaveLength(3);
+    // The photo, its thumbnail, its display version and the log are all really there.
+    expect(keys).toHaveLength(4);
     for (const key of keys) {
       expect(await storage.head(key)).not.toBeNull();
     }

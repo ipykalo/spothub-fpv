@@ -68,6 +68,10 @@ export class MediaFacadeImpl extends MediaFacade {
             asset.thumbKey === null
               ? null
               : await this.storage.presignGet(asset.thumbKey, this.downloadTtl),
+          displayUrl:
+            asset.displayKey === null
+              ? null
+              : await this.storage.presignGet(asset.displayKey, this.downloadTtl),
           width: asset.width,
           height: asset.height,
         })),
@@ -80,6 +84,8 @@ export class MediaFacadeImpl extends MediaFacade {
       id: asset.id,
       url: postImageUrl(postId, asset.id),
       thumbUrl: asset.thumbKey === null ? null : postImageUrl(postId, asset.id, 'thumb'),
+      // The route serves the original until the backfill has made one.
+      displayUrl: postImageUrl(postId, asset.id, 'display'),
       width: asset.width,
       height: asset.height,
     }));

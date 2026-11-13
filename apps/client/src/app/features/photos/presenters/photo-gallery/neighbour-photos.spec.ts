@@ -23,6 +23,21 @@ describe('neighbourPhotoUrls', () => {
     expect(neighbourPhotoUrls([photo('a'), photo('b', false)], 0)).toEqual(['thumb-b']);
   });
 
+  it('fetches the display version where a photo has one', () => {
+    const sized = (
+      name: string,
+    ): { displayUrl: string; url: string; thumbUrl: string } => ({
+      displayUrl: `display-${name}`,
+      url: `full-${name}`,
+      thumbUrl: `thumb-${name}`,
+    });
+
+    expect(neighbourPhotoUrls([sized('a'), sized('b'), photo('c')], 0)).toEqual([
+      'display-b',
+      'full-c',
+    ]);
+  });
+
   it('has nothing to fetch for one photo or none', () => {
     expect(neighbourPhotoUrls([photo('a')], 0)).toEqual([]);
     expect(neighbourPhotoUrls([], 0)).toEqual([]);

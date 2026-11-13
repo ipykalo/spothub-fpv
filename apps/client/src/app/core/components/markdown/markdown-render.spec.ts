@@ -140,6 +140,7 @@ describe('markdownBlocks', () => {
         id: '11111111-1111-1111-1111-111111111111',
         url: '/api/posts/p/images/i/file',
         thumbUrl: null,
+        displayUrl: null,
         width: 800,
         height: 600,
       };
@@ -154,6 +155,21 @@ describe('markdownBlocks', () => {
         '<img src="/api/posts/p/images/i/file" alt="quad" width="800" height="600">',
       );
       expect(out).toContain('<span class="sh-markdown-missing">gone</span>');
+    });
+
+    it('shows the display version, not the camera original, once there is one', () => {
+      const image: PostImageDto = {
+        id: '11111111-1111-1111-1111-111111111111',
+        url: '/api/posts/p/images/i/file',
+        thumbUrl: '/api/posts/p/images/i/thumb',
+        displayUrl: '/api/posts/p/images/i/display',
+        width: 4000,
+        height: 3000,
+      };
+
+      expect(html(markdownBlocks(`![quad](image:${image.id})`, [image]))).toContain(
+        'src="/api/posts/p/images/i/display"',
+      );
     });
   });
 

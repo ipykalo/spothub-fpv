@@ -1,5 +1,6 @@
-/** What a photo can be shown from: its full image, else its thumbnail. */
+/** What a photo can be shown from: its display version, else its full image, else its thumbnail. */
 interface Showable {
+  readonly displayUrl?: string | null;
   readonly url: string | null;
   readonly thumbUrl: string | null;
 }
@@ -17,7 +18,7 @@ export function neighbourPhotoUrls(photos: readonly Showable[], index: number): 
   }
 
   const urls = [photos[(index + 1) % count], photos[(index - 1 + count) % count]]
-    .map((photo) => photo.url ?? photo.thumbUrl)
+    .map((photo) => photo.displayUrl ?? photo.url ?? photo.thumbUrl)
     .filter((url): url is string => url !== null);
 
   return [...new Set(urls)];

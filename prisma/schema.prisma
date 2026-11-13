@@ -47,7 +47,7 @@ model User {
   /// The country of the IP their last sign-in came from, refused or not — for
   /// the Admin page. Null when it could not be placed.
   lastSignInCountry String?    @map("last_sign_in_country") @db.VarChar(2)
-  avatarUrl        String?    @map("avatar_url")
+  avatarUrl         String?    @map("avatar_url")
   role              Role       @default(USER)
   status            UserStatus @default(ACTIVE)
   /// Stamped by a Google sign-in, not by a token refresh: when the person last
@@ -425,6 +425,9 @@ enum AssetKind {
   /// A generated derivative. Kept as its own row so it can be served, counted
   /// and deleted like anything else.
   THUMB
+  /// The size a screen shows: at most 1600 px, WebP. Generated like THUMB,
+  /// and counted toward the owner's storage, since it is real bytes.
+  DISPLAY
 }
 
 /// An asset is `ready` only once the bytes are in storage and the API has
@@ -458,6 +461,9 @@ model Asset {
   height     Int?
   /// The thumbnail generated from this asset, if it has one.
   thumbId    String?     @unique @map("thumb_id") @db.Uuid
+  /// The display-size version, once one exists (older photos get theirs from
+  /// a backfill job).
+  displayId  String?     @unique @map("display_id") @db.Uuid
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
@@ -466,6 +472,8 @@ model Asset {
   /// dropping the original takes its derivative with it.
   thumb        Asset?      @relation("AssetThumb", fields: [thumbId], references: [id], onDelete: SetNull)
   original     Asset?      @relation("AssetThumb")
+  display      Asset?      @relation("AssetDisplay", fields: [displayId], references: [id], onDelete: SetNull)
+  displayOf    Asset?      @relation("AssetDisplay")
   links        AssetLink[]
   coverFor     Build[]     @relation("BuildCover")
   /// Posts this image is the cover of.

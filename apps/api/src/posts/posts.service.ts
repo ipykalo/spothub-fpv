@@ -177,14 +177,17 @@ export class PostsService {
       toPostSummaryDto(
         post,
         viewerId,
-        // The full image, not the thumbnail: a feed card is the width of the
-        // page, and a thumbnail is 640px on its long edge — a portrait photo
-        // came out 360px wide, stretched four times over and blurred.
+        // The display version, not the thumbnail: a feed card is the width of
+        // the page, and a thumbnail is 640px on its long edge — a portrait
+        // photo came out 360px wide, stretched four times over and blurred.
+        // Not the original either: 1600px is enough for any card, at a
+        // fraction of a camera's bytes. The route falls back to the original
+        // for an image the backfill has not reached yet.
         post.coverAssetId === null
           ? null
           : isDraft(post)
             ? (draftCovers.get(post.coverAssetId) ?? null)
-            : postImageUrl(post.id, post.coverAssetId),
+            : postImageUrl(post.id, post.coverAssetId, 'display'),
         post.buildIds.flatMap((buildId) => {
           const tag = tags.get(buildId);
           return tag ? [tag] : [];
