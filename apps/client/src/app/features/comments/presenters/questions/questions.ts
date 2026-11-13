@@ -13,6 +13,7 @@ import type { CommentDto, ConversationDto, ReportWordsDto } from '@spothub/share
 
 import { ReportForm } from '../../../reports/presenters/report-form/report-form';
 import { CommentForm } from '../comment-form/comment-form';
+import { Avatar } from '../../../../core/components/avatar/avatar';
 
 /** Why someone else's comment should not be here. */
 export interface CommentReport {
@@ -49,6 +50,7 @@ export interface AnswerMark {
   selector: 'sh-questions',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Avatar,
     CommentForm,
     DatePipe,
     MatButtonModule,

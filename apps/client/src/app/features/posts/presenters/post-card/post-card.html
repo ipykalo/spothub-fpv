@@ -38,12 +38,7 @@
 
   <div class="min-w-0 flex-1 p-4 sm:px-6 sm:py-5">
     <div class="flex items-center gap-2.5">
-      <span
-        class="grid size-9 shrink-0 place-items-center rounded-full bg-(--mat-sys-primary) text-sm font-bold text-(--mat-sys-on-primary)"
-        aria-hidden="true"
-      >
-        {{ initial() }}
-      </span>
+      <sh-avatar [name]="post().authorName" [photoUrl]="post().authorPhotoUrl" />
       <div class="min-w-0 leading-tight">
         <p class="m-0 truncate text-sm font-semibold">{{ post().authorName ?? 'A pilot' }}</p>
         <p class="m-0 text-xs text-muted">

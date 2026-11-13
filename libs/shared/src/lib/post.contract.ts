@@ -150,6 +150,8 @@ export const postSummarySchema = z.object({
   publishedAt: z.string().nullable(),
   /** The author's display name. Never their email. */
   authorName: z.string().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  authorPhotoUrl: z.string().nullable(),
   /** Whether the person asking wrote it. Only its author can change it. */
   ownedByViewer: z.boolean(),
   /**

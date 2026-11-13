@@ -17,6 +17,8 @@ export interface UserEntity {
   /** One of `CURRENCIES`: what their totals are shown in, besides USD. */
   readonly homeCurrency: string;
   readonly avatarUrl: string | null;
+  /** The asset holding their profile photo; null without one. */
+  readonly photoAssetId: string | null;
   readonly role: Role;
   readonly status: UserStatus;
   readonly createdAt: Date;

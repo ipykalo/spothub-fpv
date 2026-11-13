@@ -1,4 +1,4 @@
-import { publicName } from '@spothub/shared';
+import { pilotPhotoUrl, publicName } from '@spothub/shared';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
@@ -17,7 +17,7 @@ import type {
  * viewer may open each build is the builds module's answer to give.
  */
 const WITH_AUTHOR_AND_BUILDS = {
-  author: { select: { displayName: true, pilotName: true } },
+  author: { select: { displayName: true, pilotName: true, photoAssetId: true } },
   builds: { select: { buildId: true }, orderBy: { sortOrder: 'asc' } },
   // What is left of a deleted question is not a comment anyone can read, nor is a hidden one.
   _count: { select: { comments: { where: { deletedAt: null, hiddenAt: null } } } },
@@ -213,6 +213,7 @@ function toEntity(row: PostRow): PostEntity {
     id: row.id,
     authorId: row.authorId,
     authorName: publicName(row.author.pilotName, row.author.displayName),
+    authorPhotoUrl: pilotPhotoUrl(row.authorId, row.author.photoAssetId),
     title: row.title,
     slug: row.slug,
     summary: row.summary,

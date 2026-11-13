@@ -12,7 +12,10 @@
       </a>
       <h1 class="mt-1.5 mb-2 text-2xl wrap-anywhere">{{ quad.name }}</h1>
       @if (!quad.ownedByViewer) {
-        <p class="m-0 mb-2 text-sm text-muted">Shared by {{ quad.ownerName ?? 'another pilot' }}</p>
+        <p class="m-0 mb-2 flex items-center gap-2 text-sm text-muted">
+          <sh-avatar size="sm" [name]="quad.ownerName" [photoUrl]="quad.ownerPhotoUrl" />
+          Shared by {{ quad.ownerName ?? 'another pilot' }}
+        </p>
       }
       <!-- Matches the card chip: same tokens, same shape. -->
       <span

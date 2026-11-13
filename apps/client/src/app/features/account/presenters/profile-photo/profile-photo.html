@@ -1,0 +1,28 @@
+<section>
+  <h2 class="mt-0 mb-1 text-lg">Profile photo</h2>
+  <p class="mt-0 mb-3 text-sm text-muted">
+    Shown beside your name on your posts, comments and shared builds and spots. Without one, the first letter of your
+    pilot name stands in. It is cropped to a square, and anything your camera recorded in it is removed.
+  </p>
+
+  <div class="flex flex-wrap items-center gap-4">
+    <sh-avatar size="xl" [name]="name()" [photoUrl]="photoUrl()" />
+
+    <!-- A real button opening a hidden input: matButton does not apply to a <label>. -->
+    <input #fileInput type="file" hidden [accept]="accept" (change)="pick($event)" />
+    <div class="flex flex-wrap gap-2">
+      <button matButton="outlined" type="button" [disabled]="saving()" (click)="fileInput.click()">
+        <mat-icon>add_a_photo</mat-icon>
+        {{ saving() ? 'Saving…' : photoUrl() ? 'Choose another' : 'Upload photo' }}
+      </button>
+
+      @if (photoUrl()) {
+        <button matButton type="button" [disabled]="saving()" (click)="removed.emit()">Remove</button>
+      }
+    </div>
+  </div>
+
+  @if (error(); as message) {
+    <p class="mt-2 mb-0 text-sm text-danger" role="alert">{{ message }}</p>
+  }
+</section>

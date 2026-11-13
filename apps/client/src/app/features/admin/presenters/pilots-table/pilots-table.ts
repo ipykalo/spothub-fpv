@@ -29,6 +29,7 @@ import {
   type SortOption,
   gridView,
 } from '../../../../core/components/grid-toolbar/grid-view';
+import { Avatar } from '../../../../core/components/avatar/avatar';
 
 type PilotSortKey = 'joined' | 'seen' | 'name';
 
@@ -71,6 +72,7 @@ const STATUS_HINTS: Readonly<Record<UserStatus, string>> = {
   selector: 'sh-pilots-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Avatar,
     Autocomplete,
     DatePipe,
     FilterChips,

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { publicName, CommentSubject, ReportPlaceKind } from '@spothub/shared';
+import {
+  CommentSubject,
+  pilotPhotoUrl,
+  publicName,
+  ReportPlaceKind,
+} from '@spothub/shared';
 
 import { PrismaService } from '../prisma';
 import { CommentsRepository } from './abstract/comments.repository';
@@ -15,7 +20,7 @@ import type {
 
 /** Only the author's display name rides along — never the rest of their user row. */
 const WITH_AUTHOR_NAME = {
-  author: { select: { displayName: true, pilotName: true } },
+  author: { select: { displayName: true, pilotName: true, photoAssetId: true } },
 } satisfies Prisma.CommentInclude;
 
 type CommentRow = Prisma.CommentGetPayload<{ include: typeof WITH_AUTHOR_NAME }>;
@@ -434,6 +439,7 @@ function toEntity(row: CommentRow): CommentEntity {
     id: row.id,
     authorId: row.authorId,
     authorName: publicName(row.author.pilotName, row.author.displayName),
+    authorPhotoUrl: pilotPhotoUrl(row.authorId, row.author.photoAssetId),
     parentId: row.parentId,
     body: row.body,
     isAnswer: row.isAnswer,

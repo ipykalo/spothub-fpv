@@ -95,6 +95,7 @@
       [attr.aria-label]="(isReply ? 'Reply by ' : isPost() ? 'Comment by ' : 'Question by ') + author(comment)"
     >
       <header class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <sh-avatar size="sm" [name]="comment.authorName" [photoUrl]="comment.authorPhotoUrl" />
         <span class="font-semibold">{{ author(comment) }}</span>
 
         @if (comment.byOwner) {

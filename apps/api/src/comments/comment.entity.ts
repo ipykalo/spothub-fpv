@@ -12,6 +12,8 @@ export interface CommentEntity {
   readonly authorId: string;
   /** The author's display name, joined from users. Never their email. */
   readonly authorName: string | null;
+  /** Their profile photo's lasting address, or null without one. */
+  readonly authorPhotoUrl: string | null;
   /** Null for a question; the question's id for a reply. */
   readonly parentId: string | null;
   readonly body: string;

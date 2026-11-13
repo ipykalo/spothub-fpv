@@ -13,6 +13,7 @@ import { BUILD_CLASS_LABELS, BUILD_STATUS_LABELS, type BuildDto } from '@spothub
 
 import { coverSrcset, placeholderUrl } from '../../../../core/images/srcset';
 import { BUILD_STATUS_STYLES } from '../../build-status';
+import { Avatar } from '../../../../core/components/avatar/avatar';
 
 /**
  * Presenter: renders one build and announces intent. It owns no state, injects
@@ -22,7 +23,7 @@ import { BUILD_STATUS_STYLES } from '../../build-status';
 @Component({
   selector: 'sh-build-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatCardModule, MatIconModule, RouterLink],
+  imports: [Avatar, MatButtonModule, MatCardModule, MatIconModule, RouterLink],
   templateUrl: './build-card.html',
   styleUrl: './build-card.scss',
 })

@@ -35,6 +35,7 @@ export function toPostSummaryDto(
     visibility: post.visibility,
     publishedAt: post.publishedAt?.toISOString() ?? null,
     authorName: post.authorName,
+    authorPhotoUrl: post.authorPhotoUrl,
     ownedByViewer: post.authorId === viewerId,
     hidden: post.hiddenAt !== null,
     coverUrl: cover?.url ?? null,

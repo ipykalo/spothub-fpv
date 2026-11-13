@@ -34,6 +34,7 @@ import { CommentsSection } from '../../comments/containers/comments-section';
 import { LikeButton } from '../../likes/containers/like-button';
 import { ReportButton } from '../../reports/containers/report-button/report-button';
 import { PostsApi } from '../posts.api';
+import { Avatar } from '../../../core/components/avatar/avatar';
 
 /**
  * Container: one post, for anyone it is shared with — rendered on the server.
@@ -47,6 +48,7 @@ import { PostsApi } from '../posts.api';
   selector: 'sh-post-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Avatar,
     BuildCard,
     CommentsSection,
     DatePipe,

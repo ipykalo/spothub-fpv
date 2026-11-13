@@ -12,6 +12,7 @@ import { RouterLink } from '@angular/router';
 import { type PostSummaryDto, VISIBILITY_LABELS, Visibility } from '@spothub/shared';
 
 import { coverSrcset, placeholderUrl } from '../../../../core/images/srcset';
+import { Avatar } from '../../../../core/components/avatar/avatar';
 
 /**
  * Presenter: one post in a feed — the blog, a build's posts, or the author's
@@ -22,7 +23,7 @@ import { coverSrcset, placeholderUrl } from '../../../../core/images/srcset';
 @Component({
   selector: 'sh-post-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatButtonModule, MatIconModule, RouterLink],
+  imports: [Avatar, DatePipe, MatButtonModule, MatIconModule, RouterLink],
   templateUrl: './post-card.html',
   styleUrl: './post-card.scss',
 })
@@ -57,9 +58,4 @@ export class PostCard {
       ? ['/posts', post.id, 'edit']
       : ['/blog', post.id, post.slug];
   });
-
-  /** The author's initial, in place of a picture — a profile photo would load from Google. */
-  protected readonly initial = computed(() =>
-    (this.post().authorName ?? 'Pilot').trim().charAt(0).toUpperCase(),
-  );
 }

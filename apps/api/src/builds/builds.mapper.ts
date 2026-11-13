@@ -53,6 +53,7 @@ export function toBuildDto(
     purchaseUrl: costs ? build.purchaseUrl : null,
     ownedByViewer: owned,
     ownerName: build.ownerName,
+    ownerPhotoUrl: build.ownerPhotoUrl,
     likes,
     createdAt: build.createdAt.toISOString(),
     updatedAt: build.updatedAt.toISOString(),

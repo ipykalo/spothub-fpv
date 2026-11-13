@@ -4,6 +4,15 @@
 
 @if (auth.user(); as user) {
   <div class="grid max-w-176 gap-8">
+    <sh-profile-photo
+      [name]="user.publicName"
+      [photoUrl]="user.photoUrl"
+      [saving]="store.savingPhoto()"
+      [error]="store.photoError()"
+      (chosen)="uploadPhoto($event)"
+      (removed)="removePhoto()"
+    />
+
     <sh-pilot-name-form
       [user]="user"
       [saving]="store.savingName()"

@@ -67,6 +67,7 @@ import { BUILD_STATUS_STYLES } from '../build-status';
 import { BuildCostSummary } from '../presenters/build-cost-summary/build-cost-summary';
 import { BuildsApi } from '../builds.api';
 import { BuildsStore } from '../builds.store';
+import { Avatar } from '../../../core/components/avatar/avatar';
 
 /**
  * Container: the build page. Owns the stores and the side effects; every
@@ -80,6 +81,7 @@ import { BuildsStore } from '../builds.store';
   selector: 'sh-build-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Avatar,
     CollapseAll,
     MatButtonModule,
     MatIconModule,

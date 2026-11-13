@@ -9,6 +9,7 @@ import { BlockedPilots } from '../../blocks/presenters/blocked-pilots/blocked-pi
 import { AccountStore } from '../account.store';
 import { AccountDetails } from '../presenters/account-details/account-details';
 import { PilotNameForm } from '../presenters/pilot-name-form/pilot-name-form';
+import { ProfilePhoto } from '../presenters/profile-photo/profile-photo';
 import { HomeCurrencyForm } from '../presenters/home-currency-form/home-currency-form';
 import { SignOutEverywhere } from '../presenters/sign-out-everywhere/sign-out-everywhere';
 
@@ -24,6 +25,7 @@ import { SignOutEverywhere } from '../presenters/sign-out-everywhere/sign-out-ev
     BlockedPilots,
     HomeCurrencyForm,
     PilotNameForm,
+    ProfilePhoto,
     SignOutEverywhere,
   ],
   templateUrl: './account.page.html',
@@ -62,6 +64,22 @@ export class AccountPage {
           duration: 4000,
         },
       );
+    }
+  }
+
+  protected async uploadPhoto(file: File): Promise<void> {
+    const saved = await this.store.uploadPhoto(file);
+
+    if (saved) {
+      this.auth.applyPhoto(saved.photoUrl);
+      this.snackBar.open('Your photo is saved.', undefined, { duration: 3000 });
+    }
+  }
+
+  protected async removePhoto(): Promise<void> {
+    if (await this.store.removePhoto()) {
+      this.auth.applyPhoto(null);
+      this.snackBar.open('Your photo is removed.', undefined, { duration: 3000 });
     }
   }
 
