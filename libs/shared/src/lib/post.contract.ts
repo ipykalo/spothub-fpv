@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { buildSchema } from './build.contract';
 import { Visibility } from './enums';
 import { likesSchema } from './like.contract';
+import { responsiveImageSchema } from './image-versions';
 
 /**
  * Blog posts, defined once for both sides of the wire.
@@ -152,12 +153,15 @@ export const postSummarySchema = z.object({
   /** Whether the person asking wrote it. Only its author can change it. */
   ownedByViewer: z.boolean(),
   /**
-   * The cover image for a list. The full image rather than its thumbnail, since a
-   * feed card is the width of the page. A lasting address, so a card may be
-   * shared — except on a draft, which only its author lists: that one is a
-   * presigned URL, because an `<img>` carries no token to prove who is asking.
+   * The cover image for a list: its display version rather than its
+   * thumbnail, since a feed card is the width of the page. A lasting address,
+   * so a card may be shared — except on a draft, which only its author lists:
+   * that one is a presigned URL, because an `<img>` carries no token to prove
+   * who is asking.
    */
   coverUrl: z.string().nullable(),
+  /** The same cover in the sizes a card's `srcset` chooses between. */
+  coverImage: responsiveImageSchema.nullable(),
   /** Minutes to read the body. */
   readingMinutes: z.number().int(),
   /** The linked builds the person asking may open, as tags, in the author's order. */
@@ -173,7 +177,7 @@ export const postSchema = postSummarySchema.extend({
   bodyMd: z.string(),
   /** The cover the author chose, one of the post's own images. */
   coverAssetId: z.uuid().nullable(),
-  /** The cover at full size, for the top of the post. */
+  /** The cover's display version, for the top of the post and link previews. */
   coverImageUrl: z.string().nullable(),
   /** The post's own images, which `image:` references in the body resolve to. */
   images: z.array(postImageSchema),

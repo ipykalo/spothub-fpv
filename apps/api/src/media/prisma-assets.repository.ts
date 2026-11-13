@@ -392,6 +392,7 @@ export class PrismaAssetsRepository extends AssetsRepository {
     ownerId: string,
     assetId: string,
     display: DisplayVersion,
+    upright: { readonly width: number; readonly height: number },
   ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.asset.create({ data: displayRow(ownerId, display) });
@@ -399,7 +400,7 @@ export class PrismaAssetsRepository extends AssetsRepository {
       // its display was being made, leaves this row to be taken back.
       const { count } = await tx.asset.updateMany({
         where: { id: assetId, ownerId, displayId: null },
-        data: { displayId: created.id },
+        data: { displayId: created.id, width: upright.width, height: upright.height },
       });
 
       if (count === 0) {
@@ -408,6 +409,22 @@ export class PrismaAssetsRepository extends AssetsRepository {
 
       return count > 0;
     });
+  }
+
+  async findReadyForOwner(
+    ownerId: string,
+    assetIds: readonly string[],
+  ): Promise<readonly AssetEntity[]> {
+    if (assetIds.length === 0) {
+      return [];
+    }
+
+    const assets = await this.prisma.asset.findMany({
+      where: { id: { in: [...assetIds] }, ownerId, status: AssetStatus.READY },
+      include: WITH_THUMB,
+    });
+
+    return assets.map((asset) => toEntity(asset));
   }
 
   async findKeysForOwner(

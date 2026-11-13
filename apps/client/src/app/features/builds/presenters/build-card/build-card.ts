@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { BUILD_CLASS_LABELS, BUILD_STATUS_LABELS, type BuildDto } from '@spothub/shared';
 
+import { coverSrcset } from '../../../../core/images/srcset';
 import { BUILD_STATUS_STYLES } from '../../build-status';
 
 /**
@@ -44,6 +45,12 @@ export class BuildCard {
 
   /** Icon and colour tone for the current status. */
   protected readonly style = computed(() => BUILD_STATUS_STYLES[this.build().status]);
+
+  /** The cover's thumbnail and display version, for the browser to pick between. */
+  protected readonly coverSrcset = computed(() => {
+    const cover = this.build().coverImage;
+    return cover ? coverSrcset(cover) : null;
+  });
 
   /**
    * The facts worth showing under the name, already filtered.

@@ -1280,6 +1280,19 @@ three. Post images have a lasting `/display` address beside `/file` and
 queued at start-up only while something is missing; until then every
 display address serves the original (`display-photos.e2e.spec.ts`).
 
+**A browser picks the size**: the gallery, the viewer, build cards, blog
+cards and a post's cover carry a `srcset` of the thumbnail and the display
+version, with `sizes` for how wide each box really is
+(`core/images/srcset.ts`). The widths come from the original's size through
+`scaledWidth` in `libs/shared/src/lib/image-versions.ts`, beside the 640 and
+1600 edges both sides share, so they match the files. Build and blog cards
+get their cover as `coverImage` (`MediaFacade.coverImages`) — build cards
+used to load every cover's camera original. **An image's recorded size is
+upright** (`uprightSize`): a phone photo taken upright is landscape pixels
+with an EXIF orientation of 5–8, and commit used to record the raw sides,
+which made a `srcset` describe a portrait photo as landscape. The backfill
+corrects the size of every older image it gives a display version.
+
 The `assets` table is polymorphic on `subject_type`, so parts and repairs get
 photos later with a row rather than a table. `build` and `post` exist today;
 a subject added to `AssetSubject` without its ownership and visibility

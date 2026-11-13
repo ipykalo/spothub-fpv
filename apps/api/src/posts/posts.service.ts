@@ -5,10 +5,10 @@ import {
   NO_LIKES,
   type PostDto,
   type PostSummaryDto,
+  referencedImageIds,
+  type ResponsiveImageDto,
   type UpdatePostDto,
   Visibility,
-  postImageUrl,
-  referencedImageIds,
 } from '@spothub/shared';
 
 import { BuildsFacade } from '../builds';
@@ -150,9 +150,8 @@ export class PostsService {
   }
 
   /**
-   * Summaries with their cover thumbnails — an address each, not a signature,
-   * so nothing here has to be signed — and their tags, the linked builds this
-   * viewer may open, asked for once for the whole list.
+   * Summaries with their covers and their tags — the linked builds this
+   * viewer may open — each asked for once for the whole list.
    */
   private async summaries(
     posts: readonly PostEntity[],
@@ -163,7 +162,7 @@ export class PostsService {
       posts.map((post) => post.id),
     );
 
-    const draftCovers = await this.signedDraftCovers(posts);
+    const covers = await this.coverImages(posts);
 
     const buildIds = [...new Set(posts.flatMap((post) => post.buildIds))];
     const tags = new Map(
@@ -177,17 +176,7 @@ export class PostsService {
       toPostSummaryDto(
         post,
         viewerId,
-        // The display version, not the thumbnail: a feed card is the width of
-        // the page, and a thumbnail is 640px on its long edge — a portrait
-        // photo came out 360px wide, stretched four times over and blurred.
-        // Not the original either: 1600px is enough for any card, at a
-        // fraction of a camera's bytes. The route falls back to the original
-        // for an image the backfill has not reached yet.
-        post.coverAssetId === null
-          ? null
-          : isDraft(post)
-            ? (draftCovers.get(post.coverAssetId) ?? null)
-            : postImageUrl(post.id, post.coverAssetId, 'display'),
+        post.coverAssetId === null ? null : (covers.get(post.coverAssetId) ?? null),
         post.buildIds.flatMap((buildId) => {
           const tag = tags.get(buildId);
           return tag ? [tag] : [];
@@ -198,28 +187,31 @@ export class PostsService {
   }
 
   /**
-   * Presigned covers for the drafts in a list, by asset id. Only an author's
-   * own list holds drafts, so this is one batch per author — in practice one.
+   * The covers of a list, by asset id, in the sizes a card's `srcset` picks
+   * from: the display version — a feed card is the width of the page, more
+   * than a 640px thumbnail, and 1600px is enough at a fraction of a camera
+   * original's bytes — with the thumbnail for a phone. A published post's
+   * are lasting addresses; a draft's are presigned, since only its author
+   * lists it and an `<img>` carries no token. One batch per author.
    */
-  private async signedDraftCovers(
+  private async coverImages(
     posts: readonly PostEntity[],
-  ): Promise<ReadonlyMap<string, string>> {
-    const byAuthor = new Map<string, string[]>();
+  ): Promise<ReadonlyMap<string, ResponsiveImageDto>> {
+    const byAuthor = new Map<string, Map<string, string | null>>();
 
     for (const post of posts) {
-      if (isDraft(post) && post.coverAssetId !== null) {
-        byAuthor.set(post.authorId, [
-          ...(byAuthor.get(post.authorId) ?? []),
-          post.coverAssetId,
-        ]);
+      if (post.coverAssetId !== null) {
+        const covers = byAuthor.get(post.authorId) ?? new Map<string, string | null>();
+        covers.set(post.coverAssetId, isDraft(post) ? null : post.id);
+        byAuthor.set(post.authorId, covers);
       }
     }
 
-    const signed = await Promise.all(
-      [...byAuthor].map(([authorId, ids]) => this.media.urlsFor(authorId, ids)),
+    const found = await Promise.all(
+      [...byAuthor].map(([authorId, covers]) => this.media.coverImages(authorId, covers)),
     );
 
-    return new Map(signed.flatMap((urls) => [...urls]));
+    return new Map(found.flatMap((covers) => [...covers]));
   }
 
   /** A post may only point at its author's own builds — never at someone else's, shared or not. */

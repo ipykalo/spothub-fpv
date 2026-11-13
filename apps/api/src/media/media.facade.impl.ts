@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { type PostImageDto, postImageUrl } from '@spothub/shared';
+import {
+  type PostImageDto,
+  type ResponsiveImageDto,
+  postImageUrl,
+} from '@spothub/shared';
 
 import type { Env } from '../config';
 import { StorageGateway } from '../storage';
@@ -44,6 +48,48 @@ export class MediaFacadeImpl extends MediaFacade {
     }
 
     return this.sign(await this.assets.findThumbKeysForOwner(ownerId, assetIds));
+  }
+
+  async coverImages(
+    ownerId: string,
+    covers: ReadonlyMap<string, string | null>,
+  ): Promise<ReadonlyMap<string, ResponsiveImageDto>> {
+    const assets = await this.assets.findReadyForOwner(ownerId, [...covers.keys()]);
+    const sign = (key: string): Promise<string> =>
+      this.storage.presignGet(key, this.downloadTtl);
+
+    const entries = await Promise.all(
+      assets.map(async (asset): Promise<[string, ResponsiveImageDto]> => {
+        const postId = covers.get(asset.id) ?? null;
+
+        // A published post's lasting addresses; the routes fall back to the
+        // original where a version is not made yet.
+        if (postId !== null) {
+          return [
+            asset.id,
+            {
+              url: postImageUrl(postId, asset.id, 'display'),
+              thumbUrl:
+                asset.thumbKey === null ? null : postImageUrl(postId, asset.id, 'thumb'),
+              width: asset.width,
+              height: asset.height,
+            },
+          ];
+        }
+
+        return [
+          asset.id,
+          {
+            url: await sign(asset.displayKey ?? asset.storageKey),
+            thumbUrl: asset.thumbKey === null ? null : await sign(asset.thumbKey),
+            width: asset.width,
+            height: asset.height,
+          },
+        ];
+      }),
+    );
+
+    return new Map(entries);
   }
 
   async postImages(

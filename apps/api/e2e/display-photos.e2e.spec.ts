@@ -1,4 +1,9 @@
-import type { AssetDto, BuildDto, UploadTicketDto } from '@spothub/shared';
+import type {
+  AssetDto,
+  BuildDto,
+  PostSummaryDto,
+  UploadTicketDto,
+} from '@spothub/shared';
 import sharp from 'sharp';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -42,11 +47,20 @@ describe('display-size photos', () => {
   });
 
   /** A camera-sized photo through the real pipeline: ask, PUT to storage, commit. */
-  async function uploadPhoto(width: number, height: number): Promise<AssetDto> {
+  /**
+   * `orientation` is the EXIF tag a phone writes: 6 is a photo taken upright
+   * and stored as landscape pixels, to be turned a quarter.
+   */
+  async function uploadPhoto(
+    width: number,
+    height: number,
+    orientation = 1,
+  ): Promise<AssetDto> {
     const image = await sharp({
       create: { width, height, channels: 3, background: { r: 255, g: 187, b: 0 } },
     })
       .jpeg()
+      .withMetadata({ orientation })
       .toBuffer();
 
     const ticket = (
@@ -109,6 +123,111 @@ describe('display-size photos', () => {
 
     // Real bytes the pilot asked for, so they count.
     expect(Number(asset.display?.sizeBytes)).toBe(stored?.body.byteLength);
+  });
+
+  it('gives a build card its cover in sizes to choose from, never the camera original', async () => {
+    const photo = await uploadPhoto(3200, 1800);
+
+    await request(testApp.server)
+      .patch(`/api/builds/${build.id}/photos/cover`)
+      .set('Authorization', as())
+      .send({ assetId: photo.id })
+      .expect(204);
+
+    const card = (
+      (
+        await request(testApp.server)
+          .get('/api/builds')
+          .set('Authorization', as())
+          .expect(200)
+      ).body as BuildDto[]
+    ).find((entry) => entry.id === build.id);
+    const asset = await displayRow(photo.id);
+
+    expect(card?.coverImage).toMatchObject({ width: 3200, height: 1800 });
+    expect(card?.coverImage?.thumbUrl).toEqual(expect.stringContaining('http'));
+    // The display version, signed — where the card used to get the original.
+    expect(card?.coverUrl).toContain(asset.display?.storageKey ?? 'missing');
+    expect(card?.coverImage?.url).toBe(card?.coverUrl);
+  });
+
+  it('gives a blog card lasting addresses for each size', async () => {
+    const post = (
+      await request(testApp.server)
+        .post('/api/posts')
+        .set('Authorization', as())
+        .send({ title: 'Sized covers', visibility: 'PUBLIC' })
+        .expect(201)
+    ).body as { id: string };
+
+    const image = await sharp({
+      create: {
+        width: 2400,
+        height: 1600,
+        channels: 3,
+        background: { r: 30, g: 30, b: 30 },
+      },
+    })
+      .jpeg()
+      .toBuffer();
+    const ticket = (
+      await request(testApp.server)
+        .post(`/api/posts/${post.id}/images/uploads`)
+        .set('Authorization', as())
+        .send({ fileName: 'cover.jpg', mime: 'image/jpeg', sizeBytes: image.byteLength })
+        .expect(200)
+    ).body as UploadTicketDto;
+    await fetch(ticket.uploadUrl, {
+      method: 'PUT',
+      body: image,
+      headers: { 'Content-Type': ticket.contentType },
+    });
+    await request(testApp.server)
+      .post(`/api/posts/${post.id}/images/${ticket.assetId}/commit`)
+      .set('Authorization', as())
+      .send({})
+      .expect(200);
+    await request(testApp.server)
+      .patch(`/api/posts/${post.id}/images/cover`)
+      .set('Authorization', as())
+      .send({ assetId: ticket.assetId })
+      .expect(204);
+
+    const feed = (await request(testApp.server).get('/api/posts/published').expect(200))
+      .body as PostSummaryDto[];
+    const card = feed.find((entry) => entry.id === post.id);
+
+    expect(card?.coverImage).toEqual({
+      url: `/api/posts/${post.id}/images/${ticket.assetId}/display`,
+      thumbUrl: `/api/posts/${post.id}/images/${ticket.assetId}/thumb`,
+      width: 2400,
+      height: 1600,
+    });
+  });
+
+  it('records a phone photo taken upright as portrait, as every version shows it', async () => {
+    const photo = await uploadPhoto(3200, 1800, 6);
+
+    expect([photo.width, photo.height]).toEqual([1800, 3200]);
+    const asset = await displayRow(photo.id);
+    expect([asset.display?.width, asset.display?.height]).toEqual([900, 1600]);
+  });
+
+  it('corrects the size an older phone photo was recorded with, through the backfill', async () => {
+    const photo = await uploadPhoto(3200, 1800, 6);
+    const before = await displayRow(photo.id);
+
+    // As commit used to leave it: the raw sides, and no display version.
+    await prisma().asset.update({
+      where: { id: photo.id },
+      data: { displayId: null, width: 3200, height: 1800 },
+    });
+    await prisma().asset.delete({ where: { id: before.display?.id ?? '' } });
+
+    await testApp.app.get(DisplayBackfillJob).backfill();
+
+    const after = await prisma().asset.findUniqueOrThrow({ where: { id: photo.id } });
+    expect([after.width, after.height]).toEqual([1800, 3200]);
   });
 
   it('never enlarges a small photo', async () => {

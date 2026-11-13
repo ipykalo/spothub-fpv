@@ -116,14 +116,22 @@ export abstract class AssetsRepository {
 
   /**
    * Records a display version made for an image, unless it gained one in the
-   * meantime. Answers whether it was recorded; when not, the caller deletes
-   * what it stored.
+   * meantime, and the original's upright size beside it — older images were
+   * recorded with a phone photo's sides swapped. Answers whether it was
+   * recorded; when not, the caller deletes what it stored.
    */
   abstract attachDisplayForOwner(
     ownerId: string,
     assetId: string,
     display: DisplayVersion,
+    upright: { readonly width: number; readonly height: number },
   ): Promise<boolean>;
+
+  /** The owner's ready images among `assetIds`, with their versions' keys. */
+  abstract findReadyForOwner(
+    ownerId: string,
+    assetIds: readonly string[],
+  ): Promise<readonly AssetEntity[]>;
 
   abstract findKeysForOwner(
     ownerId: string,

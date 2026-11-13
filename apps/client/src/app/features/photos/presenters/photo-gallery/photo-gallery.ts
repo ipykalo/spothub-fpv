@@ -21,6 +21,7 @@ import { ALLOWED_IMAGE_MIME, type AssetDto } from '@spothub/shared';
 
 import type { PendingUpload } from '../../photos.store';
 import { neighbourPhotoUrls } from './neighbour-photos';
+import { photoSrcset } from '../../../../core/images/srcset';
 import { swipeStep } from './swipe';
 
 /**
@@ -91,6 +92,9 @@ export class PhotoGallery {
   protected readonly hasMany = computed(() => this.photos().length > 1);
 
   /** The photos either side of the one showing, fetched ahead so next and previous are instant. */
+  /** The sizes a browser may choose a photo in (`core/images/srcset.ts`). */
+  protected readonly srcset = photoSrcset;
+
   protected readonly neighbourUrls = computed(() =>
     neighbourPhotoUrls(this.photos(), this.activeIndex()),
   );

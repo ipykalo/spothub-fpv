@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   type AssetDto,
   MAX_UPLOAD_BYTES,
+  THUMB_EDGE,
   type RequestUploadDto,
   type UploadTicketDto,
 } from '@spothub/shared';
@@ -21,10 +22,7 @@ import { UsersFacade } from '../users';
 import { AssetsRepository } from './abstract/assets.repository';
 import { type AssetEntity, AssetSubject } from './asset.entity';
 import { type SignedUrls, toAssetDto } from './assets.mapper';
-import { makeDisplayVersion } from './display-version';
-
-/** The longest edge of a generated thumbnail, in pixels. */
-const THUMB_EDGE = 640;
+import { makeDisplayVersion, uprightSize } from './display-version';
 
 /** How a subject is named when it cannot be found. */
 const SUBJECT_NAMES: Readonly<Record<AssetSubject, string>> = {
@@ -301,9 +299,11 @@ export class AssetsService {
     }
 
     const image = sharp(stored.body, { failOn: 'error' });
-    const meta = await image.metadata();
+    // The size as seen, not as stored: a phone photo taken upright is
+    // landscape pixels with an orientation tag, and every version is turned.
+    const size = uprightSize(await image.metadata());
 
-    if (!meta.width || !meta.height) {
+    if (!size) {
       throw new Error('Not a decodable image');
     }
 
@@ -333,8 +333,8 @@ export class AssetsService {
 
     const committed = await this.assets.commitForOwner(ownerId, asset.id, {
       sizeBytes: stripped.byteLength || sizeBytes,
-      width: meta.width,
-      height: meta.height,
+      width: size.width,
+      height: size.height,
       mime: asset.mime ?? 'application/octet-stream',
       thumbKey,
       thumbStorageKey: thumbKey,

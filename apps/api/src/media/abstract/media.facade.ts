@@ -1,4 +1,4 @@
-import type { PostImageDto } from '@spothub/shared';
+import type { PostImageDto, ResponsiveImageDto } from '@spothub/shared';
 
 /**
  * The media module's public API — the only thing another module may inject.
@@ -30,6 +30,19 @@ export abstract class MediaFacade {
     ownerId: string,
     assetIds: readonly string[],
   ): Promise<ReadonlyMap<string, string>>;
+
+  /**
+   * Covers in the sizes a card's `srcset` chooses between, keyed by asset id:
+   * the display version and the thumbnail, with the original's size. An
+   * asset mapped to a post id gets that post's lasting addresses (a published
+   * post); one mapped to null gets presigned URLs (a build, or a draft, which
+   * an `<img>` cannot prove the right to read). Ids that are not the owner's
+   * are simply absent.
+   */
+  abstract coverImages(
+    ownerId: string,
+    covers: ReadonlyMap<string, string | null>,
+  ): Promise<ReadonlyMap<string, ResponsiveImageDto>>;
 
   /**
    * The images uploaded to a post, in upload order. Whether the reader may see

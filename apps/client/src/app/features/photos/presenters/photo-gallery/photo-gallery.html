@@ -59,9 +59,12 @@
         (keydown.arrowright)="step(1)"
       >
         <!-- contain, not cover: cropping a quad's arms off to fill a box loses the subject. -->
+        <!-- The box is at most 46rem wide: a phone takes the thumbnail, a large screen the display version. -->
         <img
           class="block h-full w-full object-contain"
           [src]="photo.displayUrl ?? photo.url ?? photo.thumbUrl"
+          [attr.srcset]="srcset(photo)"
+          sizes="(max-width: 46rem) 100vw, 46rem"
           [alt]="photo.fileName ?? 'Build photo'"
           (error)="imageFailed.emit()"
         />
@@ -248,6 +251,8 @@
       <img
         class="absolute inset-x-18 top-14 bottom-12 m-auto h-[calc(100%-6.5rem)] w-[calc(100%-9rem)] touch-pan-y object-contain max-[32rem]:inset-x-0 max-[32rem]:h-[calc(100%-6.5rem)] max-[32rem]:w-full"
         [src]="photo.displayUrl ?? photo.url ?? photo.thumbUrl"
+        [attr.srcset]="srcset(photo)"
+        sizes="100vw"
         [alt]="photo.fileName ?? 'Build photo'"
         (error)="imageFailed.emit()"
       />

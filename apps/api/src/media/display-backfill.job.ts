@@ -10,7 +10,9 @@ import {
 import { JobQueue } from '../jobs';
 import { StorageGateway } from '../storage';
 import { AssetsRepository } from './abstract/assets.repository';
-import { makeDisplayVersion } from './display-version';
+import sharp from 'sharp';
+
+import { makeDisplayVersion, uprightSize } from './display-version';
 
 /** The job that gives photos uploaded before display versions existed one each. */
 export const DISPLAY_BACKFILL_JOB = 'asset.display-backfill';
@@ -98,16 +100,27 @@ export class DisplayBackfillJob implements OnModuleInit, OnApplicationBootstrap 
     }
 
     const display = await makeDisplayVersion(original.body);
+    // Recorded again, upright: commit used to keep a phone photo's raw size.
+    const upright = uprightSize(await sharp(original.body).metadata());
     const key = `${ownerId}/${randomUUID()}.webp`;
+
+    if (!upright) {
+      throw new Error('The original has no size');
+    }
 
     await this.storage.put(key, display.bytes, 'image/webp');
 
-    const attached = await this.assets.attachDisplayForOwner(ownerId, assetId, {
-      storageKey: key,
-      sizeBytes: display.bytes.byteLength,
-      width: display.width,
-      height: display.height,
-    });
+    const attached = await this.assets.attachDisplayForOwner(
+      ownerId,
+      assetId,
+      {
+        storageKey: key,
+        sizeBytes: display.bytes.byteLength,
+        width: display.width,
+        height: display.height,
+      },
+      upright,
+    );
 
     // Deleted, or given one by a commit, while this was being made.
     if (!attached) {

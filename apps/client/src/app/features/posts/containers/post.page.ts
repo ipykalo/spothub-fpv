@@ -22,6 +22,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { AuthStore } from '../../../core/auth/auth.store';
 import { Markdown } from '../../../core/components/markdown/markdown';
+import { photoSrcset } from '../../../core/images/srcset';
 import { injectPageMeta } from '../../../core/seo/page-meta';
 import { injectStructuredData } from '../../../core/seo/structured-data';
 import { BuildCard } from '../../builds/presenters/build-card/build-card';
@@ -70,6 +71,12 @@ export class PostPage {
   private readonly asSignedIn = signal<PostDto | null>(null);
 
   protected readonly shown = computed(() => this.asSignedIn() ?? this.post());
+  /** The cover is one of the post's own images, which carry every version and the original's size. */
+  protected readonly coverSrcset = computed(() => {
+    const post = this.shown();
+    const cover = post?.images.find((image) => image.id === post.coverAssetId);
+    return cover ? photoSrcset(cover) : null;
+  });
   protected readonly isDraft = computed(
     () => this.shown()?.visibility === Visibility.Private,
   );
