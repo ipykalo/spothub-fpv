@@ -3,6 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import type {
   AdminUserDto,
   AppSettingsDto,
+  HiddenCommentDto,
+  HiddenCountDto,
+  HiddenPostDto,
   ReportDto,
   UpdateAdminUserDto,
   UpdateAppSettingsDto,
@@ -42,6 +45,38 @@ export class AdminApi {
   resolveReport(id: string): Observable<ReportDto[]> {
     return this.http.patch<ReportDto[]>(`${this.base}/admin/reports/${id}`, {
       resolved: true,
+    });
+  }
+
+  /** Posts an admin hid, most recently hidden first. */
+  hiddenPosts(): Observable<HiddenPostDto[]> {
+    return this.http.get<HiddenPostDto[]>(`${this.base}/admin/posts/hidden`);
+  }
+
+  hiddenComments(): Observable<HiddenCommentDto[]> {
+    return this.http.get<HiddenCommentDto[]>(`${this.base}/admin/comments/hidden`);
+  }
+
+  setPostHidden(id: string, hidden: boolean): Observable<unknown> {
+    return this.http.patch(`${this.base}/admin/posts/${id}`, { hidden });
+  }
+
+  deletePost(id: string): Observable<unknown> {
+    return this.http.delete(`${this.base}/admin/posts/${id}`);
+  }
+
+  setCommentHidden(id: string, hidden: boolean): Observable<unknown> {
+    return this.http.patch(`${this.base}/admin/comments/${id}`, { hidden });
+  }
+
+  deleteComment(id: string): Observable<unknown> {
+    return this.http.delete(`${this.base}/admin/comments/${id}`);
+  }
+
+  /** Hides, or shows again, every post a pilot wrote; answers with how many changed. */
+  setPilotPostsHidden(userId: string, hidden: boolean): Observable<HiddenCountDto> {
+    return this.http.patch<HiddenCountDto>(`${this.base}/admin/users/${userId}/posts`, {
+      hidden,
     });
   }
 

@@ -1,0 +1,58 @@
+@if (posts().length === 0 && comments().length === 0) {
+  <p class="m-0 text-sm text-muted">Nothing is hidden.</p>
+} @else {
+  <ul class="m-0 grid list-none gap-3 p-0">
+    @for (post of posts(); track post.id) {
+      <li class="tone-idle grid gap-1.5 rounded-lg border border-l-4 border-outline-variant border-l-(--tone) p-3">
+        <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <span class="font-semibold">Post by {{ post.authorName }}</span>
+          <span class="text-muted">
+            · hidden <time [attr.datetime]="post.hiddenAt">{{ post.hiddenAt | date: 'd MMM y, HH:mm' }}</time>
+          </span>
+        </p>
+        <p class="m-0 text-base font-semibold wrap-anywhere">{{ post.title }}</p>
+
+        <div class="-ml-2 flex flex-wrap gap-0.5">
+          <button matButton type="button" [disabled]="saving()" (click)="postShown.emit(post)">
+            <mat-icon>visibility</mat-icon>
+            Show again
+          </button>
+          <button matButton type="button" [disabled]="saving()" (click)="postDeleted.emit(post)">
+            <mat-icon>delete</mat-icon>
+            Delete
+          </button>
+        </div>
+      </li>
+    }
+
+    @for (comment of comments(); track comment.id) {
+      <li class="tone-idle grid gap-1.5 rounded-lg border border-l-4 border-outline-variant border-l-(--tone) p-3">
+        <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <span class="font-semibold">Comment by {{ comment.authorName }}</span>
+          <span class="text-muted">
+            · hidden
+            <time [attr.datetime]="comment.hiddenAt">{{ comment.hiddenAt | date: 'd MMM y, HH:mm' }}</time>
+          </span>
+        </p>
+        <blockquote class="m-0 border-l-2 border-outline-variant pl-3 text-base whitespace-pre-wrap wrap-anywhere">
+          {{ comment.excerpt }}
+        </blockquote>
+
+        <div class="-ml-2 flex flex-wrap gap-0.5">
+          <a matButton [routerLink]="link(comment.place)">
+            <mat-icon>open_in_new</mat-icon>
+            Open
+          </a>
+          <button matButton type="button" [disabled]="saving()" (click)="commentShown.emit(comment)">
+            <mat-icon>visibility</mat-icon>
+            Show again
+          </button>
+          <button matButton type="button" [disabled]="saving()" (click)="commentDeleted.emit(comment)">
+            <mat-icon>delete</mat-icon>
+            Delete
+          </button>
+        </div>
+      </li>
+    }
+  </ul>
+}

@@ -153,6 +153,11 @@ export const postSummarySchema = z.object({
   /** Whether the person asking wrote it. Only its author can change it. */
   ownedByViewer: z.boolean(),
   /**
+   * An admin hid it: nobody but its author can open it, whatever its
+   * visibility says. Only ever true for the author, since nobody else gets it.
+   */
+  hidden: z.boolean(),
+  /**
    * The cover image for a list: its display version rather than its
    * thumbnail, since a feed card is the width of the page. A lasting address,
    * so a card may be shared — except on a draft, which only its author lists:

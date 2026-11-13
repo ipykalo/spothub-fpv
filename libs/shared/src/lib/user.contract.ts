@@ -54,6 +54,10 @@ export const adminUserSchema = z.object({
   storageQuotaBytes: z.number().nullable(),
   /** ISO code of the country their last sign-in came from, refused or not. */
   lastSignInCountry: z.string().nullable(),
+  /** Posts they wrote, drafts included. */
+  postCount: z.number().int(),
+  /** How many of those an admin has hidden. */
+  hiddenPostCount: z.number().int(),
 });
 
 /**

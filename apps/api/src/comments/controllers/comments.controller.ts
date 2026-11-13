@@ -30,9 +30,9 @@ import {
   Public,
   ZodValidationPipe,
   RateLimit,
-} from '../common';
-import type { SubjectRef } from './comment.entity';
-import { CommentsService } from './comments.service';
+} from '../../common';
+import type { SubjectRef } from '../comment.entity';
+import { CommentsService } from '../comments.service';
 
 const spot = (subjectId: string): SubjectRef => ({
   subject: CommentSubject.Spot,

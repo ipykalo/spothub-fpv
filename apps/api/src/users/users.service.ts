@@ -13,7 +13,7 @@ import { type AuthenticatedUser, assertAdmin } from '../common';
 import { SettingsFacade } from '../settings';
 import { UsersRepository } from './abstract/users.repository';
 import { storageLimit } from './storage-allowance';
-import type { UserEntity } from './user.entity';
+import type { PostCounts, UserEntity } from './user.entity';
 import { toAdminUserDto } from './users.mapper';
 
 /** The Admin page's list of pilots, and what an admin may change about one. */
@@ -101,16 +101,25 @@ export class UsersService {
     viewer: AuthenticatedUser,
     users: readonly UserEntity[],
   ): Promise<AdminUserDto[]> {
-    const [used, fallback] = await Promise.all([
-      this.users.storageUsedBy(users.map((user) => user.id)),
+    const ids = users.map((user) => user.id);
+    const [used, posts, fallback] = await Promise.all([
+      this.users.storageUsedBy(ids),
+      this.users.postCountsBy(ids),
       this.settings.defaultStorageQuotaBytes(),
     ]);
 
     return users.map((user) =>
-      toAdminUserDto(user, viewer.id, {
-        usedBytes: used.get(user.id) ?? 0,
-        limitBytes: storageLimit(user.storageQuotaBytes, fallback),
-      }),
+      toAdminUserDto(
+        user,
+        viewer.id,
+        {
+          usedBytes: used.get(user.id) ?? 0,
+          limitBytes: storageLimit(user.storageQuotaBytes, fallback),
+        },
+        posts.get(user.id) ?? NO_POSTS,
+      ),
     );
   }
 }
+
+const NO_POSTS: PostCounts = { posts: 0, hidden: 0 };

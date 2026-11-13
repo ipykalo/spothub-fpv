@@ -49,3 +49,9 @@ export interface LinkIdentityInput {
   /** ISO code of the country this sign-in comes from; null when unknown. */
   readonly country: string | null;
 }
+
+/** A pilot's posts, as the Admin page counts them. */
+export interface PostCounts {
+  readonly posts: number;
+  readonly hidden: number;
+}

@@ -1033,6 +1033,20 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   with its place joined in the reports repository, public names only; Dismiss
   (`PATCH /admin/reports/:id`) closes every open report about the same thing.
   A report goes with its post, comment or reporter (`reports.e2e.spec.ts`).
+- **An admin hides or deletes any post or comment**, and hides every post a
+  pilot wrote at once (the Pilots table's "Hide their posts"). Hidden is
+  `hidden_at` on `posts` and `comments`, not a deletion: a hidden post joins
+  drafts in the rule for who may open it — `hiddenAt: null` sits in every
+  `SHARED` predicate (posts, likes, post images), so it answers 404 to all but
+  its author, who sees it marked, and choosing a visibility does not bring it
+  back. A hidden comment leaves the conversation for everyone, admins
+  included, except a question with replies, which stays as "Hidden by an
+  admin" like a deleted one; it is not counted, reworded, replied to or
+  reported. The admin routes live in the module that owns the rows —
+  `admin/posts/:id`, `admin/users/:id/posts`, `admin/comments/:id`, each with
+  `assertAdmin` — and are the only writes not scoped by owner; every owner
+  route is untouched. The Admin page's Hidden section shows them again or
+  deletes them (`moderation.e2e.spec.ts`).
 - **zod 4 applies `.default()` inside `.partial()`.** An update schema built as
   `fields.partial()` over fields with defaults resets every field a PATCH does
   not name. It was live in builds, parts, part units, part sources and repairs

@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
+  type HiddenCommentDto,
+  type HiddenPostDto,
   type ReportDto,
   USER_STATUS_LABELS,
   type UserStatus,
@@ -11,6 +13,7 @@ import {
 import { Section } from '../../../core/components/section/section';
 import { formatBytes } from '../../../core/format/bytes';
 import { AdminStore } from '../admin.store';
+import { HiddenList } from '../presenters/hidden-list/hidden-list';
 import { PilotsTable } from '../presenters/pilots-table/pilots-table';
 import { ReportsList } from '../presenters/reports-list/reports-list';
 import { RestrictedCountries } from '../presenters/restricted-countries/restricted-countries';
@@ -24,6 +27,7 @@ import { SignUpSettings } from '../presenters/sign-up-settings/sign-up-settings'
   selector: 'sh-admin-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    HiddenList,
     MatProgressBarModule,
     PilotsTable,
     ReportsList,
@@ -44,6 +48,43 @@ export class AdminPage {
 
   protected async dismiss(report: ReportDto): Promise<void> {
     this.tell(await this.store.resolveReport(report.id), 'Report dismissed');
+  }
+
+  protected async showPost(post: HiddenPostDto): Promise<void> {
+    this.tell(await this.store.showPost(post.id), `"${post.title}" is shown again`);
+  }
+
+  protected async deletePost(post: HiddenPostDto): Promise<void> {
+    if (
+      window.confirm(
+        `Delete "${post.title}" by ${post.authorName}? This cannot be undone.`,
+      )
+    ) {
+      this.tell(await this.store.deletePost(post.id), 'Post deleted');
+    }
+  }
+
+  protected async showComment(comment: HiddenCommentDto): Promise<void> {
+    this.tell(await this.store.showComment(comment.id), 'Comment shown again');
+  }
+
+  protected async deleteComment(comment: HiddenCommentDto): Promise<void> {
+    if (
+      window.confirm(
+        `Delete this comment by ${comment.authorName}, and any replies to it?`,
+      )
+    ) {
+      this.tell(await this.store.deleteComment(comment.id), 'Comment deleted');
+    }
+  }
+
+  protected async setPostsHidden(change: { id: string; hidden: boolean }): Promise<void> {
+    const count = await this.store.setPilotPostsHidden(change.id, change.hidden);
+    const posts = `${String(count)} ${count === 1 ? 'post' : 'posts'}`;
+    this.tell(
+      count !== null,
+      `${this.nameOf(change.id)}: ${posts} ${change.hidden ? 'hidden' : 'shown again'}`,
+    );
   }
 
   protected async setOpen(open: boolean): Promise<void> {

@@ -17,6 +17,23 @@
     <sh-reports-list [reports]="store.reports()" [saving]="store.saving()" (dismissed)="dismiss($event)" />
   </sh-section>
 
+  <sh-section
+    heading="Hidden"
+    icon="visibility_off"
+    storageKey="admin.hidden"
+    [count]="store.hiddenPosts().length + store.hiddenComments().length"
+  >
+    <sh-hidden-list
+      [posts]="store.hiddenPosts()"
+      [comments]="store.hiddenComments()"
+      [saving]="store.saving()"
+      (postShown)="showPost($event)"
+      (postDeleted)="deletePost($event)"
+      (commentShown)="showComment($event)"
+      (commentDeleted)="deleteComment($event)"
+    />
+  </sh-section>
+
   <sh-section heading="Who can sign in" icon="how_to_reg">
     <sh-sign-up-settings
       [settings]="settings"
@@ -45,6 +62,7 @@
       (statusChanged)="setStatus($event)"
       (limitChanged)="setLimit($event)"
       (defaultLimitChanged)="setDefaultLimit($event)"
+      (postsHidden)="setPostsHidden($event)"
     />
   </sh-section>
 }

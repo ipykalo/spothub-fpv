@@ -59,6 +59,12 @@ export const commentSchema = z.object({
    * false on a reply.
    */
   deleted: z.boolean(),
+  /**
+   * An admin hid it. Left out of the conversation altogether, except a
+   * question others replied to, which stays as a placeholder like a deleted
+   * one: empty body, null name, and the replies under it.
+   */
+  hidden: z.boolean(),
   /** A reply marked as its question's answer, by the asker or the owner. Always false on a question. */
   isAnswer: z.boolean(),
   /**

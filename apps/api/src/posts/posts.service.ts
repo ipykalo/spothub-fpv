@@ -1,23 +1,26 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   type CreatePostDto,
+  type HiddenCountDto,
+  type HiddenPostDto,
   type ListPublishedPostsQuery,
   NO_LIKES,
   type PostDto,
   type PostSummaryDto,
   referencedImageIds,
   type ResponsiveImageDto,
+  type SetHiddenDto,
   type UpdatePostDto,
   Visibility,
 } from '@spothub/shared';
 
 import { BuildsFacade } from '../builds';
-import { uniqueSlug } from '../common';
+import { type AuthenticatedUser, assertAdmin, uniqueSlug } from '../common';
 import { LikesFacade } from '../likes';
 import { MediaFacade } from '../media';
 import { PostsRepository } from './abstract/posts.repository';
 import type { PostEntity, UpdatePostData } from './post.entity';
-import { toPostDto, toPostSummaryDto, toPostTag } from './posts.mapper';
+import { toHiddenPostDto, toPostDto, toPostSummaryDto, toPostTag } from './posts.mapper';
 
 /**
  * Business rules for blog posts. Knows nothing about HTTP or Prisma.
@@ -145,6 +148,56 @@ export class PostsService {
     await this.media.deletePostImages(authorId, id, []);
 
     if (!(await this.posts.deleteForAuthor(authorId, id))) {
+      throw new NotFoundException('Post not found');
+    }
+  }
+
+  /** What an admin has hidden, for the Admin page to show again or delete. */
+  async listHidden(viewer: AuthenticatedUser): Promise<HiddenPostDto[]> {
+    assertAdmin(viewer);
+    return (await this.posts.findHidden()).map(toHiddenPostDto);
+  }
+
+  /**
+   * An admin hides any post, or shows it again. Its author still reads and
+   * edits it — the owner's rules are untouched — but nobody else can open it,
+   * and choosing a visibility does not bring it back.
+   */
+  async setHidden(
+    viewer: AuthenticatedUser,
+    id: string,
+    input: SetHiddenDto,
+  ): Promise<void> {
+    assertAdmin(viewer);
+
+    if (!(await this.posts.setHidden(id, input.hidden))) {
+      throw new NotFoundException('Post not found');
+    }
+  }
+
+  /** Every post a pilot wrote, hidden or shown again at once — for a spammer. */
+  async setHiddenForAuthor(
+    viewer: AuthenticatedUser,
+    authorId: string,
+    input: SetHiddenDto,
+  ): Promise<HiddenCountDto> {
+    assertAdmin(viewer);
+    return { count: await this.posts.setHiddenForAllBy(authorId, input.hidden) };
+  }
+
+  /** An admin deletes any post, its images first, as its author's own delete does. */
+  async removeAny(viewer: AuthenticatedUser, id: string): Promise<void> {
+    assertAdmin(viewer);
+
+    const post = await this.posts.findAnyById(id);
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    await this.media.deletePostImages(post.authorId, id, []);
+
+    if (!(await this.posts.deleteAny(id))) {
       throw new NotFoundException('Post not found');
     }
   }

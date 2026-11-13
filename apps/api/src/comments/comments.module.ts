@@ -5,7 +5,8 @@ import { PostsModule } from '../posts';
 import { SpotsModule } from '../spots';
 import { CommentsFacade } from './abstract/comments.facade';
 import { CommentsRepository } from './abstract/comments.repository';
-import { CommentsController } from './comments.controller';
+import { CommentsAdminController } from './controllers/comments-admin.controller';
+import { CommentsController } from './controllers/comments.controller';
 import { CommentsFacadeImpl } from './comments.facade.impl';
 import { CommentsService } from './comments.service';
 import { PrismaCommentsRepository } from './prisma-comments.repository';
@@ -23,7 +24,7 @@ import { PrismaCommentsRepository } from './prisma-comments.repository';
  */
 @Module({
   imports: [SpotsModule, BuildsModule, PostsModule],
-  controllers: [CommentsController],
+  controllers: [CommentsController, CommentsAdminController],
   providers: [
     CommentsService,
     { provide: CommentsRepository, useClass: PrismaCommentsRepository },
