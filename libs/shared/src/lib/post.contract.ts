@@ -150,8 +150,15 @@ export const postSummarySchema = z.object({
   publishedAt: z.string().nullable(),
   /** The author's display name. Never their email. */
   authorName: z.string().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  authorPhotoUrl: z.string().nullable(),
   /** Whether the person asking wrote it. Only its author can change it. */
   ownedByViewer: z.boolean(),
+  /**
+   * An admin hid it: nobody but its author can open it, whatever its
+   * visibility says. Only ever true for the author, since nobody else gets it.
+   */
+  hidden: z.boolean(),
   /**
    * The cover image for a list: its display version rather than its
    * thumbnail, since a feed card is the width of the page. A lasting address,

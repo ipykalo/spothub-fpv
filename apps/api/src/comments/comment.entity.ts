@@ -1,4 +1,4 @@
-import type { CommentSubject } from '@spothub/shared';
+import type { CommentSubject, ReportPlaceKind } from '@spothub/shared';
 
 /** What a conversation hangs off: one spot, build or post. */
 export interface SubjectRef {
@@ -12,6 +12,8 @@ export interface CommentEntity {
   readonly authorId: string;
   /** The author's display name, joined from users. Never their email. */
   readonly authorName: string | null;
+  /** Their profile photo's lasting address, or null without one. */
+  readonly authorPhotoUrl: string | null;
   /** Null for a question; the question's id for a reply. */
   readonly parentId: string | null;
   readonly body: string;
@@ -19,6 +21,8 @@ export interface CommentEntity {
   readonly editedAt: Date | null;
   /** A question its asker deleted after others replied; its body is already empty. */
   readonly deletedAt: Date | null;
+  /** Hidden by an admin: shown to nobody. */
+  readonly hiddenAt: Date | null;
   readonly createdAt: Date;
 }
 
@@ -28,6 +32,22 @@ export interface CommentPlacement {
   readonly authorId: string;
   /** A question its asker deleted after others replied. */
   readonly deleted: boolean;
+  /** Hidden by an admin. */
+  readonly hidden: boolean;
+}
+
+/** A comment an admin hid, with the page it is on, for the Admin page. */
+export interface HiddenCommentEntity {
+  readonly id: string;
+  readonly body: string;
+  readonly authorName: string;
+  readonly place: {
+    readonly kind: ReportPlaceKind;
+    readonly id: string;
+    /** A post's slug; null for a spot or build. */
+    readonly slug: string | null;
+  };
+  readonly hiddenAt: Date;
 }
 
 /** Fields the persistence layer accepts on create. */

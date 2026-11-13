@@ -48,6 +48,13 @@ export interface DisplayVersion {
   readonly height: number;
 }
 
+/** A profile photo as commit made it: one square WebP, the only version kept. */
+export interface PilotPhotoData {
+  readonly storageKey: string;
+  readonly sizeBytes: number;
+  readonly edge: number;
+}
+
 /** An image that still needs a display version, as the backfill sees it. */
 export interface DisplayCandidate {
   readonly id: string;

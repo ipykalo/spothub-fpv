@@ -18,7 +18,8 @@ import { API_BASE_URL } from '../../core/api/api.tokens';
 @Injectable({ providedIn: 'root' })
 export class PostsApi {
   private readonly http = inject(HttpClient);
-  private readonly url = `${inject(API_BASE_URL)}/posts`;
+  private readonly base = inject(API_BASE_URL);
+  private readonly url = `${this.base}/posts`;
 
   /** The viewer's own posts, drafts included. */
   listMine(): Observable<PostSummaryDto[]> {
@@ -49,6 +50,16 @@ export class PostsApi {
   /** Resolves when the server confirms the delete; the 204 carries no body. */
   remove(id: string): Observable<null> {
     return this.http.delete<null>(`${this.url}/${id}`);
+  }
+
+  /** An admin hides anyone's post: nobody but its author can open it until it is shown again. */
+  hideAsAdmin(id: string): Observable<unknown> {
+    return this.http.patch(`${this.base}/admin/posts/${id}`, { hidden: true });
+  }
+
+  /** An admin deletes anyone's post. */
+  removeAsAdmin(id: string): Observable<unknown> {
+    return this.http.delete(`${this.base}/admin/posts/${id}`);
   }
 
   /**

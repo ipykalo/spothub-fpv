@@ -6,6 +6,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import {
   type AdminUserDto,
@@ -28,6 +29,7 @@ import {
   type SortOption,
   gridView,
 } from '../../../../core/components/grid-toolbar/grid-view';
+import { Avatar } from '../../../../core/components/avatar/avatar';
 
 type PilotSortKey = 'joined' | 'seen' | 'name';
 
@@ -69,7 +71,15 @@ const STATUS_HINTS: Readonly<Record<UserStatus, string>> = {
 @Component({
   selector: 'sh-pilots-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Autocomplete, DatePipe, FilterChips, GridToolbar, MatIconModule],
+  imports: [
+    Avatar,
+    Autocomplete,
+    DatePipe,
+    FilterChips,
+    GridToolbar,
+    MatButtonModule,
+    MatIconModule,
+  ],
   templateUrl: './pilots-table.html',
   styleUrl: './pilots-table.scss',
 })
@@ -90,6 +100,8 @@ export class PilotsTable {
   /** A pilot's own limit; null puts them back on the default. */
   readonly limitChanged = output<{ id: string; bytes: number | null }>();
   readonly defaultLimitChanged = output<number>();
+  /** Hide every post a pilot wrote, or show them all again. */
+  readonly postsHidden = output<{ id: string; hidden: boolean }>();
 
   protected readonly formatBytes = formatBytes;
   protected readonly percentUsed = percentUsed;

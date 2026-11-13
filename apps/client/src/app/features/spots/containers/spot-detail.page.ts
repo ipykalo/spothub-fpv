@@ -22,6 +22,7 @@ import { SpotDetails } from '../presenters/spot-details/spot-details';
 import { SpotMap } from '../presenters/spot-map/spot-map';
 import { SpotsApi } from '../spots.api';
 import { SpotsStore } from '../spots.store';
+import { Avatar } from '../../../core/components/avatar/avatar';
 
 /**
  * Container: one spot's page. Resolves which spot to show, owns delete and
@@ -32,6 +33,7 @@ import { SpotsStore } from '../spots.store';
   selector: 'sh-spot-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Avatar,
     CollapseAll,
     CommentsSection,
     MatButtonModule,

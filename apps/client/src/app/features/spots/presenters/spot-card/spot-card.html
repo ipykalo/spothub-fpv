@@ -28,7 +28,10 @@
       </h3>
       <p class="m-0 truncate text-sm text-muted tabular-nums" [title]="whereabouts()">{{ whereabouts() }}</p>
       @if (!spot().ownedByViewer) {
-        <p class="m-0 truncate text-xs text-muted">Shared by {{ spot().ownerName ?? 'another pilot' }}</p>
+        <p class="m-0 flex min-w-0 items-center gap-1.5 text-xs text-muted">
+          <sh-avatar size="sm" [name]="spot().ownerName" [photoUrl]="spot().ownerPhotoUrl" />
+          <span class="truncate">Shared by {{ spot().ownerName ?? 'another pilot' }}</span>
+        </p>
       }
     </div>
   </div>

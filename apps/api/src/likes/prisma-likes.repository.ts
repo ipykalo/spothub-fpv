@@ -5,6 +5,8 @@ import { LikesRepository } from './abstract/likes.repository';
 import { type LikeRef, LikeSubject, type LikeTally } from './like.entity';
 
 const SHARED = { visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] } };
+/** A post an admin hid is its author's alone. */
+const SHARED_POST = { ...SHARED, hiddenAt: null };
 
 /** The only place in the likes feature that knows Prisma exists. */
 @Injectable()
@@ -25,7 +27,9 @@ export class PrismaLikesRepository extends LikesRepository {
       (await this.prisma.post.count({
         where: {
           id,
-          ...(viewerId === null ? SHARED : { OR: [{ authorId: viewerId }, SHARED] }),
+          ...(viewerId === null
+            ? SHARED_POST
+            : { OR: [{ authorId: viewerId }, SHARED_POST] }),
         },
       })) > 0,
     [LikeSubject.Build]: async (viewerId, id) =>

@@ -12,7 +12,10 @@
     <h1 class="mt-1.5 mb-0 text-2xl leading-tight wrap-anywhere">{{ spot()?.name ?? 'Spot' }}</h1>
     @if (spot(); as found) {
       @if (!found.ownedByViewer) {
-        <p class="m-0 mt-1 text-sm text-muted">Shared by {{ found.ownerName ?? 'another pilot' }}</p>
+        <p class="m-0 mt-1 flex items-center gap-2 text-sm text-muted">
+          <sh-avatar size="sm" [name]="found.ownerName" [photoUrl]="found.ownerPhotoUrl" />
+          Shared by {{ found.ownerName ?? 'another pilot' }}
+        </p>
       }
     }
   </div>

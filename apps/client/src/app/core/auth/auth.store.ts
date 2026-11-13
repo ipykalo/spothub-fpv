@@ -64,6 +64,11 @@ export class AuthStore {
     this.currentUser.update((user) => (user ? { ...user, ...name } : user));
   }
 
+  /** A new profile photo, or none, without reloading the pilot. */
+  applyPhoto(photoUrl: string | null): void {
+    this.currentUser.update((user) => (user ? { ...user, photoUrl } : user));
+  }
+
   token(): string | null {
     return this.accessToken();
   }

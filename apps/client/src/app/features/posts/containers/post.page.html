@@ -18,6 +18,12 @@
       }
 
       <div class="px-4 py-6 sm:px-12 sm:py-10">
+        @if (post.hidden) {
+          <p class="tone-stop mt-0 mb-5 rounded bg-(--tone-surface) px-3 py-2 text-sm text-(--tone)">
+            An admin has hidden this post. Only you can see it now, whatever its visibility says.
+          </p>
+        }
+
         @if (isDraft()) {
           <p class="tone-work mt-0 mb-5 rounded bg-(--tone-surface) px-3 py-2 text-sm text-(--tone)">
             A draft — only you can see it. Publish it from the editor.
@@ -25,12 +31,7 @@
         }
 
         <div class="flex flex-wrap items-center gap-3">
-          <span
-            class="grid size-10 shrink-0 place-items-center rounded-full bg-(--mat-sys-primary) font-bold text-(--mat-sys-on-primary)"
-            aria-hidden="true"
-          >
-            {{ (post.authorName ?? 'Pilot').trim().charAt(0).toUpperCase() }}
-          </span>
+          <sh-avatar size="lg" [name]="post.authorName" [photoUrl]="post.authorPhotoUrl" />
           <div class="min-w-0 leading-tight">
             <p class="m-0 font-semibold">{{ post.authorName ?? 'A pilot' }}</p>
             <p class="m-0 text-sm text-muted">
@@ -49,6 +50,17 @@
                 <mat-icon>edit</mat-icon>
                 Edit
               </a>
+            }
+
+            @if (moderates()) {
+              <button matButton type="button" [disabled]="moderating()" (click)="hide(post)">
+                <mat-icon>visibility_off</mat-icon>
+                Hide
+              </button>
+              <button matButton type="button" [disabled]="moderating()" (click)="remove(post)">
+                <mat-icon>delete</mat-icon>
+                Delete
+              </button>
             }
           </div>
         </div>

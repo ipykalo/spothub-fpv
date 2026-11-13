@@ -36,6 +36,7 @@ export function toSpotDto(
     coverUrl,
     ownedByViewer: spot.ownerId === viewerId,
     ownerName: spot.ownerName,
+    ownerPhotoUrl: spot.ownerPhotoUrl,
     createdAt: spot.createdAt.toISOString(),
     updatedAt: spot.updatedAt.toISOString(),
   };

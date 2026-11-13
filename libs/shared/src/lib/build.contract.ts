@@ -180,6 +180,8 @@ export const buildSchema = z.object({
   ownedByViewer: z.boolean(),
   /** The owner's display name, for people opening a shared build. Never their email. */
   ownerName: z.string().nullable(),
+  /** Their profile photo's lasting address (`pilotPhotoUrl`), or null without one. */
+  ownerPhotoUrl: z.string().nullable(),
   likes: likesSchema,
   createdAt: z.string(),
   updatedAt: z.string(),

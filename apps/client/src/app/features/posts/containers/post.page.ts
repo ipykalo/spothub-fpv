@@ -11,7 +11,8 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterLink } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router, RouterLink } from '@angular/router';
 import {
   CommentSubject,
   type ConversationDto,
@@ -19,7 +20,9 @@ import {
   ReportSubject,
   Visibility,
 } from '@spothub/shared';
-import { firstValueFrom } from 'rxjs';
+import { type Observable, firstValueFrom } from 'rxjs';
+
+import { apiMessage } from '../../../core/api/api-error';
 
 import { AuthStore } from '../../../core/auth/auth.store';
 import { Markdown } from '../../../core/components/markdown/markdown';
@@ -31,6 +34,7 @@ import { CommentsSection } from '../../comments/containers/comments-section';
 import { LikeButton } from '../../likes/containers/like-button';
 import { ReportButton } from '../../reports/containers/report-button/report-button';
 import { PostsApi } from '../posts.api';
+import { Avatar } from '../../../core/components/avatar/avatar';
 
 /**
  * Container: one post, for anyone it is shared with — rendered on the server.
@@ -44,6 +48,7 @@ import { PostsApi } from '../posts.api';
   selector: 'sh-post-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    Avatar,
     BuildCard,
     CommentsSection,
     DatePipe,
@@ -69,6 +74,8 @@ export class PostPage {
   protected readonly commentSubject = CommentSubject.Post;
   protected readonly reportSubject = ReportSubject.Post;
   private readonly api = inject(PostsApi);
+  private readonly router = inject(Router);
+  private readonly snackBar = inject(MatSnackBar);
   private readonly meta = injectPageMeta();
   private readonly data = injectStructuredData();
 
@@ -84,6 +91,11 @@ export class PostPage {
   protected readonly isDraft = computed(
     () => this.shown()?.visibility === Visibility.Private,
   );
+  /** An admin reading someone else's post may hide or delete it. */
+  protected readonly moderates = computed(
+    () => this.auth.isAdmin() && this.shown()?.ownedByViewer === false,
+  );
+  protected readonly moderating = signal(false);
 
   constructor() {
     effect(() => {
@@ -119,6 +131,38 @@ export class PostPage {
         untracked(() => void this.askAsSignedIn(id));
       }
     });
+  }
+
+  /** Hidden, the post is gone for the admin too, so the page goes back to the blog. */
+  protected async hide(post: PostDto): Promise<void> {
+    await this.moderate(
+      this.api.hideAsAdmin(post.id),
+      'Post hidden. Show it again from the Admin page.',
+    );
+  }
+
+  protected async remove(post: PostDto): Promise<void> {
+    const by = post.authorName ?? 'a pilot';
+
+    if (window.confirm(`Delete "${post.title}" by ${by}? This cannot be undone.`)) {
+      await this.moderate(this.api.removeAsAdmin(post.id), 'Post deleted');
+    }
+  }
+
+  private async moderate(call: Observable<unknown>, done: string): Promise<void> {
+    this.moderating.set(true);
+
+    try {
+      await firstValueFrom(call);
+      this.snackBar.open(done, undefined, { duration: 4000 });
+      await this.router.navigateByUrl('/');
+    } catch (error) {
+      this.snackBar.open(apiMessage(error, 'Could not do that'), undefined, {
+        duration: 4000,
+      });
+    } finally {
+      this.moderating.set(false);
+    }
   }
 
   private async askAsSignedIn(id: string): Promise<void> {

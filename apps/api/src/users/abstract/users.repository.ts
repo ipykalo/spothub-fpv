@@ -1,6 +1,7 @@
 import type {
   AuthProviderKind,
   LinkIdentityInput,
+  PostCounts,
   UpdateUserAdminData,
   UserEntity,
 } from '../user.entity';
@@ -46,6 +47,12 @@ export abstract class UsersRepository {
    * nothing stored is absent from the map.
    */
   abstract storageUsedBy(ids: readonly string[]): Promise<ReadonlyMap<string, number>>;
+
+  /**
+   * How many posts each of these pilots wrote, and how many of those an
+   * admin hid. A pilot with none is absent from the map.
+   */
+  abstract postCountsBy(ids: readonly string[]): Promise<ReadonlyMap<string, PostCounts>>;
 
   /** The account an address belongs to, ignoring case. */
   abstract findByEmail(email: string): Promise<UserEntity | null>;

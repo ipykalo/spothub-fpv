@@ -145,6 +145,19 @@ export class CommentsStore {
     );
   }
 
+  /** An admin hides a comment; it leaves the conversation for everyone. */
+  hideAsAdmin(commentId: string): Promise<boolean> {
+    return this.change(({ subject, subjectId }) =>
+      this.api.hideAsAdmin(subject, subjectId, commentId),
+    );
+  }
+
+  removeAsAdmin(commentId: string): Promise<boolean> {
+    return this.change(({ subject, subjectId }) =>
+      this.api.removeAsAdmin(subject, subjectId, commentId),
+    );
+  }
+
   /** Runs one change against the open subject and adopts the conversation it answers with. */
   private async change(
     call: (open: OpenSubject) => Observable<ConversationDto>,

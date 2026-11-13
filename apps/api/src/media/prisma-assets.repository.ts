@@ -10,6 +10,7 @@ import {
   type CreateAssetData,
   type DisplayCandidate,
   type DisplayVersion,
+  type PilotPhotoData,
 } from './asset.entity';
 
 type AssetWithThumb = Asset & { thumb: Asset | null; display: Asset | null };
@@ -159,7 +160,11 @@ export class PrismaAssetsRepository extends AssetsRepository {
       return build?.ownerId ?? null;
     },
     [AssetSubject.Post]: async (viewerId, subjectId) => {
-      const shared = { visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] } };
+      // A post an admin hid is its author's alone, as its page is.
+      const shared = {
+        visibility: { in: ['PUBLIC' as const, 'UNLISTED' as const] },
+        hiddenAt: null,
+      };
       const post = await this.prisma.post.findFirst({
         where: {
           id: subjectId,
@@ -371,6 +376,69 @@ export class PrismaAssetsRepository extends AssetsRepository {
     );
   }
 
+  async setPilotPhotoForOwner(
+    ownerId: string,
+    assetId: string,
+    photo: PilotPhotoData,
+  ): Promise<readonly string[] | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.asset.updateMany({
+        where: { id: assetId, ownerId, status: AssetStatus.PENDING },
+        data: {
+          status: AssetStatus.READY,
+          storageKey: photo.storageKey,
+          sizeBytes: BigInt(photo.sizeBytes),
+          mime: 'image/webp',
+          width: photo.edge,
+          height: photo.edge,
+        },
+      });
+
+      if (count === 0) {
+        return null;
+      }
+
+      const user = await tx.user.findUniqueOrThrow({
+        where: { id: ownerId },
+        select: { photo: { select: { id: true, storageKey: true } } },
+      });
+      await tx.user.update({ where: { id: ownerId }, data: { photoAssetId: assetId } });
+
+      if (!user.photo) {
+        return [];
+      }
+
+      await tx.asset.deleteMany({ where: { id: user.photo.id, ownerId } });
+      return [user.photo.storageKey];
+    });
+  }
+
+  async clearPilotPhotoForOwner(ownerId: string): Promise<readonly string[]> {
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: ownerId },
+        select: { photo: { select: { id: true, storageKey: true } } },
+      });
+
+      if (!user?.photo) {
+        return [];
+      }
+
+      // The column is SET NULL by the asset's deletion.
+      await tx.asset.deleteMany({ where: { id: user.photo.id, ownerId } });
+      return [user.photo.storageKey];
+    });
+  }
+
+  async findPilotPhotoKey(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { photo: { select: { storageKey: true } } },
+    });
+
+    return user?.photo?.storageKey ?? null;
+  }
+
   async findMissingDisplays(
     afterId: string | null,
     limit: number,
@@ -380,6 +448,8 @@ export class PrismaAssetsRepository extends AssetsRepository {
         kind: AssetKind.IMAGE,
         status: AssetStatus.READY,
         displayId: null,
+        // A profile photo is a small square kept as its only version.
+        photoOf: { is: null },
         ...(afterId === null ? {} : { id: { gt: afterId } }),
       },
       select: { id: true, ownerId: true, storageKey: true },

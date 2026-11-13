@@ -126,4 +126,18 @@ describe('PostsApi', () => {
       expect(last().body).toEqual({ assetId: null });
     });
   });
+
+  describe('an admin', () => {
+    it('hides and deletes a post at the admin routes, not the author’s', () => {
+      api.hideAsAdmin('p1').subscribe();
+      expect(last()).toMatchObject({
+        method: 'PATCH',
+        url: '/api/admin/posts/p1',
+        body: { hidden: true },
+      });
+
+      api.removeAsAdmin('p1').subscribe();
+      expect(last()).toMatchObject({ method: 'DELETE', url: '/api/admin/posts/p1' });
+    });
+  });
 });

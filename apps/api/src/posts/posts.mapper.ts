@@ -1,5 +1,6 @@
 import {
   type BuildDto,
+  type HiddenPostDto,
   type LikesDto,
   type PostDto,
   type PostImageDto,
@@ -34,7 +35,9 @@ export function toPostSummaryDto(
     visibility: post.visibility,
     publishedAt: post.publishedAt?.toISOString() ?? null,
     authorName: post.authorName,
+    authorPhotoUrl: post.authorPhotoUrl,
     ownedByViewer: post.authorId === viewerId,
+    hidden: post.hiddenAt !== null,
     coverUrl: cover?.url ?? null,
     coverImage: cover,
     readingMinutes: readingMinutes(post.bodyMd),
@@ -43,6 +46,17 @@ export function toPostSummaryDto(
     commentCount: post.commentCount,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
+  };
+}
+
+/** A hidden post, as the Admin page lists it. */
+export function toHiddenPostDto(post: PostEntity): HiddenPostDto {
+  return {
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    authorName: post.authorName ?? 'A pilot',
+    hiddenAt: post.hiddenAt?.toISOString() ?? '',
   };
 }
 

@@ -36,6 +36,7 @@ apps/api/src/
   posts/                                     the blog: posts pilots write about their builds
   likes/                                     hearts on posts and builds
   reports/                                   pilots flagging a post or comment for an admin
+  blocks/                                    one pilot keeping another away from what they own
   settings/                                  what an admin changes on the Admin page
   health/
 ```
@@ -115,12 +116,13 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are ten: `UsersFacade` and `SettingsFacade` (both consumed by auth),
+that module's `exports`. There are eleven: `UsersFacade` and `SettingsFacade` (both consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
 `FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
 comments), `BuildsFacade` (consumed by comments and posts), `LikesFacade`
 (consumed by builds and posts), `PostsFacade` (consumed by comments and
-reports) and `CommentsFacade` (consumed by reports). A facade
+reports), `CommentsFacade` (consumed by reports) and `BlocksFacade` (consumed by
+comments). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -189,6 +191,7 @@ features/
   posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
   likes/        likes.api, like-button container (dropped into the post and build pages)
   reports/      reports.api, report-button container (the post page), report-form presenter (also under each comment)
+  blocks/       blocks.api/store, blocked-pilots presenter (on /account; Block itself is under each comment)
   admin/        admin.api/store, admin.page container + sign-up-settings presenter
 ```
 
@@ -256,8 +259,14 @@ by `ThemeStore` (`core/theme/`). **No font comes from Google**: Material
 Icons, which `<mat-icon>` needs, is bundled from the `material-icons` package
 (filled set only) through `project.json`'s styles. It was a Google Fonts link
 until the site went public, which handed every visitor's address to Google
-on every page. The site icon is
-`public/favicon.svg`, with `.ico` and `apple-touch-icon.png` rendered from it.
+on every page. The mark — a
+prop mid-spin, amber on a dark tile with a faint ring so its edge holds on a
+dark page — is `public/favicon.svg`, and it is the one source: the toolbar
+(beside the name, alone on a phone) and the login card use it as it is, and
+`node scripts/render-icons.mjs` renders `favicon.ico`, `apple-touch-icon.png`
+and `logo.png` (the publisher logo in a post's structured data) from it.
+`share.jpg` is a photo with the mark composited in once; change the mark and
+that image needs redoing by hand.
 
 The rules that keep Tailwind and Angular Material from fighting:
 
@@ -379,8 +388,9 @@ The rules that keep Tailwind and Angular Material from fighting:
   `JwtAuthGuard`: anything but GET/HEAD/OPTIONS answers 403 unless the route
   is `@AllowedWhenReadOnly()` — kept for leaving the app. A refused Google
   sign-in redirects to `/login?denied=1` rather than showing the browser a
-  JSON 403 (`apps/api/e2e/admin-users.e2e.spec.ts`). Avatars are not shown on
-  the Admin page: they are Google URLs, and this site never calls Google.
+  JSON 403 (`apps/api/e2e/admin-users.e2e.spec.ts`). Google's photo
+  (`users.avatar_url`) is never shown anywhere — this site never calls Google;
+  the Pilots table shows the photo a pilot uploaded.
 - **Each pilot has a storage limit**: `app_settings.default_storage_quota_bytes`
   (512 MiB to start, set on the Admin page) unless `users.storage_quota_bytes` gives them
   their own. Usage is photos, post images and flight logs, summed in SQL in
@@ -498,6 +508,20 @@ The rules that keep Tailwind and Angular Material from fighting:
   set on `/account` (`PATCH /users/me/name`), else "First L.". A repository
   that selects `displayName` for someone else's eyes must select `pilotName`
   beside it and call `publicName` (`apps/api/e2e/pilot-name.e2e.spec.ts`).
+- **A pilot's face is a photo they upload, never Google's.** `/account`
+  uploads it through the presigned rails (`POST /users/me/photo/uploads`, then
+  `…/:assetId/commit`); commit keeps only a 256 px square WebP with no EXIF
+  at `<id>/photo/<uuid>.webp`, deletes the upload and any photo it replaces,
+  and points `users.photo_asset_id` at the asset — one row, so it counts
+  toward the storage limit, and the display backfill skips it. Its address
+  never expires: `pilotPhotoUrl` (`libs/shared`) builds
+  `/api/users/:id/photo?v=<asset id>`, a public route redirecting to a fresh
+  signature like a post's images, so a repository that already joins `users`
+  for a name selects `photoAssetId` beside it and hands out
+  `ownerPhotoUrl` / `authorPhotoUrl` without asking `media`. `sh-avatar`
+  (`core/components/avatar`) draws it, or the name's first letter, beside
+  "Shared by", post authors, comments and the Pilots table
+  (`pilot-photo.e2e.spec.ts`).
 - **Nx injects every `.env` value into every task**, and the Angular dev server
   honours `PORT`. With `PORT=3000` set for the API, `nx serve client` grabbed
   3000 too and nothing bound 4200 — and on Windows the second bind _succeeds_
@@ -1046,6 +1070,33 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   with its place joined in the reports repository, public names only; Dismiss
   (`PATCH /admin/reports/:id`) closes every open report about the same thing.
   A report goes with its post, comment or reporter (`reports.e2e.spec.ts`).
+- **An admin hides or deletes any post or comment**, and hides every post a
+  pilot wrote at once (the Pilots table's "Hide their posts"). Hidden is
+  `hidden_at` on `posts` and `comments`, not a deletion: a hidden post joins
+  drafts in the rule for who may open it — `hiddenAt: null` sits in every
+  `SHARED` predicate (posts, likes, post images), so it answers 404 to all but
+  its author, who sees it marked, and choosing a visibility does not bring it
+  back. A hidden comment leaves the conversation for everyone, admins
+  included, except a question with replies, which stays as "Hidden by an
+  admin" like a deleted one; it is not counted, reworded, replied to or
+  reported. The admin routes live in the module that owns the rows —
+  `admin/posts/:id`, `admin/users/:id/posts`, `admin/comments/:id`, each with
+  `assertAdmin` — and are the only writes not scoped by owner; every owner
+  route is untouched. The Admin page's Hidden section shows them again or
+  deletes them (`moderation.e2e.spec.ts`).
+- **A pilot blocks another** (`blocks`, `pilot_blocks`: one row per pair,
+  never oneself by a CHECK, going with either pilot). The blocked pilot can no
+  longer comment or reply on anything the blocker owns — spots, builds, posts
+  — and meets 403 "Comments are closed here", never the word "blocked". The
+  blocker no longer sees their comments anywhere: they leave the conversation
+  like a hidden one, a question with others' replies staying as "From a pilot
+  you blocked", and they are not counted as unread. Everyone else sees exactly
+  what they saw. `comments` asks `BlocksFacade` both things; `blocks` depends
+  on no feature module. A comment carries `authorId` for a signed-in reader so
+  Block can name its author (null for a visitor and on a placeholder). Nobody
+  blocks an admin. `PUT`/`DELETE /users/blocks/:userId` stay open to a
+  read-only pilot; the list (`GET /users/me/blocks`, public names) is on
+  `/account` with Unblock (`blocks.e2e.spec.ts`).
 - **zod 4 applies `.default()` inside `.partial()`.** An update schema built as
   `fields.partial()` over fields with defaults resets every field a PATCH does
   not name. It was live in builds, parts, part units, part sources and repairs

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { publicName, CommentSubject } from '@spothub/shared';
+import {
+  CommentSubject,
+  pilotPhotoUrl,
+  publicName,
+  ReportPlaceKind,
+} from '@spothub/shared';
 
 import { PrismaService } from '../prisma';
 import { CommentsRepository } from './abstract/comments.repository';
@@ -8,13 +13,14 @@ import type {
   CommentEntity,
   CommentPlacement,
   CreateCommentData,
+  HiddenCommentEntity,
   SubjectRef,
   UnreadBySubject,
 } from './comment.entity';
 
 /** Only the author's display name rides along — never the rest of their user row. */
 const WITH_AUTHOR_NAME = {
-  author: { select: { displayName: true, pilotName: true } },
+  author: { select: { displayName: true, pilotName: true, photoAssetId: true } },
 } satisfies Prisma.CommentInclude;
 
 type CommentRow = Prisma.CommentGetPayload<{ include: typeof WITH_AUTHOR_NAME }>;
@@ -59,6 +65,7 @@ export class PrismaCommentsRepository extends CommentsRepository {
         postId: true,
         authorId: true,
         deletedAt: true,
+        hiddenAt: true,
       },
     });
 
@@ -74,7 +81,14 @@ export class PrismaCommentsRepository extends CommentsRepository {
           ? { subject: CommentSubject.Post, subjectId: row.postId }
           : null;
 
-    return ref ? { ref, authorId: row.authorId, deleted: row.deletedAt !== null } : null;
+    return ref
+      ? {
+          ref,
+          authorId: row.authorId,
+          deleted: row.deletedAt !== null,
+          hidden: row.hiddenAt !== null,
+        }
+      : null;
   }
 
   async create(ref: SubjectRef, data: CreateCommentData): Promise<CommentEntity> {
@@ -93,8 +107,14 @@ export class PrismaCommentsRepository extends CommentsRepository {
     body: string,
   ): Promise<boolean> {
     const { count } = await this.prisma.comment.updateMany({
-      // A deleted question has no words left to reword.
-      where: { id: commentId, authorId, deletedAt: null, ...onSubject(ref) },
+      // A deleted question has no words left to reword, and a hidden one stays as an admin left it.
+      where: {
+        id: commentId,
+        authorId,
+        deletedAt: null,
+        hiddenAt: null,
+        ...onSubject(ref),
+      },
       data: { body, editedAt: new Date() },
     });
 
@@ -247,6 +267,7 @@ export class PrismaCommentsRepository extends CommentsRepository {
 
   async countUnreadForOwner(ownerId: string): Promise<UnreadBySubject> {
     // One query for every spot, build and post the owner has, rather than one per card.
+    // A pilot the owner blocked is not counted: their comments are not shown to them.
     const rows = await this.prisma.$queryRaw<
       { subject: CommentSubject; subject_id: string; unread: number }[]
     >`
@@ -257,6 +278,11 @@ export class PrismaCommentsRepository extends CommentsRepository {
       WHERE s.owner_id = ${ownerId}::uuid
         AND c.author_id <> s.owner_id
         AND c.deleted_at IS NULL
+        AND c.hidden_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pilot_blocks pb
+          WHERE pb.blocker_id = ${ownerId}::uuid AND pb.blocked_id = c.author_id
+        )
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.spot_id
       UNION ALL
@@ -267,6 +293,11 @@ export class PrismaCommentsRepository extends CommentsRepository {
       WHERE b.owner_id = ${ownerId}::uuid
         AND c.author_id <> b.owner_id
         AND c.deleted_at IS NULL
+        AND c.hidden_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pilot_blocks pb
+          WHERE pb.blocker_id = ${ownerId}::uuid AND pb.blocked_id = c.author_id
+        )
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.build_id
       UNION ALL
@@ -277,6 +308,11 @@ export class PrismaCommentsRepository extends CommentsRepository {
       WHERE p.author_id = ${ownerId}::uuid
         AND c.author_id <> p.author_id
         AND c.deleted_at IS NULL
+        AND c.hidden_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pilot_blocks pb
+          WHERE pb.blocker_id = ${ownerId}::uuid AND pb.blocked_id = c.author_id
+        )
         AND (r.read_at IS NULL OR c.created_at > r.read_at)
       GROUP BY c.post_id
     `;
@@ -292,6 +328,83 @@ export class PrismaCommentsRepository extends CommentsRepository {
     }
 
     return counts;
+  }
+
+  async findHidden(): Promise<HiddenCommentEntity[]> {
+    const rows = await this.prisma.comment.findMany({
+      where: { hiddenAt: { not: null } },
+      select: {
+        id: true,
+        body: true,
+        spotId: true,
+        buildId: true,
+        hiddenAt: true,
+        author: { select: { displayName: true, pilotName: true } },
+        post: { select: { id: true, slug: true } },
+      },
+      orderBy: [{ hiddenAt: 'desc' }, { id: 'asc' }],
+    });
+
+    return rows.flatMap((row) => {
+      const place = row.post
+        ? { kind: ReportPlaceKind.Post, id: row.post.id, slug: row.post.slug }
+        : row.spotId
+          ? { kind: ReportPlaceKind.Spot, id: row.spotId, slug: null }
+          : row.buildId
+            ? { kind: ReportPlaceKind.Build, id: row.buildId, slug: null }
+            : null;
+
+      return place && row.hiddenAt
+        ? [
+            {
+              id: row.id,
+              body: row.body,
+              authorName:
+                publicName(row.author.pilotName, row.author.displayName) ?? 'A pilot',
+              place,
+              hiddenAt: row.hiddenAt,
+            },
+          ]
+        : [];
+    });
+  }
+
+  async setHidden(commentId: string, hidden: boolean): Promise<boolean> {
+    // What is left of a deleted question has no words to hide.
+    const { count } = await this.prisma.comment.updateMany({
+      where: { id: commentId, deletedAt: null },
+      data: { hiddenAt: hidden ? new Date() : null },
+    });
+
+    return count > 0;
+  }
+
+  deleteAny(commentId: string): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const comment = await tx.comment.findUnique({
+        where: { id: commentId },
+        select: { parentId: true },
+      });
+
+      if (!comment) {
+        return false;
+      }
+
+      // Replies go through the foreign key's ON DELETE CASCADE.
+      await tx.comment.deleteMany({ where: { id: commentId } });
+
+      if (comment.parentId !== null) {
+        await tx.comment.deleteMany({
+          where: {
+            id: comment.parentId,
+            deletedAt: { not: null },
+            replies: { none: {} },
+          },
+        });
+      }
+
+      return true;
+    });
   }
 }
 
@@ -326,11 +439,13 @@ function toEntity(row: CommentRow): CommentEntity {
     id: row.id,
     authorId: row.authorId,
     authorName: publicName(row.author.pilotName, row.author.displayName),
+    authorPhotoUrl: pilotPhotoUrl(row.authorId, row.author.photoAssetId),
     parentId: row.parentId,
     body: row.body,
     isAnswer: row.isAnswer,
     editedAt: row.editedAt,
     deletedAt: row.deletedAt,
+    hiddenAt: row.hiddenAt,
     createdAt: row.createdAt,
   };
 }
