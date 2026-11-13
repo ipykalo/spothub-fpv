@@ -58,3 +58,15 @@ export function coverSrcset(cover: ResponsiveImageDto): string | null {
     scaledWidth(w, h, DISPLAY_EDGE),
   );
 }
+
+/**
+ * What to show blurred behind an image while it loads: its thumbnail, which
+ * is small, and usually cached already from the strip or a card — or nothing,
+ * when there is none or it is the very address being loaded.
+ */
+export function placeholderUrl(
+  thumbUrl: string | null | undefined,
+  src: string | null | undefined,
+): string | null {
+  return thumbUrl && thumbUrl !== src ? thumbUrl : null;
+}

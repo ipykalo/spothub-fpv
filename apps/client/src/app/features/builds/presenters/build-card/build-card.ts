@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { BUILD_CLASS_LABELS, BUILD_STATUS_LABELS, type BuildDto } from '@spothub/shared';
 
-import { coverSrcset } from '../../../../core/images/srcset';
+import { coverSrcset, placeholderUrl } from '../../../../core/images/srcset';
 import { BUILD_STATUS_STYLES } from '../../build-status';
 
 /**
@@ -50,6 +50,12 @@ export class BuildCard {
   protected readonly coverSrcset = computed(() => {
     const cover = this.build().coverImage;
     return cover ? coverSrcset(cover) : null;
+  });
+
+  /** The cover's thumbnail, shown blurred behind it while it loads. */
+  protected readonly placeholder = computed(() => {
+    const cover = this.build().coverImage;
+    return cover ? placeholderUrl(cover.thumbUrl, cover.url) : null;
   });
 
   /**

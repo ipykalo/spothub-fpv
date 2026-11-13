@@ -32,7 +32,7 @@ const VIEWER_SIZES = '100vw';
  * buttons feel stuck.
  */
 const DECODE_WAIT_MS = 250;
-import { photoSrcset } from '../../../../core/images/srcset';
+import { photoSrcset, placeholderUrl } from '../../../../core/images/srcset';
 import { swipeStep } from './swipe';
 
 /**
@@ -106,6 +106,21 @@ export class PhotoGallery {
   protected readonly srcset = photoSrcset;
   protected readonly gallerySizes = GALLERY_SIZES;
   protected readonly viewerSizes = VIEWER_SIZES;
+
+  /**
+   * Which images have painted, as `box:<id>` and `viewer:<id>` — the two
+   * places a photo shows, each at its own size. Until one has, its thumbnail
+   * sits blurred behind it rather than an empty grey box.
+   */
+  protected readonly loaded = signal<ReadonlySet<string>>(new Set());
+
+  protected placeholder(photo: AssetDto): string | null {
+    return placeholderUrl(photo.thumbUrl, photo.displayUrl ?? photo.url);
+  }
+
+  protected markLoaded(key: string): void {
+    this.loaded.update((keys) => (keys.has(key) ? keys : new Set(keys).add(key)));
+  }
 
   /**
    * The photos either side of the one showing, two each way, fetched ahead

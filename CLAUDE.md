@@ -1292,6 +1292,11 @@ upright** (`uprightSize`): a phone photo taken upright is landscape pixels
 with an EXIF orientation of 5–8, and commit used to record the raw sides,
 which made a `srcset` describe a portrait photo as landscape. The backfill
 corrects the size of every older image it gives a display version.
+**While a photo loads, its thumbnail stands in, blurred** (`placeholderUrl`
+in `srcset.ts`): in the gallery box and the viewer until that image's
+`load` fires, and under a build or blog card's cover for good, since the
+cover hides it once painted. Nothing is drawn when the thumbnail is the very
+file loading.
 
 The `assets` table is polymorphic on `subject_type`, so parts and repairs get
 photos later with a row rather than a table. `build` and `post` exist today;
