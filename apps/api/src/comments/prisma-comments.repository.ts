@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma';
 import { CommentsRepository } from './abstract/comments.repository';
 import type {
   CommentEntity,
+  CommentPlacement,
   CreateCommentData,
   SubjectRef,
   UnreadBySubject,
@@ -47,6 +48,33 @@ export class PrismaCommentsRepository extends CommentsRepository {
     });
 
     return row ? toEntity(row) : null;
+  }
+
+  async findPlacement(commentId: string): Promise<CommentPlacement | null> {
+    const row = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      select: {
+        spotId: true,
+        buildId: true,
+        postId: true,
+        authorId: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!row) {
+      return null;
+    }
+
+    const ref: SubjectRef | null = row.spotId
+      ? { subject: CommentSubject.Spot, subjectId: row.spotId }
+      : row.buildId
+        ? { subject: CommentSubject.Build, subjectId: row.buildId }
+        : row.postId
+          ? { subject: CommentSubject.Post, subjectId: row.postId }
+          : null;
+
+    return ref ? { ref, authorId: row.authorId, deleted: row.deletedAt !== null } : null;
   }
 
   async create(ref: SubjectRef, data: CreateCommentData): Promise<CommentEntity> {

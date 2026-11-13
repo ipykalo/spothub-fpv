@@ -2,6 +2,10 @@ import { Injector, runInInjectionContext } from '@angular/core';
 import {
   type AdminUserDto,
   type AppSettingsDto,
+  type ReportDto,
+  ReportPlaceKind,
+  ReportReason,
+  ReportSubject,
   Role,
   type UpdateAdminUserDto,
   type UpdateAppSettingsDto,
@@ -44,7 +48,26 @@ describe('AdminStore', () => {
         lastSignInCountry: null,
       },
     ];
+    openReports: ReportDto[] = [
+      report('r1', 'c1'),
+      report('r2', 'c1'),
+      report('r3', 'c2'),
+    ];
     fails = false;
+
+    reports(): Observable<ReportDto[]> {
+      return of(this.openReports);
+    }
+
+    resolveReport(id: string): Observable<ReportDto[]> {
+      if (this.fails) {
+        return throwError(() => new Error('forbidden'));
+      }
+
+      const about = this.openReports.find((entry) => entry.id === id)?.excerpt;
+      this.openReports = this.openReports.filter((entry) => entry.excerpt !== about);
+      return of(this.openReports);
+    }
 
     settings(): Observable<AppSettingsDto> {
       return this.fails ? throwError(() => new Error('offline')) : of(this.stored);
@@ -175,4 +198,38 @@ describe('AdminStore', () => {
     expect(store.settings()?.allowedEmails).toEqual(['pilot@example.com']);
     expect(store.saving()).toBe(false);
   });
+
+  describe('reports', () => {
+    it('loads the open reports with the rest of the page', async () => {
+      await store.load();
+      expect(store.reports().map((entry) => entry.id)).toEqual(['r1', 'r2', 'r3']);
+    });
+
+    it('closing one drops every report about the same thing, as the API answered', async () => {
+      await store.load();
+      expect(await store.resolveReport('r1')).toBe(true);
+      expect(store.reports().map((entry) => entry.id)).toEqual(['r3']);
+    });
+
+    it('a failed close leaves the list as it was', async () => {
+      await store.load();
+      api.fails = true;
+      expect(await store.resolveReport('r1')).toBe(false);
+      expect(store.reports()).toHaveLength(3);
+    });
+  });
 });
+
+function report(id: string, about: string): ReportDto {
+  return {
+    id,
+    subject: ReportSubject.Comment,
+    reason: ReportReason.Spam,
+    details: null,
+    reporterName: 'Reporter R.',
+    authorName: 'Author A.',
+    excerpt: about,
+    place: { kind: ReportPlaceKind.Post, id: 'p1', slug: 'a-post' },
+    createdAt: '2026-11-13T00:00:00.000Z',
+  };
+}

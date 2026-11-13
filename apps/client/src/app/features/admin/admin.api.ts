@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import type {
   AdminUserDto,
   AppSettingsDto,
+  ReportDto,
   UpdateAdminUserDto,
   UpdateAppSettingsDto,
 } from '@spothub/shared';
@@ -30,6 +31,18 @@ export class AdminApi {
 
   updateUser(id: string, body: UpdateAdminUserDto): Observable<AdminUserDto> {
     return this.http.patch<AdminUserDto>(`${this.base}/admin/users/${id}`, body);
+  }
+
+  /** Every open report, newest first. */
+  reports(): Observable<ReportDto[]> {
+    return this.http.get<ReportDto[]>(`${this.base}/admin/reports`);
+  }
+
+  /** Closes a report and every other open one about the same post or comment; answers with what is left. */
+  resolveReport(id: string): Observable<ReportDto[]> {
+    return this.http.patch<ReportDto[]>(`${this.base}/admin/reports/${id}`, {
+      resolved: true,
+    });
   }
 
   private url(): string {

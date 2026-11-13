@@ -16,6 +16,7 @@ import {
   CommentSubject,
   type ConversationDto,
   type PostDto,
+  ReportSubject,
   Visibility,
 } from '@spothub/shared';
 import { firstValueFrom } from 'rxjs';
@@ -28,6 +29,7 @@ import { injectStructuredData } from '../../../core/seo/structured-data';
 import { BuildCard } from '../../builds/presenters/build-card/build-card';
 import { CommentsSection } from '../../comments/containers/comments-section';
 import { LikeButton } from '../../likes/containers/like-button';
+import { ReportButton } from '../../reports/containers/report-button/report-button';
 import { PostsApi } from '../posts.api';
 
 /**
@@ -49,6 +51,7 @@ import { PostsApi } from '../posts.api';
     Markdown,
     MatButtonModule,
     MatIconModule,
+    ReportButton,
     RouterLink,
   ],
   templateUrl: './post.page.html',
@@ -64,6 +67,7 @@ export class PostPage {
 
   protected readonly auth = inject(AuthStore);
   protected readonly commentSubject = CommentSubject.Post;
+  protected readonly reportSubject = ReportSubject.Post;
   private readonly api = inject(PostsApi);
   private readonly meta = injectPageMeta();
   private readonly data = injectStructuredData();

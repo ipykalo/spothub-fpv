@@ -22,6 +22,14 @@ export interface CommentEntity {
   readonly createdAt: Date;
 }
 
+/** Where a comment is, and whose it is. */
+export interface CommentPlacement {
+  readonly ref: SubjectRef;
+  readonly authorId: string;
+  /** A question its asker deleted after others replied. */
+  readonly deleted: boolean;
+}
+
 /** Fields the persistence layer accepts on create. */
 export interface CreateCommentData {
   readonly authorId: string;

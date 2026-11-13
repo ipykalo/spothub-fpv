@@ -1,5 +1,6 @@
 import type {
   CommentEntity,
+  CommentPlacement,
   CreateCommentData,
   SubjectRef,
   UnreadBySubject,
@@ -19,6 +20,9 @@ export abstract class CommentsRepository {
   abstract findManyOn(ref: SubjectRef): Promise<CommentEntity[]>;
 
   abstract findOneOn(ref: SubjectRef, commentId: string): Promise<CommentEntity | null>;
+
+  /** What a comment is on and who wrote it, found by its id alone. */
+  abstract findPlacement(commentId: string): Promise<CommentPlacement | null>;
 
   abstract create(ref: SubjectRef, data: CreateCommentData): Promise<CommentEntity>;
 

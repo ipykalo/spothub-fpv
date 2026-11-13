@@ -3,6 +3,7 @@ import {
   type AdminUserDto,
   type AppSettingsDto,
   type CountryCode,
+  type ReportDto,
   type UpdateAdminUserDto,
   type UpdateAppSettingsDto,
   isCountryCode,
@@ -12,7 +13,8 @@ import { firstValueFrom } from 'rxjs';
 import { AdminApi } from './admin.api';
 
 /**
- * Signal-backed state for the Admin page: who may sign in.
+ * Signal-backed state for the Admin page: who may sign in, the pilots, and
+ * the open reports.
  *
  * Every change is saved at once and the page shows what the API answered, so
  * what is on screen is always what the next sign-in will be judged by.
@@ -23,12 +25,14 @@ export class AdminStore {
 
   private readonly current = signal<AppSettingsDto | null>(null);
   private readonly pilots = signal<readonly AdminUserDto[]>([]);
+  private readonly openReports = signal<readonly ReportDto[]>([]);
   private readonly busy = signal(false);
   private readonly writing = signal(false);
   private readonly failure = signal<string | null>(null);
 
   readonly settings = this.current.asReadonly();
   readonly users = this.pilots.asReadonly();
+  readonly reports = this.openReports.asReadonly();
   readonly loading = this.busy.asReadonly();
   readonly saving = this.writing.asReadonly();
   readonly error = this.failure.asReadonly();
@@ -38,12 +42,14 @@ export class AdminStore {
     this.failure.set(null);
 
     try {
-      const [settings, users] = await Promise.all([
+      const [settings, users, reports] = await Promise.all([
         firstValueFrom(this.api.settings()),
         firstValueFrom(this.api.users()),
+        firstValueFrom(this.api.reports()),
       ]);
       this.current.set(settings);
       this.pilots.set(users);
+      this.openReports.set(reports);
     } catch {
       this.failure.set('Could not load the settings.');
     } finally {
@@ -110,6 +116,23 @@ export class AdminStore {
       this.pilots.update((users) =>
         users.map((user) => (user.id === updated.id ? updated : user)),
       );
+      return true;
+    } catch {
+      return false;
+    } finally {
+      this.writing.set(false);
+    }
+  }
+
+  /**
+   * Closes a report — and the others about the same post or comment, which
+   * the list the API answers with no longer holds. True once closed.
+   */
+  async resolveReport(id: string): Promise<boolean> {
+    this.writing.set(true);
+
+    try {
+      this.openReports.set(await firstValueFrom(this.api.resolveReport(id)));
       return true;
     } catch {
       return false;

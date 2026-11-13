@@ -35,6 +35,7 @@ apps/api/src/
   comments/                                  questions and replies on spots, builds and posts
   posts/                                     the blog: posts pilots write about their builds
   likes/                                     hearts on posts and builds
+  reports/                                   pilots flagging a post or comment for an admin
   settings/                                  what an admin changes on the Admin page
   health/
 ```
@@ -114,11 +115,12 @@ what keeps NestJS decorator evaluation out of a circular load.
 needs go through a facade — an abstract class in the owning module's
 `abstract/`, implemented alongside it, bound with
 `{ provide: RepairsFacade, useClass: RepairsFacadeImpl }` and the only entry in
-that module's `exports`. There are nine: `UsersFacade` and `SettingsFacade` (both consumed by auth),
+that module's `exports`. There are ten: `UsersFacade` and `SettingsFacade` (both consumed by auth),
 `PartsFacade` and `RepairsFacade` (both consumed by build-parts),
 `FlightsFacade` (consumed by flight-logs), `SpotsFacade` (consumed by
 comments), `BuildsFacade` (consumed by comments and posts), `LikesFacade`
-(consumed by builds and posts) and `PostsFacade` (consumed by comments). A facade
+(consumed by builds and posts), `PostsFacade` (consumed by comments and
+reports) and `CommentsFacade` (consumed by reports). A facade
 answers in DTOs, not entities, so a consumer is coupled only to the contract in
 `libs/shared` that both sides of the wire already share.
 
@@ -186,6 +188,7 @@ features/
   comments/     comments.api/store, comments-section container, comment-form + questions presenters (dropped into the spot, build and post pages)
   posts/        posts.api/store/resolvers, containers (blog, post, my posts, form), post-card + post-form presenters
   likes/        likes.api, like-button container (dropped into the post and build pages)
+  reports/      reports.api, report-button container (the post page), report-form presenter (also under each comment)
   admin/        admin.api/store, admin.page container + sign-up-settings presenter
 ```
 
@@ -1020,6 +1023,16 @@ its own page and a Leaflet map (`/spots`), where clicking an empty place offers
   crop is tested too.
 - Tiles come from OpenStreetMap, and nothing else sends a spot's coordinates
   anywhere. Weather was deliberately deferred for that reason.
+- **A pilot reports a post or a comment** (`reports`, `POST /reports`): a
+  reason — spam, abuse, illegal, something else, which needs words — and up
+  to 500 characters. Only what the reporter can open, asked of `PostsFacade`
+  and `CommentsFacade` and 404 otherwise, and never their own words (400).
+  One row per reporter per post or comment, by unique index; reporting again
+  replaces the reason and reopens it. The Admin page's Reports section
+  (`GET /admin/reports`, open ones, newest first) shows what was reported
+  with its place joined in the reports repository, public names only; Dismiss
+  (`PATCH /admin/reports/:id`) closes every open report about the same thing.
+  A report goes with its post, comment or reporter (`reports.e2e.spec.ts`).
 - **zod 4 applies `.default()` inside `.partial()`.** An update schema built as
   `fields.partial()` over fields with defaults resets every field a PATCH does
   not name. It was live in builds, parts, part units, part sources and repairs
