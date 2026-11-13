@@ -1,45 +1,32 @@
 import { describe, expect, it } from 'vitest';
 
-import { neighbourPhotoUrls } from './neighbour-photos';
+import { neighbourPhotos } from './neighbour-photos';
 
-const photo = (name: string, full = true): { url: string | null; thumbUrl: string } => ({
-  url: full ? `full-${name}` : null,
-  thumbUrl: `thumb-${name}`,
-});
+const photos = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id }));
+const ids = (found: readonly { id: string }[]): string[] =>
+  found.map((photo) => photo.id);
 
-describe('neighbourPhotoUrls', () => {
-  const photos = [photo('a'), photo('b'), photo('c'), photo('d')];
-
-  it('gives the next and the previous photo’s full image', () => {
-    expect(neighbourPhotoUrls(photos, 1)).toEqual(['full-c', 'full-a']);
+describe('neighbourPhotos', () => {
+  it('gives two each way, nearest first: next, previous, then the next ones out', () => {
+    expect(ids(neighbourPhotos(photos, 2))).toEqual(['d', 'b', 'e', 'a']);
   });
 
   it('wraps round at both ends, as next and previous do', () => {
-    expect(neighbourPhotoUrls(photos, 0)).toEqual(['full-b', 'full-d']);
-    expect(neighbourPhotoUrls(photos, 3)).toEqual(['full-a', 'full-c']);
+    expect(ids(neighbourPhotos(photos, 0))).toEqual(['b', 'f', 'c', 'e']);
+    expect(ids(neighbourPhotos(photos, 5))).toEqual(['a', 'e', 'b', 'd']);
   });
 
-  it('names a photo shown from its thumbnail by that, and two photos once', () => {
-    expect(neighbourPhotoUrls([photo('a'), photo('b', false)], 0)).toEqual(['thumb-b']);
+  it('names each photo once, and never the one showing, in a short set', () => {
+    expect(ids(neighbourPhotos(photos.slice(0, 3), 0))).toEqual(['b', 'c']);
+    expect(ids(neighbourPhotos(photos.slice(0, 2), 0))).toEqual(['b']);
   });
 
-  it('fetches the display version where a photo has one', () => {
-    const sized = (
-      name: string,
-    ): { displayUrl: string; url: string; thumbUrl: string } => ({
-      displayUrl: `display-${name}`,
-      url: `full-${name}`,
-      thumbUrl: `thumb-${name}`,
-    });
-
-    expect(neighbourPhotoUrls([sized('a'), sized('b'), photo('c')], 0)).toEqual([
-      'display-b',
-      'full-c',
-    ]);
+  it('reaches as far as asked', () => {
+    expect(ids(neighbourPhotos(photos, 2, 1))).toEqual(['d', 'b']);
   });
 
   it('has nothing to fetch for one photo or none', () => {
-    expect(neighbourPhotoUrls([photo('a')], 0)).toEqual([]);
-    expect(neighbourPhotoUrls([], 0)).toEqual([]);
+    expect(neighbourPhotos(photos.slice(0, 1), 0)).toEqual([]);
+    expect(neighbourPhotos([], 0)).toEqual([]);
   });
 });

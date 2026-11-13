@@ -1,25 +1,36 @@
-/** What a photo can be shown from: its display version, else its full image, else its thumbnail. */
-interface Showable {
-  readonly displayUrl?: string | null;
-  readonly url: string | null;
-  readonly thumbUrl: string | null;
-}
+/** How many photos either side of the one showing are fetched ahead. */
+export const NEIGHBOUR_REACH = 2;
 
 /**
- * The images either side of the one showing, wrapping round as next and
- * previous do, so they can be fetched before they are asked for and a step
- * through the photos shows each at once. Nothing for a single photo.
+ * The photos either side of the one showing, nearest first — next, previous,
+ * the one after next, the one before previous — wrapping round as next and
+ * previous do, so they can be fetched before they are asked for and a step,
+ * or two quick steps, through the photos shows each at once. Each photo once,
+ * never the one showing; nothing for a single photo.
  */
-export function neighbourPhotoUrls(photos: readonly Showable[], index: number): string[] {
+export function neighbourPhotos<T extends { readonly id: string }>(
+  photos: readonly T[],
+  index: number,
+  reach = NEIGHBOUR_REACH,
+): T[] {
   const count = photos.length;
 
   if (count < 2) {
     return [];
   }
 
-  const urls = [photos[(index + 1) % count], photos[(index - 1 + count) % count]]
-    .map((photo) => photo.displayUrl ?? photo.url ?? photo.thumbUrl)
-    .filter((url): url is string => url !== null);
+  const showing = photos[index]?.id;
+  const found = new Map<string, T>();
 
-  return [...new Set(urls)];
+  for (let distance = 1; distance <= reach; distance += 1) {
+    for (const at of [index + distance, index - distance]) {
+      const photo = photos[((at % count) + count) % count];
+
+      if (photo.id !== showing) {
+        found.set(photo.id, photo);
+      }
+    }
+  }
+
+  return [...found.values()];
 }
