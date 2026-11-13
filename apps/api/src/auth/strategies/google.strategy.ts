@@ -23,6 +23,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
+  /**
+   * Always shows Google's account chooser. Without it, Google silently
+   * continues with the account the browser is signed in to, so after signing
+   * out of SpotHub a second click on "Continue with Google" lands straight
+   * back in the same account, with no way to pick another one.
+   */
+  override authorizationParams(): Record<string, string> {
+    return { prompt: 'select_account' };
+  }
+
   override validate(
     _accessToken: string,
     _refreshToken: string,
