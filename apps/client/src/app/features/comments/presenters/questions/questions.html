@@ -46,19 +46,29 @@
 
 <!-- One comment, question or reply: who, when, what was said, and what the viewer may do. -->
 <ng-template #entry let-comment let-isReply="isReply">
-  @if (comment.deleted || comment.hidden) {
+  @if (comment.deleted || comment.hidden || comment.blocked) {
     <!--
-      Its asker deleted it, or an admin hid it, after others replied: no words, no name, the
-      replies kept below.
+      Its asker deleted it, an admin hid it, or the reader blocked who wrote it, after others
+      replied: no words, no name, the replies kept below.
     -->
     <article
       class="grid gap-1.5"
-      [attr.aria-label]="comment.hidden ? 'Hidden by an admin' : isPost() ? 'Deleted comment' : 'Deleted question'"
+      [attr.aria-label]="
+        comment.hidden
+          ? 'Hidden by an admin'
+          : comment.blocked
+            ? 'From a pilot you blocked'
+            : isPost()
+              ? 'Deleted comment'
+              : 'Deleted question'
+      "
     >
       <header class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         <span class="text-muted italic">
           @if (comment.hidden) {
             Hidden by an admin
+          } @else if (comment.blocked) {
+            From a pilot you blocked
           } @else {
             {{ isPost() ? 'Comment deleted' : 'Question deleted' }}
           }
@@ -179,6 +189,13 @@
           <button matButton type="button" (click)="startReport(comment.id)">
             <mat-icon>flag</mat-icon>
             Report
+          </button>
+        }
+
+        @if (!comment.byViewer && comment.authorId && !readOnly()) {
+          <button matButton type="button" [disabled]="saving()" (click)="authorBlocked.emit(comment)">
+            <mat-icon>block</mat-icon>
+            Block
           </button>
         }
       </div>

@@ -17,6 +17,13 @@
       (chosen)="saveHomeCurrency($event)"
     />
 
+    <sh-blocked-pilots
+      [pilots]="blocks.blocked()"
+      [saving]="blocks.saving()"
+      [error]="blocks.error()"
+      (unblocked)="unblock($event)"
+    />
+
     <sh-sign-out-everywhere [busy]="signingOut()" [error]="signOutError()" (requested)="signOutEverywhere()" />
 
     <sh-account-details

@@ -14,6 +14,8 @@ export interface CommentViewContext {
   readonly ownerId: string;
   /** Whether a reply can be marked as the answer — on spots and builds, not on a post's discussion. */
   readonly answers: boolean;
+  /** Pilots the viewer blocked: their words are left out of what the viewer sees. */
+  readonly blocked: ReadonlySet<string>;
 }
 
 /**
@@ -26,7 +28,7 @@ export function toConversationDto(
   all: readonly CommentEntity[],
   context: CommentViewContext,
 ): ConversationDto {
-  const comments = withoutHidden(all);
+  const comments = withoutUnseen(all, context.blocked);
   const askerOf = new Map<string, string>();
 
   for (const comment of comments) {
@@ -63,22 +65,26 @@ export function toConversationDto(
 }
 
 /**
- * What an admin hid is left out: a hidden reply, and a hidden question nobody
- * replied to. A hidden question with replies stays as a placeholder, so the
- * replies keep their context — as does what is left of a deleted question,
- * which goes too once nothing visible is under it.
+ * What an admin hid, and what a pilot the viewer blocked wrote, is left out: a
+ * reply, and a question nobody replied to. Such a question with replies stays
+ * as a placeholder, so the replies keep their context — as does what is left
+ * of a deleted question, which goes too once nothing visible is under it.
  */
-function withoutHidden(comments: readonly CommentEntity[]): CommentEntity[] {
+function withoutUnseen(
+  comments: readonly CommentEntity[],
+  blocked: ReadonlySet<string>,
+): CommentEntity[] {
+  const seen = (comment: CommentEntity): boolean =>
+    comment.hiddenAt === null && !blocked.has(comment.authorId);
   const shownReplies = comments.filter(
-    (comment) => comment.parentId !== null && comment.hiddenAt === null,
+    (comment) => comment.parentId !== null && seen(comment),
   );
   const answered = new Set(shownReplies.map((reply) => reply.parentId));
 
   return comments.filter((comment) =>
     comment.parentId === null
-      ? (comment.hiddenAt === null && comment.deletedAt === null) ||
-        answered.has(comment.id)
-      : comment.hiddenAt === null,
+      ? (seen(comment) && comment.deletedAt === null) || answered.has(comment.id)
+      : seen(comment),
   );
 }
 
@@ -91,20 +97,24 @@ function toCommentDto(
   const viewerOwnsSubject = context.viewerId === context.ownerId;
   const deleted = comment.deletedAt !== null;
   const hidden = comment.hiddenAt !== null;
-  // A deleted or hidden question no longer says who asked it, not even to the asker.
-  const gone = deleted || hidden;
+  const blocked = !deleted && !hidden && context.blocked.has(comment.authorId);
+  // A deleted, hidden or blocked question no longer says who asked it, not even to the asker.
+  const gone = deleted || hidden || blocked;
   const byViewer = !gone && comment.authorId === context.viewerId;
 
   return {
     id: comment.id,
     body: gone ? '' : comment.body,
     authorName: gone ? null : comment.authorName,
+    // A signed-out visitor can block nobody, so is told nobody's id.
+    authorId: gone || context.viewerId === null ? null : comment.authorId,
     byOwner: !gone && comment.authorId === context.ownerId,
     byViewer,
     // What is left of a deleted or hidden question is the owner's to clear.
     canDelete: byViewer || viewerOwnsSubject,
     deleted,
     hidden,
+    blocked,
     isAnswer: comment.isAnswer,
     canMarkAnswer:
       context.answers &&

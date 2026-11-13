@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import type { Currency } from '@spothub/shared';
+import type { BlockedPilotDto, Currency } from '@spothub/shared';
 
 import { AuthStore } from '../../../core/auth/auth.store';
+import { BlocksStore } from '../../blocks/blocks.store';
+import { BlockedPilots } from '../../blocks/presenters/blocked-pilots/blocked-pilots';
 import { AccountStore } from '../account.store';
 import { AccountDetails } from '../presenters/account-details/account-details';
 import { PilotNameForm } from '../presenters/pilot-name-form/pilot-name-form';
@@ -17,13 +19,20 @@ import { SignOutEverywhere } from '../presenters/sign-out-everywhere/sign-out-ev
 @Component({
   selector: 'sh-account-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AccountDetails, HomeCurrencyForm, PilotNameForm, SignOutEverywhere],
+  imports: [
+    AccountDetails,
+    BlockedPilots,
+    HomeCurrencyForm,
+    PilotNameForm,
+    SignOutEverywhere,
+  ],
   templateUrl: './account.page.html',
   styleUrl: './account.page.scss',
 })
 export class AccountPage {
   protected readonly auth = inject(AuthStore);
   protected readonly store = inject(AccountStore);
+  protected readonly blocks = inject(BlocksStore);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -32,6 +41,13 @@ export class AccountPage {
 
   constructor() {
     void this.store.load();
+    void this.blocks.load();
+  }
+
+  protected async unblock(pilot: BlockedPilotDto): Promise<void> {
+    if (await this.blocks.unblock(pilot.userId)) {
+      this.snackBar.open(`${pilot.name} is unblocked.`, undefined, { duration: 4000 });
+    }
   }
 
   protected async savePilotName(pilotName: string | null): Promise<void> {
